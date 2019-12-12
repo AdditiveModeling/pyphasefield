@@ -37,3 +37,7 @@
 # compiled setup files, these can be generated using 'python setup.py sdist bdist_wheel'
 *.gz
 *.whl
+
+# ignore setup generated folders
+**/build
+**/pyphasefield.egg-info
