@@ -145,7 +145,7 @@ class Simulation:
         c = np.zeros(dim)
         length = dim[0]
         c[length//4:3*length//4] = 1
-        c_field = Field(c, name="c", cell_spacing=self._cell_spacing_in_cm)
+        c_field = Field(c, name="c", simulation=self)
         self.add_field(c_field)
         self.set_engine(Diffusion_engine)
         return
