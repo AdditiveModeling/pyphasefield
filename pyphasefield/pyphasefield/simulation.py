@@ -1,18 +1,19 @@
 import numpy as np
 from .field import Field
+from . import Engines
 
 class Simulation:
     def __init__(self, save_path):
         self.fields = []
         self.temperature = None
         self._dimensions_of_simulation_region = [200,200]
-        self._cell_spacing_in_cm = 1.
+        self._cell_spacing_in_meters = 1.
         self._time_step_in_seconds = 1.
         self._simulation_time_step_reached = 0
         self._temperature_type = "isothermal"
         self._initial_temperature_left_side = 1574.
-        self._thermal_gradient_K_per_cm = 0.
-        self._cooling_rate_K_per_second = 0.
+        self._thermal_gradient_Kelvin_per_meter = 0.
+        self._cooling_rate_Kelvin_per_second = 0.
         self._tdb = ""
         self._components = []
         self._phases = []
@@ -83,8 +84,18 @@ class Simulation:
         return
     
     def set_cell_spacing(self, cell_spacing):
-        self._cell_spacing_in_cm = cell_spacing
+        self._cell_spacing_in_meters = cell_spacing
         return
+    
+    def get_cell_spacing(self):
+        return self._cell_spacing_in_meters
+    
+    def set_time_step(self, time_step):
+        self._time_step_in_seconds = time_step
+        return
+    
+    def get_time_step(self):
+        return self._time_step_in_seconds
     
     def add_field(self, field):
         #warn if field dimensions dont match simulation dimensions
@@ -133,19 +144,9 @@ class Simulation:
         return
     
     def init_sim_Diffusion(self, dim=[200]):
-        def Diffusion_engine(sim):
-            D = 0.1
-            dt = sim._time_step_in_seconds
-            c = sim.fields[0]
-            dc = dt*(D*c.laplacian())
-            sim.fields[0] += dc
-            sim.increment_step_counter()
-        self.set_dimensions(dim)
-        self.set_cell_spacing(1.)
-        c = np.zeros(dim)
-        length = dim[0]
-        c[length//4:3*length//4] = 1
-        c_field = Field(c, name="c", simulation=self)
-        self.add_field(c_field)
-        self.set_engine(Diffusion_engine)
+        Engines.init_Diffusion(self, dim)
+        return
+    
+    def init_sim_Warren1995(self, dim=[200, 200]):
+        Engines.init_Warren1995(self, dim)
         return
