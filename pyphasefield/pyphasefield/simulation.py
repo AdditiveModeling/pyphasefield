@@ -95,11 +95,11 @@ class Simulation:
         return
     
     def update_thermal_field(self):
-        if(self.temperature_type == "isothermal"):
+        if(self._temperature_type == "isothermal"):
             return
-        elif(self.temperature_type == "gradient"):
+        elif(self._temperature_type == "gradient"):
             return
-        elif(self.temperature_type == "file"):
+        elif(self._temperature_type == "file"):
             return
         #if it gets this far, warn user about unexpected temperature_type
         return
