@@ -79,12 +79,12 @@ def Warren1995(sim):
     
     sim.increment_step_counter()
     
-def init_Warren1995(sim, dim):
+def init_Warren1995(sim, dim, diamond_size=15):
     #original Warren1995 model uses centimeters, values have been converted to meters!
+    sim.set_dimensions(dim)
     phi = np.zeros(dim)
     phi += 1.
-    diamondParam = 15
-    for i in range(diamondParam):
+    for i in range(diamond_size):
         phi[(int)(dim[0]/2-i):(int)(dim[0]/2+i), ((int)(dim[1]/2-(diamondParam-i))):(int)(dim[1]/2+(diamondParam-i))] = 0
     phi_field = Field(phi, name="phi", simulation=sim)
     sim.add_field(phi_field)
