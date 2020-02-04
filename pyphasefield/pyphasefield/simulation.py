@@ -178,6 +178,7 @@ class Simulation:
     def init_sim_NComponent(self, dim=[200,200], sim_type="seed", tdb_path="Ni-Cu_Ideal.tdb", thermal_type="isothermal", 
                            initial_temperature=1574, thermal_gradient=0, cooling_rate=0, thermal_file_path="T.xdmf", 
                            initial_concentration_array=[0.40831]):
+        #initializes a Multicomponent simulation, using the NComponent model
         if not successfully_imported_pycalphad():
             return
         Engines.init_NComponent(self, dim, sim_type, tdb_path, thermal_type, initial_temperature, 
