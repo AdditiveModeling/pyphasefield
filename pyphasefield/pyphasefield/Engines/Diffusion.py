@@ -6,7 +6,6 @@ def Diffusion(sim):
     c = sim.fields[0]
     dc = dt*(sim.D*c.laplacian())
     sim.fields[0] += dc
-    sim.increment_step_counter()
     
 def init_Diffusion(sim, dim):
     sim.D = 0.1

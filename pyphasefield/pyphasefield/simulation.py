@@ -18,7 +18,7 @@ class Simulation:
         self._dimensions_of_simulation_region = [200,200]
         self._cell_spacing_in_meters = 1.
         self._time_step_in_seconds = 1.
-        self._simulation_time_step_reached = 0
+        self._time_step_counter = 0
         self._temperature_type = "isothermal"
         self._initial_temperature_left_side = 1574.
         self._thermal_gradient_Kelvin_per_meter = 0.
@@ -29,7 +29,7 @@ class Simulation:
         self._phases = []
         self._engine = None
         self._save_path = save_path
-        self._steps_per_checkpoint = 500
+        self._time_steps_per_checkpoint = 500
         self._save_images_at_each_checkpoint = False
         self._boundary_conditions_type = ["periodic", "periodic"]
     
@@ -38,9 +38,10 @@ class Simulation:
             dt=self._time_step_in_seconds
         self._time_step_in_seconds = dt
         for i in range(number_of_timesteps):
-            self.engine(self) #run engine on Simulation instance
+            self.increment_time_step_counter()
+            self.engine(self) #run engine on Simulation instance for 1 time step
             self.update_thermal_field()
-            if(self._simulation_time_step_reached%self._steps_per_checkpoint == 0):
+            if(self._time_step_counter%self._time_steps_per_checkpoint == 0):
                 self.save_simulation()
                 
     def load_tdb(self, tdb_path, phases=None, components=None):
@@ -70,8 +71,8 @@ class Simulation:
     def get_time_step_length(self):
         return self._time_step_in_seconds
     
-    def get_time_step_reached(self):
-        return self._simulation_time_step_reached
+    def get_time_step_counter(self):
+        return self._time_step_counter
     
     def set_time_step_length(self, time_step):
         self._time_step_in_seconds = time_step
@@ -130,8 +131,8 @@ class Simulation:
         self.engine = engine_function
         return
     
-    def set_checkpoint_rate(self, steps_per_checkpoint):
-        self._steps_per_checkpoint = steps_per_checkpoint
+    def set_checkpoint_rate(self, time_steps_per_checkpoint):
+        self._time_steps_per_checkpoint = time_steps_per_checkpoint
         return
     
     def set_automatic_plot_generation(self, plot_simulation_flag):
@@ -145,8 +146,8 @@ class Simulation:
     def set_boundary_conditions(self, boundary_conditions_type):
         self._boundary_conditions_type = boundary_conditions_type
     
-    def increment_step_counter(self):
-        self._simulation_time_step_reached += 1
+    def increment_time_step_counter(self):
+        self._time_step_counter += 1
         return
     
     def apply_boundary_conditions(self):
