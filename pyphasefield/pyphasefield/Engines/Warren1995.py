@@ -35,7 +35,7 @@ def gradyy(phi, dx):
     return (phip+phim-2*phi)/(dx*dx)
 
 def Warren1995(sim):
-    dt = sim.get_time_step()
+    dt = sim.get_time_step_length()
     dx = sim.get_cell_spacing()
     phi = sim.fields[0]
     c = sim.fields[1]
@@ -77,15 +77,13 @@ def Warren1995(sim):
     sim.fields[0] += deltaphi*dt
     sim.fields[1] += deltac*dt
     
-    sim.increment_step_counter()
-    
 def init_Warren1995(sim, dim, diamond_size=15):
     #original Warren1995 model uses centimeters, values have been converted to meters!
     sim.set_dimensions(dim)
     phi = np.zeros(dim)
     phi += 1.
     for i in range(diamond_size):
-        phi[(int)(dim[0]/2-i):(int)(dim[0]/2+i), ((int)(dim[1]/2-(diamondParam-i))):(int)(dim[1]/2+(diamondParam-i))] = 0
+        phi[(int)(dim[0]/2-i):(int)(dim[0]/2+i), ((int)(dim[1]/2-(diamond_size-i))):(int)(dim[1]/2+(diamond_size-i))] = 0
     phi_field = Field(phi, name="phi", simulation=sim)
     sim.add_field(phi_field)
     c = np.zeros(dim)
@@ -108,7 +106,7 @@ def init_Warren1995(sim, dim, diamond_size=15):
     sim.T = 1574.
     sim.alpha = 0.3
     sim.set_cell_spacing(4.6e-8)
-    sim.set_time_step(sim.get_cell_spacing()**2/5./sim.D_L)
+    sim.set_time_step_length(sim.get_cell_spacing()**2/5./sim.D_L)
     sim.d = sim.get_cell_spacing()/0.94 #interfacial thickness
     sim.ebar = np.sqrt(6*np.sqrt(2)*sim.s_A*sim.d/sim.T_mA) #baseline energy
     sim.W_A = 3*sim.s_A/(np.sqrt(2)*sim.T_mA*sim.d)

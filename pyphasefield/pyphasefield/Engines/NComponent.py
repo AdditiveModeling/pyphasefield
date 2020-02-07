@@ -346,7 +346,7 @@ def NComponent(sim):
     dFdc = []
     deltac = []
     #find the standard deviation as an array 
-    std_c=np.sqrt(np.absolute(2*R*T/v_m))
+    std_c=np.sqrt(np.absolute(2*sim.R*T/sim.v_m))
     for j in range(len(c)):
         #find the actual random noise
         noise_c=np.random.normal(0, std_c, phi.shape)
@@ -382,7 +382,7 @@ def NComponent(sim):
     pf_comp_y = 8*sim.y_e*T*((2*a2_b2*psiy3 - 2*ab2*psix3)/vertex_centered_mgphi2 - vertex_averaged_gphi[1]*(psix3*vertex_centered_gpsi[0] + psiy3*vertex_centered_gpsi[1])/(vertex_centered_mgphi2*vertex_centered_mgphi2))
     pf_comp_y = (np.roll(pf_comp_y, -1, 1) - pf_comp_y)/dx
     pf_comp_y = (np.roll(pf_comp_y, -1, 0) + pf_comp_y)/2.
-    deltaphi = M_phi*(sim.ebar*sim.ebar*((1-3*sim.y_e)*divTgradphi + pf_comp_x + pf_comp_y)-30*g*(G_S-G_L)/v_m-well-4*sim.H*T*phi*rgqs_0*1574.)
+    deltaphi = M_phi*(sim.ebar*sim.ebar*((1-3*sim.y_e)*divTgradphi + pf_comp_x + pf_comp_y)-30*g*(G_S-G_L)/sim.v_m-well-4*sim.H*T*phi*rgqs_0*1574.)
 
     #old noise from Warren1995:
     #randArray = 2*np.random.random_sample(shape)-1
@@ -411,9 +411,24 @@ def NComponent(sim):
     cc_t1_temp = (cc_t1_temp + np.roll(cc_t1_temp, -1, 1))/2.
     cc_t4_temp = (t4_temp + np.roll(t4_temp, -1, 0))/2.
     cc_t4_temp = (cc_t4_temp + np.roll(cc_t4_temp, -1, 1))/2.
+    
+    t1 = (gaq1)*1574. + cc_t1_temp
+    t4 = (gaq4)*1574. + cc_t4_temp
 
-    t1 = sim.eqbar*sim.eqbar*lq1+(gaq1)*1574. + cc_t1_temp
-    t4 = sim.eqbar*sim.eqbar*lq4+(gaq4)*1574. + cc_t4_temp
+    #add Dorr2010 term to quaternion field
+    t1 += sim.eqbar*sim.eqbar*lq1
+    t4 += sim.eqbar*sim.eqbar*lq4
+    
+    ### add noise to quaternion field ###
+    ### NOT stable, unsure why at the moment ###
+    
+    #std_q1=np.sqrt(np.absolute(2*sim.R*T/sim.v_m))
+    #noise_q1=np.random.normal(0, std_q1, q1.shape)
+    #std_q4=np.sqrt(np.absolute(2*sim.R*T/sim.v_m))
+    #noise_q4=np.random.normal(0, std_q4, q4.shape)
+    #t1 += noise_q1
+    #t4 += noise_q4
+    
     lmbda = (q1*t1+q4*t4)
     deltaq1 = M_q*(t1-q1*lmbda)
     deltaq4 = M_q*(t4-q4*lmbda)
@@ -423,6 +438,7 @@ def NComponent(sim):
 
 
     #apply changes
+    dt = sim.get_time_step_length()
     for j in range(len(c)):
         sim.fields[3+j] += deltac[j]*dt
     sim.fields[0] += deltaphi*dt
@@ -432,12 +448,14 @@ def NComponent(sim):
         q1, q4 = renormalize(q1, q4)
 
     #This code segment prints the progress after every 5% of the simulation is done (for convenience)
-    if(steps > 19):
-        if(i%(steps/20) == 0):
-            print(str(5*i/(steps/20))+"% done...")
+    #disabled for now, may bring it back in the simulate function of simulation.py
+    #if(steps > 19):
+        #if(i%(steps/20) == 0):
+            #print(str(5*i/(steps/20))+"% done...")
 
-    #This code segment saves the arrays every 500 steps, and adds nuclei
+    #This code segment adds nuclei
     #note: nuclei are added *before* saving the data, so stray nuclei may be found before evolving the system
+    step = sim.get_time_step_counter()
     if(step%500 == 0):
         #find the stochastic nucleation critical probabilistic cutoff
         #attn -- Q and T_liq are hard coded parameters for Ni-10%Cu
@@ -502,6 +520,8 @@ def init_tdb_parameters(sim):
 def init_NComponent(sim, dim=[200,200], sim_type="seed", tdb_path="Ni-Cu_Ideal.tdb", thermal_type="isothermal", 
                            initial_temperature=1574, thermal_gradient=0, cooling_rate=0, thermal_file_path="T.xdmf", 
                            initial_concentration_array=[0.40831]):
+    if(len(dim) == 1):
+        dim.append(1)
     sim.set_dimensions(dim)
     sim.load_tdb(tdb_path)
     sim.set_cell_spacing(0.0000046)
@@ -525,7 +545,7 @@ def init_NComponent(sim, dim=[200,200], sim_type="seed", tdb_path="Ni-Cu_Ideal.t
         initial_angle = 0*np.pi/8
         q1 += np.cos(initial_angle)
         q4 += np.sin(initial_angle)
-        seed_angle = 1*np.pi*8
+        seed_angle = 1*np.pi/8
         phi, q1, q4 = make_seed(phi, q1, q4, dim[1]/2, dim[0]/2, seed_angle, 5)
         sim.add_field(phi)
         sim.add_field(q1)
