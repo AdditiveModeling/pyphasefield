@@ -32,7 +32,7 @@ class Field(np.ndarray):
         
     def gradient_cell(self):
         number_of_dimensions = len(self.shape)
-        inverse_cell_spacing = 1./(self._simulation._cell_spacing_in_cm)
+        inverse_cell_spacing = 1./(self._simulation.get_cell_spacing())
         inverse_2dx = 0.5*inverse_cell_spacing
         array = (np.roll(self, -1, 0) - np.roll(self, 1, 0))*inverse_2dx
         array = array[np.newaxis] #add dimension for different partial derivatives
@@ -44,7 +44,7 @@ class Field(np.ndarray):
         
     def gradient_face_left(self):
         number_of_dimensions = len(self.shape)
-        inverse_cell_spacing = 1./(self._simulation._cell_spacing_in_cm)
+        inverse_cell_spacing = 1./(self._simulation.get_cell_spacing())
         array = (self - np.roll(self, 1, 0))*inverse_cell_spacing
         array = array[np.newaxis] #add dimension for different partial derivatives
         for i in range(1, number_of_dimensions):
@@ -55,7 +55,7 @@ class Field(np.ndarray):
     
     def gradient_face_right(self):
         number_of_dimensions = len(self.shape)
-        inverse_cell_spacing = 1./(self._simulation._cell_spacing_in_cm)
+        inverse_cell_spacing = 1./(self._simulation.get_cell_spacing())
         array = (np.roll(self, -1, 0) - self)*inverse_cell_spacing
         array = array[np.newaxis] #add dimension for different partial derivatives
         for i in range(1, number_of_dimensions):
@@ -66,7 +66,7 @@ class Field(np.ndarray):
         
     def laplacian(self):
         number_of_dimensions = len(self.shape)
-        inverse_cell_spacing = 1./(self._simulation._cell_spacing_in_cm)
+        inverse_cell_spacing = 1./(self._simulation.get_cell_spacing())
         inverse_dx_squared = inverse_cell_spacing**2
         result = (np.roll(self, -1, 0) + np.roll(self, 1, 0) - 2*self)*inverse_dx_squared
         for i in range(1, number_of_dimensions):
