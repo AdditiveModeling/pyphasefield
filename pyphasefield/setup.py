@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="pyphasefield",
-    version="0.0.8",
+    version="0.0.9",
     author="Scott Peters",
     author_email="scott@dpeters.net",
     description="Python phase field simulation",
@@ -21,6 +21,7 @@ setuptools.setup(
 	install_requires=[
         "numpy",
 		"matplotlib",
+		"meshio",
     ],
     python_requires='>=3.6',
 )
