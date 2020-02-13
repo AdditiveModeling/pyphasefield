@@ -1,6 +1,7 @@
 import numpy as np
 from .field import Field
 from . import Engines
+from pathlib import Path
 
 
 def successfully_imported_pycalphad():
@@ -14,7 +15,7 @@ def successfully_imported_pycalphad():
 
 
 class Simulation:
-    def __init__(self, save_path):
+    def __init__(self, save_path=""):
         self.fields = []
         self.temperature = None
         self._dimensions_of_simulation_region = [200, 200]
@@ -31,7 +32,7 @@ class Simulation:
         self._phases = []
         self._engine = None
         self._save_path = save_path
-        self._time_steps_per_checkpoint = 500
+        self._time_steps_per_checkpoint = 10
         self._save_images_at_each_checkpoint = False
         self._boundary_conditions_type = ["periodic", "periodic"]
 
@@ -41,9 +42,9 @@ class Simulation:
         self._time_step_in_seconds = dt
         for i in range(number_of_timesteps):
             self.increment_time_step_counter()
-            self.engine(self)  # run engine on Simulation instance for 1 time step
+            self._engine(self)  # run engine on Simulation instance for 1 time step
             self.update_thermal_field()
-            if(self._time_step_counter % self._time_steps_per_checkpoint == 0):
+            if self._time_step_counter % self._time_steps_per_checkpoint == 0:
                 self.save_simulation()
 
     def load_tdb(self, tdb_path, phases=None, components=None):
@@ -72,10 +73,10 @@ class Simulation:
 
     def get_time_step_length(self):
         return self._time_step_in_seconds
-    
+
     def get_time_step_counter(self):
         return self._time_step_counter
-    
+
     def set_time_step_length(self, time_step):
         self._time_step_in_seconds = time_step
         return
@@ -101,18 +102,56 @@ class Simulation:
         if self._temperature_type not in ["isothermal", "gradient", "file"]:
             raise ValueError("Unknown temperature profile.")
 
-    def load_simulation(self, checkpoint_file):
-        checkpoint = open(checkpoint_file, "rb")
-        fields = checkpoint["fields"]
-        self._time_step_counter = checkpoint["metadata"][0]
+    def load_simulation(self, file_path, step=-1):
+        # Check for file path inside cwd
+        if Path.cwd().joinpath(file_path).exists():
+            file_path = Path.cwd().joinpath(file_path)
+        else:
+            file_path = Path(file_path)
+        # Load array and asser key array exists
+        fields_arr = np.load(file_path, allow_pickle=True)
+        fields_arr = list(fields_arr)
+        a1 = fields_arr[0][0] == "KEY_ARRAY"
+        a2 = len(fields_arr[0]) == len(fields_arr)
+        assert a1 and a2, "Keying error occurred while loading"
+        # Add arrays to field variable sans keying array
+        for i in range(1, len(fields_arr)):
+            key = fields_arr[0][i].split('_')
+            tmp = Field(fields_arr[i], name=key[0], field_type=key[1], simulation=self)
+            self.fields.append(tmp)
+        # Time step set from parsing file name or manually --> defaults to 0
+        if step < 0:
+            filename = file_path.stem
+            step_start_index = filename.find('step') + len('step')
+            if step_start_index == -1:
+                self._time_step_counter = 0
+            else:
+                i = step_start_index
+                while isinstance(filename[i], int):
+                    i += 1
+                self._time_step_counter = filename[step_start_index:i]
+        else:
+            self._time_step_counter = step
         return 0
 
     def save_simulation(self):
-        # Possibly unsafe: limited support for array subclasses
-        checkpoint_metadata = np.array([self._time_step_counter, ])
-        checkpoint = open("sim_check.npz", "wb")
-        np.savez(checkpoint, metadata=checkpoint_metadata, fields=self.fields)
-        checkpoint.close()
+        # Create keying array with metadata
+        keying_arr = np.array(range(len(self.fields)+1), dtype=object)
+        keying_arr[0] = "KEY_ARRAY"
+        for i in range(len(self.fields)):
+            tmp = self.fields[i]
+            keying_arr[i+1] = tmp._name + "_" + tmp._field_type
+        self.fields.insert(0, keying_arr)
+        # Save array with path
+        if not self._save_path:
+            engine_name = self._engine.__name__
+            save_loc = Path.cwd().joinpath("data/", engine_name)
+        else:
+            save_loc = Path(self._save_path)
+        save_loc.mkdir(parents=True, exist_ok=True)
+        tmp_save = np.array(self.fields)
+        np.save(str(save_loc) + "/step" + str(self._time_step_counter), tmp_save)
+        self.fields.pop(0)
         return 0
 
     def set_dimensions(self, dimensions_of_simulation_region):
@@ -132,9 +171,9 @@ class Simulation:
         return
 
     def set_engine(self, engine_function):
-        self.engine = engine_function
+        self._engine = engine_function
         return
-    
+
     def set_checkpoint_rate(self, time_steps_per_checkpoint):
         self._time_steps_per_checkpoint = time_steps_per_checkpoint
         return
@@ -179,7 +218,7 @@ class Simulation:
     def init_sim_Warren1995(self, dim=[200, 200]):
         Engines.init_Warren1995(self, dim)
         return
-    
+
     def init_sim_NComponent(self, dim=[200, 200], sim_type="seed", tdb_path="Ni-Cu_Ideal.tdb",
                             thermal_type="isothermal",
                             initial_temperature=1574, thermal_gradient=0, cooling_rate=0, thermal_file_path="T.xdmf",
