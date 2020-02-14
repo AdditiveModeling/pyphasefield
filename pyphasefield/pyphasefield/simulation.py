@@ -108,17 +108,20 @@ class Simulation:
             file_path = Path.cwd().joinpath(file_path)
         else:
             file_path = Path(file_path)
-        # Load array and asser key array exists
+
+        # Load array and assert key array exists
         fields_arr = np.load(file_path, allow_pickle=True)
         fields_arr = list(fields_arr)
         a1 = fields_arr[0][0] == "KEY_ARRAY"
         a2 = len(fields_arr[0]) == len(fields_arr)
         assert a1 and a2, "Keying error occurred while loading"
+
         # Add arrays to field variable sans keying array
         for i in range(1, len(fields_arr)):
             key = fields_arr[0][i].split('_')
             tmp = Field(fields_arr[i], name=key[0], field_type=key[1], simulation=self)
             self.fields.append(tmp)
+
         # Time step set from parsing file name or manually --> defaults to 0
         if step < 0:
             filename = file_path.stem
@@ -135,7 +138,10 @@ class Simulation:
         return 0
 
     def save_simulation(self):
+        # TODO: rewrite to human readable format
+        # mesh_io format, not bit stream
         # Create keying array with metadata
+        # Metadata to be passed: time elapsed, field separation,
         keying_arr = np.array(range(len(self.fields)+1), dtype=object)
         keying_arr[0] = "KEY_ARRAY"
         for i in range(len(self.fields)):

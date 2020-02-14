@@ -19,7 +19,6 @@ class Field(np.ndarray):
         obj._name = name
         obj._field_type = field_type
         obj._simulation = simulation
-        
         # Finally, we must return the newly created object:
         return obj
 
