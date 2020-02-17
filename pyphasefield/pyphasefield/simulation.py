@@ -1,4 +1,5 @@
 import numpy as np
+import meshio as mio
 from .field import Field
 from . import Engines
 
@@ -11,7 +12,27 @@ def successfully_imported_pycalphad():
         print("In Anaconda, use \'conda install -c pycalphad -c conda-forge pycalphad\' to install it")
         return False
     return True
-
+    
+def expand_T_array(T, nbc):
+    #used by Simulation.set_thermal_file() to add boundary cells if not using periodic boundary conditions 
+    shape = list(T.shape)
+    offset_x = 0
+    offset_y = 0
+    if(nbc[0]):
+        shape[1] += 2
+        offset_x = 1
+    if(nbc[1]):
+        shape[0] += 2
+        offset_y = 1
+    final = np.zeros(shape)
+    #set center region equal to T
+    final[offset_y:len(final)-offset_y, offset_x:len(final[0])-offset_x] += T
+    #set edges to nbcs, if applicable
+    final[0] = final[offset_y]
+    final[len(final)-1] = final[len(final)-offset_y-1]
+    final[:, 0] = final[:, offset_x]
+    final[:, len(final[0])-1] = final[:, len(final[0])-offset_x-1]
+    return final
 
 class Simulation:
     def __init__(self, save_path):
@@ -95,24 +116,70 @@ class Simulation:
         return
 
     def set_thermal_file(self, thermal_file_path):
+        self.t_index = 1
+        nbc = []
+        for i in range(len(self._dimensions_of_simulation_region)):
+            if(boundary_conditions[i] == "periodic"):
+                nbc.append(False)
+            else:
+                nbc.append(True)
+        with mio.XdmfTimeSeriesReader(self._save_path+"/T.xdmf") as reader:
+            dt = self.get_time_step_length()
+            step = self.get_time_step_counter()
+            points, cells = reader.read_points_cells()
+            self.t_start, point_data0, cell_data0 = reader.read_data(0)
+            self.T0 = expand_T_array(point_data0['T'], nbc)
+            self.t_end, point_data1, cell_data0 = reader.read_data(self.t_index)
+            self.T1 = expand_T_array(point_data1['T'], nbc)
+            while(dt*step > t_end):
+                self.t_start= self.t_end
+                self.T0 = self.T1
+                self.t_index += 1
+                self.t_end, point_data1, cell_data0 = reader.read_data(self.t_index)
+                self.T1 = expand_T_array(point_data1['T'], nbc)
+            self.temperature = self.T0*(self.t_end - dt*step)/(self.t_end-self.t_start) + self.T1*(dt*step-self.t_start)/(self.t_end-self.t_start)
         return
 
     def update_thermal_field(self):
+        if(self._temperature_type == "isothermal"):
+            return
+        elif(self._temperature_type == "gradient"):
+            self.temperature += self._cooling_rate_Kelvin_per_second
+            return
+        elif(self._temperature_type == "file"):
+            dt = self.get_time_step_length()
+            step = self.get_time_step_counter()
+            if(dt*step > t_end):
+                nbc = []
+                for i in range(len(self._dimensions_of_simulation_region)):
+                    if(boundary_conditions[i] == "periodic"):
+                        nbc.append(False)
+                    else:
+                        nbc.append(True)
+                with mio.XdmfTimeSeriesReader(self._save_path+"/T.xdmf") as reader:
+                    self.t_start= self.t_end
+                    self.T0 = self.T1
+                    self.t_index += 1
+                    self.t_end, point_data1, cell_data0 = reader.read_data(self.t_index)
+                    self.T1 = expand_T_array(point_data1['T'], nbc)
+            self.temperature = self.T0*(self.t_end - dt*step)/(self.t_end-self.t_start) + self.T1*(dt*step-self.t_start)/(self.t_end-self.t_start)
+            return
         if self._temperature_type not in ["isothermal", "gradient", "file"]:
             raise ValueError("Unknown temperature profile.")
-
-    def load_simulation(self, checkpoint_file):
-        checkpoint = open(checkpoint_file, "rb")
-        fields = checkpoint["fields"]
-        self._time_step_counter = checkpoint["metadata"][0]
+        return
+    
+    def load_simulation(self, time_step_to_load):
+        #checkpoint = open(checkpoint_file, "rb")
+        #fields = checkpoint["fields"]
+        #self._time_step_counter = checkpoint["metadata"][0]
         return 0
-
+    
     def save_simulation(self):
         # Possibly unsafe: limited support for array subclasses
-        checkpoint_metadata = np.array([self._time_step_counter, ])
-        checkpoint = open("sim_check.npz", "wb")
-        np.savez(checkpoint, metadata=checkpoint_metadata, fields=self.fields)
-        checkpoint.close()
+        #checkpoint_metadata = np.array([self._time_step_counter, ])
+        #checkpoint = open("sim_check.npz", "wb")
+        #np.savez(checkpoint, metadata=checkpoint_metadata, fields=self.fields)
+        #checkpoint.close()
         return 0
 
     def set_dimensions(self, dimensions_of_simulation_region):
