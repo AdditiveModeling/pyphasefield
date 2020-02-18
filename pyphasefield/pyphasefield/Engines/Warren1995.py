@@ -37,8 +37,8 @@ def gradyy(phi, dx):
 def Warren1995(sim):
     dt = sim.get_time_step_length()
     dx = sim.get_cell_spacing()
-    phi = sim.fields[0]
-    c = sim.fields[1]
+    phi = sim.fields[0].data
+    c = sim.fields[1].data
     
     g = _g(phi)
     p = _p(phi)
@@ -74,8 +74,8 @@ def Warren1995(sim):
     deltaphi += M_phi*sim.alpha*randArray*(16*g)*((1-c)*H_A+c*H_B)
     
     #apply changes
-    sim.fields[0] += deltaphi*dt
-    sim.fields[1] += deltac*dt
+    sim.fields[0].data += deltaphi*dt
+    sim.fields[1].data += deltac*dt
     
 def init_Warren1995(sim, dim, diamond_size=15):
     #original Warren1995 model uses centimeters, values have been converted to meters!
@@ -84,11 +84,11 @@ def init_Warren1995(sim, dim, diamond_size=15):
     phi += 1.
     for i in range(diamond_size):
         phi[(int)(dim[0]/2-i):(int)(dim[0]/2+i), ((int)(dim[1]/2-(diamond_size-i))):(int)(dim[1]/2+(diamond_size-i))] = 0
-    phi_field = Field(phi, name="phi", simulation=sim)
+    phi_field = Field(data=phi, name="phi", simulation=sim)
     sim.add_field(phi_field)
     c = np.zeros(dim)
     c += 0.40831
-    c_field = Field(c, name="c", simulation=sim)
+    c_field = Field(data=c, name="c", simulation=sim)
     sim.add_field(c_field)
     sim.T_mA = 1728. #melting point of nickel
     sim.T_mB = 1358. #melting point of copper

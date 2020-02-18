@@ -1,5 +1,6 @@
 import numpy as np
 import sympy as sp
+from ..field import Field
 
 def find_Pn(T_M, T, Q ,dt):
     #finding the probability of forming a critical nucleus, nucleating only every 500 time steps
@@ -256,12 +257,12 @@ def npvalue(var, string, tdb):
 
 def NComponent(sim):
     #load fields to easier-to-reference variables
-    phi = sim.fields[0]
-    q1 = sim.fields[1]
-    q4 = sim.fields[2]
+    phi = sim.fields[0].data
+    q1 = sim.fields[1].data
+    q4 = sim.fields[2].data
     c = []
     for i in range(3, len(sim.fields)):
-        c.append(sim.fields[i])
+        c.append(sim.fields[i].data)
     T = sim.temperature
     dim = len(phi.shape)
     dx = sim.get_cell_spacing()
@@ -440,10 +441,10 @@ def NComponent(sim):
     #apply changes
     dt = sim.get_time_step_length()
     for j in range(len(c)):
-        sim.fields[3+j] += deltac[j]*dt
-    sim.fields[0] += deltaphi*dt
-    sim.fields[1] += deltaq1*dt
-    sim.fields[2] += deltaq4*dt
+        sim.fields[3+j].data += deltac[j]*dt
+    sim.fields[0].data += deltaphi*dt
+    sim.fields[1].data += deltaq1*dt
+    sim.fields[2].data += deltaq4*dt
     if(i%10 == 0):
         q1, q4 = renormalize(q1, q4)
 
@@ -547,22 +548,27 @@ def init_NComponent(sim, dim=[200,200], sim_type="seed", tdb_path="Ni-Cu_Ideal.t
         q4 += np.sin(initial_angle)
         seed_angle = 1*np.pi/8
         phi, q1, q4 = make_seed(phi, q1, q4, dim[1]/2, dim[0]/2, seed_angle, 5)
-        sim.add_field(phi)
-        sim.add_field(q1)
-        sim.add_field(q4)
+        phi_field = Field(data=phi, name="phi", simulation=sim)
+        q1_field = Field(data=q1, name="q1", simulation=sim)
+        q4_field = Field(data=q4, name="q4", simulation=sim)
+        sim.add_field(phi_field)
+        sim.add_field(q1_field)
+        sim.add_field(q4_field)
         
         #initialize concentration array(s)
         if(initial_concentration_array == None):
-            for i in range(len(sim.components)-1):
+            for i in range(len(sim._components)-1):
                 c_n = np.zeros(dim)
-                c_n += 1./len(sim.components)
-                sim.add_field(c_n)
+                c_n += 1./len(sim._components)
+                c_n_field = Field(data=c_n, name="c_"+sim._components[i], simulation=sim)
+                sim.add_field(c_n_field)
         else:
             assert((len(initial_concentration_array)+1) == len(sim._components))
             for i in range(len(initial_concentration_array)):
                 c_n = np.zeros(dim)
                 c_n += initial_concentration_array[i]
-                sim.add_field(c_n)
+                c_n_field = Field(data=c_n, name="c_"+sim._components[i], simulation=sim)
+                sim.add_field(c_n_field)
         
         
             

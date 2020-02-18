@@ -1,12 +1,8 @@
 import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
 
-
 class Field():
-
-    # Modified subclass of ndarray, mostly following the guide from:
-    # https://docs.scipy.org/doc/numpy/user/basics.subclassing.html#slightly-more-realistic-example-attribute-added-to-existing-array
-
+    
     def __init__(self, data=None, simulation=None, name=None, colormap=None):
         self.data = data
         self.name = name
