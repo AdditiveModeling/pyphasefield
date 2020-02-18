@@ -233,8 +233,8 @@ class Simulation:
         Engines.init_Diffusion(self, dim)
         return
     
-    def init_sim_Warren1995(self, dim=[200, 200]):
-        Engines.init_Warren1995(self, dim)
+    def init_sim_Warren1995(self, dim=[200, 200], diamond_size=15):
+        Engines.init_Warren1995(self, dim=dim, diamond_size=diamond_size)
         return
     
     def init_sim_NComponent(self, dim=[200,200], sim_type="seed", tdb_path="Ni-Cu_Ideal.tdb", thermal_type="isothermal", 
