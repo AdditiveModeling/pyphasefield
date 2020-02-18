@@ -36,7 +36,7 @@ def expand_T_array(T, nbc):
     return final
 
 class Simulation:
-    def __init__(self, save_path=""):
+    def __init__(self, save_path=None):
         self.fields = []
         self.temperature = None
         self._dimensions_of_simulation_region = [200, 200]
@@ -53,7 +53,7 @@ class Simulation:
         self._phases = []
         self._engine = None
         self._save_path = save_path
-        self._time_steps_per_checkpoint = 10
+        self._time_steps_per_checkpoint = 500
         self._save_images_at_each_checkpoint = False
         self._boundary_conditions_type = ["periodic", "periodic"]
 
@@ -153,7 +153,7 @@ class Simulation:
             if(dt*step > t_end):
                 nbc = []
                 for i in range(len(self._dimensions_of_simulation_region)):
-                    if(boundary_conditions[i] == "periodic"):
+                    if(self._boundary_conditions_type[i] == "periodic"):
                         nbc.append(False)
                     else:
                         nbc.append(True)
@@ -168,13 +168,32 @@ class Simulation:
         if self._temperature_type not in ["isothermal", "gradient", "file"]:
             raise ValueError("Unknown temperature profile.")
 
-    def load_simulation(self, file_path, step=-1):
+    def load_simulation(self, file_path=None, step=-1):
+        #wipe simulation object before loading data
+        self.fields=[]
+        
+        if(file_path is None):
+            file_path = self._save_path
+            if(self._save_path is None):
+                raise ValueError("Simulation needs a path to load data from!")
+                
         # Check for file path inside cwd
-        print("loading from ", Path.cwd().joinpath(file_path))
         if Path.cwd().joinpath(file_path).exists():
             file_path = Path.cwd().joinpath(file_path)
+        elif Path.cwd().joinpath(self._save_path).joinpath(file_path).exists():
+            #check if file exists in the save directory
+            file_path = Path.cwd().joinpath(self._save_path).joinpath(file_path)
         else:
             file_path = Path(file_path)
+            
+        if(file_path.is_dir()):
+            if(step > -1):
+                file_path = file_path.joinpath("step_"+str(step)+".npz")
+            else:
+                raise ValueError("Given path is a folder, must specify a timestep!")
+                
+        #propagate new path to the save path, the parent folder is the save path
+        self._save_path = str(file_path.parent)
 
         # Load array
         fields_dict = np.load(file_path, allow_pickle=True)
@@ -183,11 +202,14 @@ class Simulation:
         for key, value in fields_dict.items():
             tmp = Field(value, self, key)
             self.fields.append(tmp)
+            
+        #set dimensions of simulation
+        self._dimensions_of_simulation_region = self.fields[0].data.shape
 
         # Time step set from parsing file name or manually --> defaults to 0
         if step < 0:
             filename = file_path.stem
-            step_start_index = filename.find('step') + len('step')
+            step_start_index = filename.find('step_') + len('step_')
             if step_start_index == -1:
                 self._time_step_counter = 0
             else:
@@ -209,12 +231,13 @@ class Simulation:
         # Save array with path
         if not self._save_path:
             engine_name = self._engine.__name__
+            print("Simulation.save_path not specified, saving to /data/"+engine_name)
             save_loc = Path.cwd().joinpath("data/", engine_name)
         else:
             save_loc = Path(self._save_path)
         save_loc.mkdir(parents=True, exist_ok=True)
 
-        np.savez(str(save_loc) + "/step" + str(self._time_step_counter), **save_dict)
+        np.savez(str(save_loc) + "/step_" + str(self._time_step_counter), **save_dict)
         return 0
 
     def set_dimensions(self, dimensions_of_simulation_region):
