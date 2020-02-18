@@ -104,22 +104,18 @@ class Simulation:
 
     def load_simulation(self, file_path, step=-1):
         # Check for file path inside cwd
+        print("loading from ", Path.cwd().joinpath(file_path))
         if Path.cwd().joinpath(file_path).exists():
             file_path = Path.cwd().joinpath(file_path)
         else:
             file_path = Path(file_path)
 
-        # Load array and assert key array exists
-        fields_arr = np.load(file_path, allow_pickle=True)
-        fields_arr = list(fields_arr)
-        a1 = fields_arr[0][0] == "KEY_ARRAY"
-        a2 = len(fields_arr[0]) == len(fields_arr)
-        assert a1 and a2, "Keying error occurred while loading"
+        # Load array
+        fields_dict = np.load(file_path, allow_pickle=True)
 
-        # Add arrays to field variable sans keying array
-        for i in range(1, len(fields_arr)):
-            key = fields_arr[0][i].split('_')
-            tmp = Field(fields_arr[i], name=key[0], field_type=key[1], simulation=self)
+        # Add arrays self.fields as Field objects
+        for key, value in fields_dict.items():
+            tmp = Field(value, self, key)
             self.fields.append(tmp)
 
         # Time step set from parsing file name or manually --> defaults to 0
@@ -130,24 +126,20 @@ class Simulation:
                 self._time_step_counter = 0
             else:
                 i = step_start_index
-                while isinstance(filename[i], int):
+                while i < len(filename) and filename[i].isdigit():
                     i += 1
-                self._time_step_counter = filename[step_start_index:i]
+                self._time_step_counter = int(filename[step_start_index:i])
         else:
-            self._time_step_counter = step
+            self._time_step_counter = int(step)
         return 0
 
     def save_simulation(self):
-        # TODO: rewrite to human readable format
-        # mesh_io format, not bit stream
-        # Create keying array with metadata
         # Metadata to be passed: time elapsed, field separation,
-        keying_arr = np.array(range(len(self.fields)+1), dtype=object)
-        keying_arr[0] = "KEY_ARRAY"
+        save_dict = dict()
         for i in range(len(self.fields)):
             tmp = self.fields[i]
-            keying_arr[i+1] = tmp._name + "_" + tmp._field_type
-        self.fields.insert(0, keying_arr)
+            save_dict[tmp.name] = tmp.data
+
         # Save array with path
         if not self._save_path:
             engine_name = self._engine.__name__
@@ -155,9 +147,8 @@ class Simulation:
         else:
             save_loc = Path(self._save_path)
         save_loc.mkdir(parents=True, exist_ok=True)
-        tmp_save = np.array(self.fields)
-        np.save(str(save_loc) + "/step" + str(self._time_step_counter), tmp_save)
-        self.fields.pop(0)
+
+        np.savez(str(save_loc) + "/step" + str(self._time_step_counter), **save_dict)
         return 0
 
     def set_dimensions(self, dimensions_of_simulation_region):
