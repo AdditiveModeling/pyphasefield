@@ -263,7 +263,7 @@ def NComponent(sim):
     c = []
     for i in range(3, len(sim.fields)):
         c.append(sim.fields[i].data)
-    T = sim.temperature
+    T = sim.temperature.data
     dim = len(phi.shape)
     dx = sim.get_cell_spacing()
     
