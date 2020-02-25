@@ -94,6 +94,7 @@ class Simulation:
         for i in range(number_of_timesteps):
             self.increment_time_step_counter()
             self._engine(self)  # run engine on Simulation instance for 1 time step
+            self.apply_boundary_conditions()
             self.update_thermal_field()
             if self._time_step_counter % self._time_steps_per_checkpoint == 0:
                 self.save_simulation()
@@ -147,6 +148,8 @@ class Simulation:
             in each cell (defined by the parameter "temperature" to this method)
         (Could be a single value, but this way it won't break Engines that compute thermal gradients)
         """
+        self._temperature_type = "isothermal"
+        self._initial_temperature_left_side = temperature
         array = np.zeros(self._dimensions_of_simulation_region)
         array += temperature
         t_field = Field(data=array, name="Temperature (K)")
@@ -166,6 +169,10 @@ class Simulation:
                 simulation and a distance x meters from the left side equals 
                 (initial_T_left_side + dTdx*x + dTdt*t)
         """
+        self._temperature_type = "gradient"
+        self._initial_temperature_left_side = initial_T_left_side
+        self._thermal_gradient_Kelvin_per_meter = dTdx
+        self._cooling_rate_Kelvin_per_second = dTdt
         array = np.zeros(self._dimensions_of_simulation_region)
         array += self.temperature
         array += np.linspace(0, dTdx * self.shape[1] * self._cell_spacing_in_m, self.shape[1])
@@ -183,6 +190,8 @@ class Simulation:
         E.g.: If we have T0 stored at t=1 second, T1 stored at t=2 seconds, the temperature
             profile at t=1.25 seconds = 0.75*T0 + 0.25*T1
         """
+        self._temperature_type = "file"
+        self._
         self.t_index = 1
         nbc = []
         for i in range(len(self._dimensions_of_simulation_region)):
@@ -266,7 +275,9 @@ class Simulation:
                 raise ValueError("Given path is a folder, must specify a timestep!")
                 
         #propagate new path to the save path, the parent folder is the save path
-        self._save_path = str(file_path.parent)
+        #only does so if the save path for the simulation is not set!
+        if(self._save_path is None):
+            self._save_path = str(file_path.parent)
 
         # Load array
         fields_dict = np.load(file_path, allow_pickle=True)
@@ -353,6 +364,16 @@ class Simulation:
         return
 
     def apply_boundary_conditions(self):
+        if(self._boundary_conditions_type[0] == "neumann"):
+            for i in range(len(self.fields)):
+                length=len(self.fields[i].data[0])
+                self.fields[i].data[:,0] = self.fields[i].data[:,1]
+                self.fields[i].data[:,(length-1)] = self.fields[i].data[:,(length-2)]
+        if(self._boundary_conditions_type[1] == "neumann"):
+            for i in range(len(self.fields)):
+                length=len(self.fields[i].data)
+                self.fields[i].data[0] = self.fields[i].data[1]
+                self.fields[i].data[(length-1)] = self.fields[i].data[(length-2)]
         return
 
     def renormalize_quaternions(self):
@@ -378,13 +399,16 @@ class Simulation:
         Engines.init_Warren1995(self, dim=dim, diamond_size=diamond_size)
         return
 
-    def init_sim_NComponent(self, dim=[200, 200], sim_type="seed", tdb_path="Ni-Cu_Ideal.tdb",
+    def init_sim_NComponent(self, dim=[200, 200], sim_type="seed", number_of_seeds=1, tdb_path="Ni-Cu_Ideal.tdb",
                             thermal_type="isothermal",
                             initial_temperature=1574, thermal_gradient=0, cooling_rate=0, thermal_file_path="T.xdmf",
-                            initial_concentration_array=[0.40831]):
+                            initial_concentration_array=[0.40831], cell_spacing=0.0000046, d_ratio=1/0.94):
         #initializes a Multicomponent simulation, using the NComponent model
         if not successfully_imported_pycalphad():
             return
-        Engines.init_NComponent(self, dim, sim_type, tdb_path, thermal_type, initial_temperature,
-                                thermal_gradient, cooling_rate, thermal_file_path)
+        Engines.init_NComponent(self, dim=dim, sim_type=sim_type, number_of_seeds=number_of_seeds, 
+                                tdb_path=tdb_path, thermal_type=thermal_type, 
+                                initial_temperature=initial_temperature, thermal_gradient=thermal_gradient, 
+                                cooling_rate=cooling_rate, thermal_file_path=thermal_file_path, 
+                                cell_spacing=cell_spacing, d_ratio=d_ratio)
         return
