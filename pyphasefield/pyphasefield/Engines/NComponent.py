@@ -423,12 +423,12 @@ def NComponent(sim):
     ### add noise to quaternion field ###
     ### NOT stable, unsure why at the moment ###
     
-    #std_q1=np.sqrt(np.absolute(2*sim.R*T/sim.v_m))
-    #noise_q1=np.random.normal(0, std_q1, q1.shape)
-    #std_q4=np.sqrt(np.absolute(2*sim.R*T/sim.v_m))
-    #noise_q4=np.random.normal(0, std_q4, q4.shape)
-    #t1 += noise_q1
-    #t4 += noise_q4
+    std_q1=np.sqrt(np.absolute(2*sim.R*T/sim.v_m))
+    noise_q1=np.random.normal(0, std_q1, q1.shape)
+    std_q4=np.sqrt(np.absolute(2*sim.R*T/sim.v_m))
+    noise_q4=np.random.normal(0, std_q4, q4.shape)
+    t1 += noise_q1
+    t4 += noise_q4
     
     lmbda = (q1*t1+q4*t4)
     deltaq1 = M_q*(t1-q1*lmbda)
@@ -445,8 +445,8 @@ def NComponent(sim):
     sim.fields[0].data += deltaphi*dt
     sim.fields[1].data += deltaq1*dt
     sim.fields[2].data += deltaq4*dt
-    if(i%10 == 0):
-        q1, q4 = renormalize(q1, q4)
+    if(sim.get_time_step_counter()%10 == 0):
+        sim.fields[1].data, sim.fields[2].data = renormalize(sim.fields[1].data, sim.fields[2].data)
 
     #This code segment prints the progress after every 5% of the simulation is done (for convenience)
     #disabled for now, may bring it back in the simulate function of simulation.py
@@ -457,14 +457,14 @@ def NComponent(sim):
     #This code segment adds nuclei
     #note: nuclei are added *before* saving the data, so stray nuclei may be found before evolving the system
     step = sim.get_time_step_counter()
-    if(step%500 == 0):
+    #if(step%500 == 0):
         #find the stochastic nucleation critical probabilistic cutoff
         #attn -- Q and T_liq are hard coded parameters for Ni-10%Cu
-        Q0=8*10**5 #activation energy of migration
-        T_liq=1697 #Temperature of Liquidus (K)
-        J0,p11=find_Pn(T_liq, T, Q0, dt) 
+        #Q0=8*10**5 #activation energy of migration
+        #T_liq=1697 #Temperature of Liquidus (K)
+        #J0,p11=find_Pn(T_liq, T, Q0, dt) 
         #print(J0)
-        phi, q1, q4=add_nuclei(phi, q1, q4, p11, len(phi))
+        #phi, q1, q4=add_nuclei(phi, q1, q4, p11, len(phi))
         #saveArrays_nc(data_path, step, phi, c, q1, q4)
         
 def make_seed(phi, q1, q4, x, y, angle, seed_radius):
@@ -511,22 +511,22 @@ def init_tdb_parameters(sim):
         sim.y_e = npvalue(T, "Y_E", tdb)
         sim.ebar = np.sqrt(6*np.sqrt(2)*sim.S[1]*sim.d/sim.T_M[1])
         sim.eqbar = 0.5*sim.ebar
-        sim.set_time_step_length(sim.get_cell_spacing()**2/5./sim.D_L/8)
+        sim.set_time_step_length(sim.get_cell_spacing()**2/5./sim.D_L/20)
         return True
     except Exception as e:
         print("Could not load every parameter required from the TDB file!")
         print(e)
         return False
         
-def init_NComponent(sim, dim=[200,200], sim_type="seed", tdb_path="Ni-Cu_Ideal.tdb", thermal_type="isothermal", 
+def init_NComponent(sim, dim=[200,200], sim_type="seed", number_of_seeds=1, tdb_path="Ni-Cu_Ideal.tdb", thermal_type="isothermal", 
                            initial_temperature=1574, thermal_gradient=0, cooling_rate=0, thermal_file_path="T.xdmf", 
-                           initial_concentration_array=[0.40831]):
+                           initial_concentration_array=[0.40831], cell_spacing=0.0000046, d_ratio=1/0.94):
     if(len(dim) == 1):
         dim.append(1)
     sim.set_dimensions(dim)
     sim.load_tdb(tdb_path)
-    sim.set_cell_spacing(0.0000046)
-    sim.d = sim.get_cell_spacing()/0.94
+    sim.set_cell_spacing(cell_spacing)
+    sim.d = sim.get_cell_spacing()*d_ratio
     sim.set_engine(NComponent)
     init_tdb_parameters(sim)
     if(thermal_type=="isothermal"):
@@ -551,6 +551,42 @@ def init_NComponent(sim, dim=[200,200], sim_type="seed", tdb_path="Ni-Cu_Ideal.t
         phi_field = Field(data=phi, name="phi", simulation=sim)
         q1_field = Field(data=q1, name="q1", simulation=sim)
         q4_field = Field(data=q4, name="q4", simulation=sim)
+        sim.add_field(phi_field)
+        sim.add_field(q1_field)
+        sim.add_field(q4_field)
+        
+        #initialize concentration array(s)
+        if(initial_concentration_array == None):
+            for i in range(len(sim._components)-1):
+                c_n = np.zeros(dim)
+                c_n += 1./len(sim._components)
+                c_n_field = Field(data=c_n, name="c_"+sim._components[i], simulation=sim)
+                sim.add_field(c_n_field)
+        else:
+            assert((len(initial_concentration_array)+1) == len(sim._components))
+            for i in range(len(initial_concentration_array)):
+                c_n = np.zeros(dim)
+                c_n += initial_concentration_array[i]
+                c_n_field = Field(data=c_n, name="c_"+sim._components[i], simulation=sim)
+                sim.add_field(c_n_field)
+    elif(sim_type=="seeds"):
+        #initialize phi, q1, q4
+        phi = np.zeros(dim)
+        q1 = np.zeros(dim)
+        q4 = np.zeros(dim)
+        initial_angle = 0*np.pi/8
+        q1 += np.cos(initial_angle)
+        q4 += np.sin(initial_angle)
+        
+        for j in range(number_of_seeds):
+            seed_angle = (np.random.rand()-0.5)*np.pi/4
+            x_pos = int(np.random.rand()*dim[1])
+            y_pos = int(np.random.rand()*dim[0])
+            phi, q1, q4 = make_seed(phi, q1, q4, x_pos, y_pos, seed_angle, 5)
+        
+        phi_field = Field(data=phi, name="phi", simulation=sim)
+        q1_field = Field(data=q1, name="q1", simulation=sim)
+        q4_field = Field(data=q4, name="q4", simulation=sim) 
         sim.add_field(phi_field)
         sim.add_field(q1_field)
         sim.add_field(q4_field)
