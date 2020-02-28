@@ -3,16 +3,11 @@ from matplotlib.colors import LinearSegmentedColormap
 
 class Field():
     
-    def __init__(self, data=None, simulation=None, name=None, colormap=None):
+    def __init__(self, data=None, simulation=None, name=None, colormap="GnBu"):
         self.data = data
         self.name = name
         self._simulation = simulation
-        if (colormap is None):
-            colors = [(0, 0, 1), (1, 1, 1), (1, 0, 0)]
-            cm = LinearSegmentedColormap.from_list('rgb', colors)
-            self.colormap = cm
-        else:
-            self.colormap = colormap
+        self.colormap = colormap
 
     def __str__(self):
         return self.data.__str__()

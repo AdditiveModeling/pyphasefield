@@ -1,8 +1,10 @@
 import numpy as np
-import meshio as mio
+# import meshio as mio
 from .field import Field
 from . import Engines
 from pathlib import Path
+import matplotlib.cm as cm
+from matplotlib import pyplot as plt
 
 
 def successfully_imported_pycalphad():
@@ -70,7 +72,7 @@ class Simulation:
         self._phases = []
         self._engine = None
         self._save_path = save_path
-        self._time_steps_per_checkpoint = 500
+        self._time_steps_per_checkpoint = 100
         self._save_images_at_each_checkpoint = False
         self._boundary_conditions_type = ["periodic", "periodic"]
 
@@ -96,6 +98,7 @@ class Simulation:
             self._engine(self)  # run engine on Simulation instance for 1 time step
             self.update_thermal_field()
             if self._time_step_counter % self._time_steps_per_checkpoint == 0:
+                self.plot_all_fields()   # Plot the second field (EXAMPLE)
                 self.save_simulation()
 
     def load_tdb(self, tdb_path, phases=None, components=None):
@@ -239,33 +242,35 @@ class Simulation:
 
     def load_simulation(self, file_path=None, step=-1):
         """
-        Loads a simulation from a given checkpoint
-        TODO: finish this docstring
+        Loads a simulation from a .npz file. Either a filename, step, or both must be provided.
+            If no step is specified, checks filename for step #.
+            If no filename is specified, a file with the specified step number is loaded from
+            the _save_path.
         """
-        #wipe simulation object before loading data
-        self.fields=[]
+        # Clear fields list
+        self.fields = []
         
-        if(file_path is None):
+        if file_path is None:
             file_path = self._save_path
-            if(self._save_path is None):
+            if self._save_path is None:
                 raise ValueError("Simulation needs a path to load data from!")
                 
         # Check for file path inside cwd
         if Path.cwd().joinpath(file_path).exists():
             file_path = Path.cwd().joinpath(file_path)
+        # Check if file exists in the save directory
         elif Path.cwd().joinpath(self._save_path).joinpath(file_path).exists():
-            #check if file exists in the save directory
             file_path = Path.cwd().joinpath(self._save_path).joinpath(file_path)
         else:
             file_path = Path(file_path)
             
-        if(file_path.is_dir()):
-            if(step > -1):
+        if file_path.is_dir():
+            if step > -1:
                 file_path = file_path.joinpath("step_"+str(step)+".npz")
             else:
                 raise ValueError("Given path is a folder, must specify a timestep!")
                 
-        #propagate new path to the save path, the parent folder is the save path
+        # Propagate new path to the save path, the parent folder is the save path
         self._save_path = str(file_path.parent)
 
         # Load array
@@ -276,7 +281,7 @@ class Simulation:
             tmp = Field(value, self, key)
             self.fields.append(tmp)
             
-        #set dimensions of simulation
+        # Set dimensions of simulation
         self._dimensions_of_simulation_region = self.fields[0].data.shape
 
         # Time step set from parsing file name or manually --> defaults to 0
@@ -295,7 +300,11 @@ class Simulation:
         return 0
     
     def save_simulation(self):
-        # Metadata to be passed: time elapsed, field separation,
+        """
+        Saves all fields in a .npz in either the user-specified save path or a default path. Step number is saved
+        in the file name.
+        TODO: save data for simulation instance in header file
+        """
         save_dict = dict()
         for i in range(len(self.fields)):
             tmp = self.fields[i]
@@ -361,8 +370,35 @@ class Simulation:
     def cutoff_order_values(self):
         return
 
-    def plot_fields(self):
-        return
+    def plot_all_fields(self):
+        """
+        Plots each field in self.fields and saves them to the save_path in a separate dir
+        Recommended for when the number of fields used would clutter the data folder
+        """
+        image_folder = "images_step_" + str(self._time_step_counter) + "/"
+        save_path = Path(self._save_path).joinpath(image_folder)
+        save_path.mkdir(parents=True, exist_ok=True)
+        for i in range(len(self.fields)):
+            self.plot_field(self.fields[i], save_path)
+        return 0
+
+    def plot_field(self, f, save_path=None):
+        """
+        Plots each field as a matplotlib 2d image. Takes in a field object as arg and saves
+        the image to the data folder as namePlot_step_n.png
+        """
+        if save_path is None:
+            save_path = self._save_path
+        fig, ax = plt.subplots()
+        c = plt.imshow(f.data, interpolation='nearest', cmap=f.colormap)
+
+        title = "Field: " + f.name + ", Step: " + str(self._time_step_counter)
+        plt.title(title)
+        fig.colorbar(c, ticks=np.linspace(np.min(f.data), np.max(f.data), 5))
+        # Save image to save_path dir
+        filename = f.name + "Plot_step_" + str(self._time_step_counter) + ".png"
+        plt.savefig(Path(save_path).joinpath(filename))
+        return 0
 
     def progress_bar(self):
         return
