@@ -410,5 +410,5 @@ class Simulation:
                                 tdb_path=tdb_path, thermal_type=thermal_type, 
                                 initial_temperature=initial_temperature, thermal_gradient=thermal_gradient, 
                                 cooling_rate=cooling_rate, thermal_file_path=thermal_file_path, 
-                                cell_spacing=cell_spacing, d_ratio=d_ratio)
+                                cell_spacing=cell_spacing, d_ratio=d_ratio, initial_concentration_array=initial_concentration_array)
         return

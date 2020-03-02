@@ -423,12 +423,12 @@ def NComponent(sim):
     ### add noise to quaternion field ###
     ### NOT stable, unsure why at the moment ###
     
-    std_q1=np.sqrt(np.absolute(2*sim.R*T/sim.v_m))
-    noise_q1=np.random.normal(0, std_q1, q1.shape)
-    std_q4=np.sqrt(np.absolute(2*sim.R*T/sim.v_m))
-    noise_q4=np.random.normal(0, std_q4, q4.shape)
-    t1 += noise_q1
-    t4 += noise_q4
+    #std_q1=np.sqrt(np.absolute(2*sim.R*T/sim.v_m))
+    #noise_q1=np.random.normal(0, std_q1, q1.shape)
+    #std_q4=np.sqrt(np.absolute(2*sim.R*T/sim.v_m))
+    #noise_q4=np.random.normal(0, std_q4, q4.shape)
+    #t1 += noise_q1
+    #t4 += noise_q4
     
     lmbda = (q1*t1+q4*t4)
     deltaq1 = M_q*(t1-q1*lmbda)
@@ -469,12 +469,16 @@ def NComponent(sim):
         
 def make_seed(phi, q1, q4, x, y, angle, seed_radius):
     shape = phi.shape
+    qrad = seed_radius+5
     x_size = shape[1]
     y_size = shape[0]
     for i in range((int)(y-seed_radius), (int)(y+seed_radius)):
         for j in range((int)(x-seed_radius), (int)(x+seed_radius)):
             if((i-y)*(i-y)+(j-x)*(j-x) < (seed_radius**2)):
                 phi[i%y_size][j%x_size] = 1
+    for i in range((int)(y-qrad), (int)(y+qrad)):
+        for j in range((int)(x-qrad), (int)(x+qrad)):
+            if((i-y)*(i-y)+(j-x)*(j-x) < (qrad**2)):
                 q1[i%y_size][j%x_size] = np.cos(angle)
                 q4[i%y_size][j%x_size] = np.sin(angle)
     return phi, q1, q4
