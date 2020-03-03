@@ -83,7 +83,8 @@ def init_Warren1995(sim, dim, diamond_size=15):
     phi = np.zeros(dim)
     phi += 1.
     for i in range(diamond_size):
-        phi[(int)(dim[0]/2-i):(int)(dim[0]/2+i), ((int)(dim[1]/2-(diamond_size-i))):(int)(dim[1]/2+(diamond_size-i))] = 0
+        phi[(int)(dim[0]/4-i):(int)(dim[0]/4+i), ((int)(dim[1]/2-(diamond_size-i))):(int)(dim[1]/2+(diamond_size-i))] = 0
+        phi[(int)(3*dim[0]/4-i):(int)(3*dim[0]/4+i), ((int)(dim[1]/2-(diamond_size-i))):(int)(dim[1]/2+(diamond_size-i))] = 0
     phi_field = Field(data=phi, name="phi", simulation=sim)
     sim.add_field(phi_field)
     c = np.zeros(dim)
