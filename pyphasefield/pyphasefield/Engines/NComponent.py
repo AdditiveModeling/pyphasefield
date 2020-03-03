@@ -58,6 +58,7 @@ def compute_tdb_energy_nc(sim, temps, c, phase):
         fec_n_comp -= fec[i]
     for i in range(len(c)):
         fec_n_comp = np.concatenate((fec_n_comp, fec[i]), axis=1)
+
     #move final component to end, maybe ill find a way to write this better in the future...
     fec_n_comp = np.roll(fec_n_comp, -1, axis=1)
     #offset composition, for computing slope of GM w.r.t. comp
