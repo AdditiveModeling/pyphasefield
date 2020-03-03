@@ -441,9 +441,9 @@ class Simulation:
         #initializes a Multicomponent simulation, using the NComponent model
         if not successfully_imported_pycalphad():
             return
-        Engines.init_NComponent(self, dim=dim, sim_type=sim_type, number_of_seeds=number_of_seeds,
-                                tdb_path=tdb_path, thermal_type=thermal_type,
-                                initial_temperature=initial_temperature, thermal_gradient=thermal_gradient,
-                                cooling_rate=cooling_rate, thermal_file_path=thermal_file_path,
-                                cell_spacing=cell_spacing, d_ratio=d_ratio)
+        Engines.init_NComponent(self, dim=dim, sim_type=sim_type, number_of_seeds=number_of_seeds, 
+                                tdb_path=tdb_path, thermal_type=thermal_type, 
+                                initial_temperature=initial_temperature, thermal_gradient=thermal_gradient, 
+                                cooling_rate=cooling_rate, thermal_file_path=thermal_file_path, 
+                                cell_spacing=cell_spacing, d_ratio=d_ratio, initial_concentration_array=initial_concentration_array)
         return

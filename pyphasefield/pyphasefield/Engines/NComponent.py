@@ -39,6 +39,13 @@ def compute_tdb_energy_nc(sim, temps, c, phase):
     Derivatives are computed by holding all other explicit composition variables constant
     c_i is increased, c_N is decreased (the implicitly-defined last composition variable which equals 1-sum(c_i) )
     
+    Input parameters:
+        - sim: the Simulation object. The method retrieves the TDB pycalphad object (sim._tdb) and the components used (sim._components)
+            from this variable.
+        - temps: the temperature array. Could also be retrieved as sim.temperature
+        - c: the list of composition arrays. The format is a python list of numpy ndarrays
+        - phase: the String which corresponds to a particular phase in the TDB file. E.g.: "FCC_A1" or "LIQUID"
+    
     Returns GM (Molar Gibbs Free Energy) and dGdci (list of derivatives of GM, w.r.t. c_i)
     """
     import pycalphad as pyc
@@ -67,26 +74,6 @@ def compute_tdb_energy_nc(sim, temps, c, phase):
         GM_derivs.append((pyc.calculate(sim._tdb, sim._components, phase, P=101325, T=flattened_t, points=fec_nc_offset[i], broadcast=False).GM.values.reshape(c[0].shape)-GM)*(10000000.))
     return GM, GM_derivs
 
-def load_tdb(tdb_path):
-    """
-    loads the TDB file at the specified path, and updates global variables accordingly
-    """
-    global tdb
-    global phases
-    global components
-    if not os.path.isfile(root_folder+"/TDB/"+tdb_path):
-        print("utils.load_tdb Error: TDB file does not exist!")
-        return False
-    tdb = pyc.Database(root_folder + '/TDB/' + tdb_path)
-    
-    #update phases
-    # will automatically update "phases" in multiphase model. For now, phases is hardcoded
-    
-    #update components
-    components = list(tdb.elements)
-    components.sort()
-    return True
-
 def __h(phi):
     #h function from Dorr2010
     return phi*phi*phi*(10-15*phi+6*phi*phi)
@@ -109,14 +96,6 @@ _hprime = np.vectorize(__hprime)
 _g = np.vectorize(__g) 
 _gprime = np.vectorize(__gprime)
 
-def grad(phi, dx, dim):
-    r = []
-    for i in range(dim):
-        phim = np.roll(phi, 1, i)
-        phip = np.roll(phi, -1, i)
-        r.append((phip-phim)/(2*dx))
-    return r
-
 def grad_l(phi, dx, dim):
     r = []
     for i in range(dim):
@@ -130,14 +109,6 @@ def grad_r(phi, dx, dim):
         phip = np.roll(phi, -1, i)
         r.append((phip-phi)/(dx))
     return r
-
-def partial_l(phi, dx, i):
-    phim = np.roll(phi, 1, i)
-    return (phi-phim)/dx
-
-def partial_r(phi, dx, i):
-    phip = np.roll(phi, -1, i)
-    return (phip-phi)/dx
 
 def grad2(phi, dx, dim):
     r = np.zeros_like(phi)
@@ -163,90 +134,6 @@ def gaq(gql, gqr, rgqsl, rgqsr, dqc, dx, dim):
 def renormalize(q1, q4):
     q = np.sqrt(q1*q1+q4*q4)
     return q1/q, q4/q
-
-def loadArrays_nc(data_path, timestep):
-    _q1 = np.load(root_folder+"/data/"+data_path+'/q1_'+str(timestep)+'.npy')
-    _q4 = np.load(root_folder+"/data/"+data_path+'/q4_'+str(timestep)+'.npy')
-    _c = []
-    for i in range(len(components)-1):
-        _c.append(np.load(root_folder+"/data/"+data_path+'/c'+str(i+1)+'_'+str(timestep)+'.npy'))
-    _phi = np.load(root_folder+"/data/"+data_path+'/phi_'+str(timestep)+'.npy')
-    return timestep, _phi, _c, _q1, _q4
-
-def saveArrays_nc(data_path, timestep, phi, c, q1, q4):
-    np.save(root_folder+"/data/"+data_path+'/phi_'+str(timestep), phi)
-    for i in range(len(c)):
-        np.save(root_folder+"/data/"+data_path+'/c'+str(i+1)+'_'+str(timestep), c[i])
-    np.save(root_folder+"/data/"+data_path+'/q1_'+str(timestep), q1)
-    np.save(root_folder+"/data/"+data_path+'/q4_'+str(timestep), q4)
-
-def applyBCs_nc(phi, c, q1, q4, nbc):
-    if(nbc[0]):
-        for i in range(len(c)):
-            c[i][:,0] = c[i][:,1]
-            c[i][:,-1] = c[i][:,-2]
-        phi[:,0] = phi[:,1]
-        phi[:,-1] = phi[:,-2]
-        q1[:,0] = q1[:,1]
-        q1[:,-1] = q1[:,-2]
-        q4[:,0] = q4[:,1]
-        q4[:,-1] = q4[:,-2]
-    if(nbc[1]):
-        for i in range(len(c)):
-            c[i][0,:] = c[i][1,:]
-            c[i][-1,:] = c[i][-2,:]
-        phi[0,:] = phi[1,:]
-        phi[-1,:] = phi[-2,:]
-        q1[0,:] = q1[1,:]
-        q1[-1,:] = q1[-2,:]
-        q4[0,:] = q4[1,:]
-        q4[-1,:] = q4[-2,:]
-
-def coreSection(array, nbc):
-    """
-    Returns only the region of interest for plotting. 
-    Removes the buffer cells used for Neumann Boundary Conditions
-    """
-    returnArray = array
-    if(nbc[0]):
-        returnArray = returnArray[:, 1:-1]
-    if(nbc[1]):
-        returnArray = returnArray[1:-1, :]
-    return returnArray
-
-def plotImages_nc(phi, c, q4, nbc, data_path, step):
-    """
-    Plots the phi (order), c (composition), and q4 (orientation component) fields for a given step
-    Saves images to the defined path
-    """
-    colors = [(0, 0, 1), (0, 1, 1), (0, 1, 0), (1, 1, 0), (1, 0, 0)]
-    cm = LinearSegmentedColormap.from_list('rgb', colors)
-    colors2 = [(0, 0, 1), (1, 1, 0), (1, 0, 0)]
-    cm2 = LinearSegmentedColormap.from_list('rgb', colors2)
-
-    fig, ax = plt.subplots()
-    plt.rcParams['figure.figsize'] = 4, 4
-    plt.title('phi')
-    cax = plt.imshow(coreSection(phi, nbc), cmap=cm2)
-    cbar = fig.colorbar(cax, ticks=[np.min(phi), np.max(phi)])
-    plt.savefig(root_folder+"/data/"+data_path+'/phi_'+str(step)+'.png')
-    for i in range(len(c)):
-        fig, ax = plt.subplots()
-        plt.title('c_'+components[i])
-        cax = plt.imshow(coreSection(c[i], nbc), cmap=cm)
-        cbar = fig.colorbar(cax, ticks=[np.min(c[i]), np.max(c[i])])
-        plt.savefig(root_folder+"/data/"+data_path+'/c'+str(i+1)+'_'+str(step)+'.png')
-    c_N = 1-np.sum(c, axis=0)
-    fig, ax = plt.subplots()
-    plt.title('c_'+components[len(c)])
-    cax = plt.imshow(coreSection(c_N, nbc), cmap=cm)
-    cbar = fig.colorbar(cax, ticks=[np.min(c_N), np.max(c_N)])
-    plt.savefig(root_folder+"/data/"+data_path+'/c'+str(len(c)+1)+'_'+str(step)+'.png')
-    fig, ax = plt.subplots()
-    plt.title('q4')
-    cax = plt.imshow(coreSection(q4, nbc), cmap=cm2)
-    cbar = fig.colorbar(cax, ticks=[np.min(q4), np.max(q4)])
-    plt.savefig(root_folder+"/data/"+data_path+'/q4_'+str(step)+'.png')
     
 def npvalue(var, string, tdb):
     """
@@ -423,12 +310,12 @@ def NComponent(sim):
     ### add noise to quaternion field ###
     ### NOT stable, unsure why at the moment ###
     
-    std_q1=np.sqrt(np.absolute(2*sim.R*T/sim.v_m))
-    noise_q1=np.random.normal(0, std_q1, q1.shape)
-    std_q4=np.sqrt(np.absolute(2*sim.R*T/sim.v_m))
-    noise_q4=np.random.normal(0, std_q4, q4.shape)
-    t1 += noise_q1
-    t4 += noise_q4
+    #std_q1=np.sqrt(np.absolute(2*sim.R*T/sim.v_m))
+    #noise_q1=np.random.normal(0, std_q1, q1.shape)
+    #std_q4=np.sqrt(np.absolute(2*sim.R*T/sim.v_m))
+    #noise_q4=np.random.normal(0, std_q4, q4.shape)
+    #t1 += noise_q1
+    #t4 += noise_q4
     
     lmbda = (q1*t1+q4*t4)
     deltaq1 = M_q*(t1-q1*lmbda)
@@ -469,12 +356,16 @@ def NComponent(sim):
         
 def make_seed(phi, q1, q4, x, y, angle, seed_radius):
     shape = phi.shape
+    qrad = seed_radius+5
     x_size = shape[1]
     y_size = shape[0]
     for i in range((int)(y-seed_radius), (int)(y+seed_radius)):
         for j in range((int)(x-seed_radius), (int)(x+seed_radius)):
             if((i-y)*(i-y)+(j-x)*(j-x) < (seed_radius**2)):
                 phi[i%y_size][j%x_size] = 1
+    for i in range((int)(y-qrad), (int)(y+qrad)):
+        for j in range((int)(x-qrad), (int)(x+qrad)):
+            if((i-y)*(i-y)+(j-x)*(j-x) < (qrad**2)):
                 q1[i%y_size][j%x_size] = np.cos(angle)
                 q4[i%y_size][j%x_size] = np.sin(angle)
     return phi, q1, q4
