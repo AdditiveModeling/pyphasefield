@@ -98,7 +98,7 @@ class Simulation:
             self._engine(self)  # run engine on Simulation instance for 1 time step
             self.update_thermal_field()
             if self._time_step_counter % self._time_steps_per_checkpoint == 0:
-                self.plot_all_fields()   # Plot the second field (EXAMPLE)
+                self.plot_field(self.fields[0])   # Plot the second field (EXAMPLE)
                 self.save_simulation()
 
     def load_tdb(self, tdb_path, phases=None, components=None):
@@ -247,9 +247,6 @@ class Simulation:
             If no filename is specified, a file with the specified step number is loaded from
             the _save_path.
         """
-        # Clear fields list
-        self.fields = []
-        
         if file_path is None:
             file_path = self._save_path
             if self._save_path is None:
@@ -384,20 +381,24 @@ class Simulation:
 
     def plot_field(self, f, save_path=None):
         """
-        Plots each field as a matplotlib 2d image. Takes in a field object as arg and saves
+        Plots a field as a matplotlib 2d image. Takes in a field object as arg and saves
         the image to the data folder as namePlot_step_n.png
         """
         if save_path is None:
             save_path = self._save_path
         fig, ax = plt.subplots()
-        c = plt.imshow(f.data, interpolation='nearest', cmap=f.colormap)
+        ex = self._dimensions_of_simulation_region[0]*self._cell_spacing_in_meters
+        c = plt.imshow(f.data, interpolation='nearest', cmap=f.colormap, extent=(0, ex, 0, ex))
 
-        title = "Field: " + f.name + ", Step: " + str(self._time_step_counter)
-        plt.title(title)
+        ax.ticklabel_format(axis='both', style='sci', scilimits=(0.01, 100))
+        plt.title("Field: " + f.name + ", Step: " + str(self._time_step_counter))
         fig.colorbar(c, ticks=np.linspace(np.min(f.data), np.max(f.data), 5))
+        plt.xlabel("meters")
+        plt.ylabel("meters")
         # Save image to save_path dir
         filename = f.name + "Plot_step_" + str(self._time_step_counter) + ".png"
         plt.savefig(Path(save_path).joinpath(filename))
+        plt.show()
         return 0
 
     def progress_bar(self):
