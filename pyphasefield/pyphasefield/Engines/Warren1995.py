@@ -120,8 +120,8 @@ def warren_eng(comp1, comp2, D_s, D_l, v_m, y_e, T, alpha, cell_spacing):
 
 def run_warren(phi, c, engine, steps, output=False):
     for step in range(steps):
-        if output and not step % output:
+        if output and not step % 500:
             save_fields({'phi': phi, 'c': c}, step)
-            plot_field(phi, "phi", step, 1)
+            plot_field(c, "c", step, 1)
         engine(phi, c)
     return 0
