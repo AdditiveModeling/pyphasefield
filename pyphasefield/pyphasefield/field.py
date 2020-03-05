@@ -1,13 +1,13 @@
 import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
 
+
 class Field():
     
     def __init__(self, data=None, simulation=None, name=None, colormap="GnBu"):
         self.data = data
         self.name = name
         self._simulation = simulation
-        self.colormap = colormap
 
     def __str__(self):
         return self.data.__str__()

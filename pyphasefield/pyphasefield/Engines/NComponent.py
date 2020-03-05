@@ -94,7 +94,7 @@ def __gprime(phi):
 #Numpy vectorized versions of above functions
 _h = np.vectorize(__h)
 _hprime = np.vectorize(__hprime)
-_g = np.vectorize(__g) 
+_g = np.vectorize(__g)
 _gprime = np.vectorize(__gprime)
 
 def grad_l(phi, dx, dim):
