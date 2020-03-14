@@ -2,6 +2,10 @@ import numpy as np
 # import meshio as mio
 from .field import Field
 from . import Engines
+"""
+This file is pending deletion. Overhaul will not use a Simulation object
+"""
+
 
 class Simulation:
     def __init__(self, save_path=None):

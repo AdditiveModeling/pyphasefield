@@ -43,7 +43,7 @@ def load_fields(file_path, step=-1):
     """
 
     # Check for file path inside cwd
-    print("Path:", Path.cwd().joinpath(file_path))
+    print("Current cwd:", Path.cwd().joinpath(file_path))
     if Path.cwd().joinpath(file_path).exists():
         file_path = Path.cwd().joinpath(file_path)
 
@@ -54,7 +54,7 @@ def load_fields(file_path, step=-1):
             raise ValueError("Must specify step if path is directory")
 
     # Load dict
-    fields_dict = np.load(file_path, allow_pickle=True)
+    fields = dict(np.load(file_path, allow_pickle=True))
 
     # Time step set from parsing file name or manually --> defaults to 0
     if step < 0:
@@ -70,7 +70,7 @@ def load_fields(file_path, step=-1):
     else:
         step = int(step)
 
-    return fields_dict, step
+    return fields, step
 
 
 def plot_all_fields(fields, step, save_loc=None, cell_spacing=None):

@@ -1,5 +1,8 @@
 import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
+"""
+This file is pending deletion. Overhaul will break Field into some aux functs.
+"""
 
 
 class Field():

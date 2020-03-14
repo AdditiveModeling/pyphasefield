@@ -20,8 +20,7 @@ data = {'comp1': nickel,
         'cell_spacing': 4.6e-8}
 
 # Initialize fields and engine
-# fields = warren_diamond([200, 200], 15)
-fields = io.load_fields("/data/sim1/step_500.npz")
+fields = warren_diamond([200, 200], 15)
 eng = warren_eng(**data)
 
 # Run simulation

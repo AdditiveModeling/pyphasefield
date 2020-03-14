@@ -3,14 +3,17 @@ import dataclasses
 import collections
 from pyphasefield.io import plot_field, save_fields, make_save_loc
 
+
 def _p(phi):
     return phi*phi*phi*(10-15*phi+6*phi*phi)
 
+
 def _g(phi):
-    return (phi*phi*(1-phi)*(1-phi))
+    return phi * phi * (1 - phi) * (1 - phi)
+
 
 def _gprime(phi):
-    return (4*phi*phi*phi - 6*phi*phi +2*phi)
+    return 4 * phi * phi * phi - 6 * phi * phi + 2 * phi
 
 
 def gradx(phi, dx):
@@ -37,7 +40,7 @@ def gradyy(phi, dx):
     return (phip + phim - 2 * phi) / (dx * dx)
 
 
-# These next four declarations will be moved somewhere else -MP:
+# These next two declarations may be moved somewhere else -MP:
 Wfields = collections.namedtuple('Wfields', ['phi', 'c'])
 
 
@@ -59,8 +62,8 @@ def warren_eng(comp1, comp2, D_S, D_L, v_m, y_e, T, alpha, cell_spacing):
     ebar = np.sqrt(6 * np.sqrt(2) * comp1.S * d / comp1.T_m)  # Baseline energy
 
     def warren1995(fields):
-        phi = fields.phi
-        c = fields.c
+        phi = fields['phi']
+        c = fields['c']
         dx = cell_spacing
 
         g = _g(phi)
