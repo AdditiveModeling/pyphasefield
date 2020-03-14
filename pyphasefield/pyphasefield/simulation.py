@@ -2,7 +2,6 @@ import numpy as np
 # import meshio as mio
 from .field import Field
 from . import Engines
-from .io import update_thermal_field, apply_boundary_conditions, save_simulation
 
 class Simulation:
     def __init__(self, save_path=None):
@@ -18,27 +17,28 @@ class Simulation:
         
         Data specific to a particular field is stored within the Field class
         """
-        self.fields = []
-        self.temperature = None
-        self._dimensions_of_simulation_region = [200, 200]
-        self._cell_spacing_in_meters = 1.
-        self._time_step_in_seconds = 1.
-        self._time_step_counter = 0
-        self._temperature_type = "isothermal"
-        self._initial_temperature_left_side = 1574.
-        self._thermal_gradient_Kelvin_per_meter = 0.
-        self._cooling_rate_Kelvin_per_second = 0.  # cooling is a negative number! this is dT/dt
-        self._tdb = None
-        self._tdb_path = ""
-        self._components = []
-        self._phases = []
-        self._engine = None
-        self._save_path = save_path
-        self._time_steps_per_checkpoint = 500
-        self._save_images_at_each_checkpoint = False
-        self._boundary_conditions_type = ["periodic", "periodic"]
+        # self.fields = []
+        # self.temperature = None
+        # self._dimensions_of_simulation_region = [200, 200]
+        # self._cell_spacing_in_meters = 1.
+        # self._time_step_in_seconds = 1.
+        # self._time_step_counter = 0
+        # self._temperature_type = "isothermal"
+        # self._initial_temperature_left_side = 1574.
+        # self._thermal_gradient_Kelvin_per_meter = 0.
+        # self._cooling_rate_Kelvin_per_second = 0.  # cooling is a negative number! this is dT/dt
+        # self._tdb = None
+        # self._tdb_path = ""
+        # self._components = []
+        # self._phases = []
+        # self._engine = None
+        # self._save_path = save_path
+        # self._time_steps_per_checkpoint = 500
+        # self._save_images_at_each_checkpoint = False
+        # self._boundary_conditions_type = ["periodic", "periodic"]
+        # self._engine_data = {}
 
-    def simulate(self, number_of_timesteps, dt=None):
+    def simulate(fields, engine, number_of_timesteps):
         """
         Evolves the simulation for a specified number of timesteps
         If a length of timestep is not specified, uses the timestep length stored within the Simulation instance

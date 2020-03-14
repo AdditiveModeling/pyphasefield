@@ -1,7 +1,7 @@
 import numpy as np
 import dataclasses
 import collections
-from pyphasefield.io import plot_field, save_fields
+from pyphasefield.io import plot_field, save_fields, make_save_loc
 
 def _p(phi):
     return phi*phi*phi*(10-15*phi+6*phi*phi)
@@ -50,37 +50,24 @@ def warren_diamond(dim, diamond_size):
     return Wfields(phi, c)
 
 
-@dataclasses.dataclass(frozen=True)
-class Component:
-    """A data class that holds physical properties for a component"""
-    T_m: float  # Melting temperature (K)
-    L: float  # Latent heat (J/m^3)
-    S: float  # Surface energy (J/m^2)
-    B: float  # Linear kinetic coefficient (m/K*s)
-
-    def W(self, d):
-        return 3 * self.S / 2 ** 0.5 * self.T_m * d
-
-    def M(self, d):
-        return self.T_m * self.T_m * self.B / (6 * 2 ** 0.5 * self.L * d)
-
-
-def warren_eng(comp1, comp2, D_s, D_l, v_m, y_e, T, alpha, cell_spacing):
+def warren_eng(comp1, comp2, D_S, D_L, v_m, y_e, T, alpha, cell_spacing):
     # original Warren1995 model uses centimeters, values have been converted to meters!
     # Initialize fields with seeds
     R = 8.314  # gas constant, J/mol*K
-    dt = cell_spacing ** 2 / 5. / D_l
+    dt = cell_spacing ** 2 / 5. / D_L
     d = cell_spacing / 0.94  # Interfacial thickness
     ebar = np.sqrt(6 * np.sqrt(2) * comp1.S * d / comp1.T_m)  # Baseline energy
 
-    def warren1995(phi, c):
+    def warren1995(fields):
+        phi = fields.phi
+        c = fields.c
         dx = cell_spacing
 
         g = _g(phi)
         p = _p(phi)
         gprime = _gprime(phi)
-        H_A = comp1.W(d) * gprime + 30 * comp1.L * (1 / (T - 1) / comp1.T_m) * g
-        H_B = comp2.W(d) * gprime + 30 * comp2.L * (1 / (T - 1) / comp2.T_m) * g
+        H_A = comp1.W(d) * gprime + 30 * comp1.L * (1. / T - 1. / comp1.T_m) * g
+        H_B = comp2.W(d) * gprime + 30 * comp2.L * (1. / T - 1. / comp2.T_m) * g
         phixx = gradxx(phi, dx)
         phiyy = gradyy(phi, dx)
         lphi = phixx + phiyy
@@ -89,7 +76,7 @@ def warren_eng(comp1, comp2, D_s, D_l, v_m, y_e, T, alpha, cell_spacing):
         phixy = grady(phix, dx)
 
         # Change in c field
-        D_C = D_s + p * (D_l - D_s)
+        D_C = D_S + p * (D_L - D_S)
         temp = D_C * v_m * c * (1 - c) * (H_B - H_A) / R
         deltac = D_C * (gradxx(c, dx) + gradyy(c, dx)) + (
                 gradx(D_C, dx) * gradx(c, dx) + grady(D_C, dx) * grady(c, dx)) + temp * (lphi) + (
@@ -113,15 +100,4 @@ def warren_eng(comp1, comp2, D_s, D_l, v_m, y_e, T, alpha, cell_spacing):
         # Apply changes to inputted fields
         phi += deltaphi * dt
         c += deltac * dt
-        return phi, c
-
     return warren1995
-
-
-def run_warren(phi, c, engine, steps, output=False):
-    for step in range(steps):
-        if output and not step % 500:
-            save_fields({'phi': phi, 'c': c}, step)
-            plot_field(c, "c", step, 1)
-        engine(phi, c)
-    return 0
