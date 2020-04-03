@@ -51,7 +51,6 @@ def Warren1995(sim):
     phix = gradx(phi, dx)
     phiy = grady(phi, dx)
     phixy = grady(phix, dx)
-    #print(H_A)
     
     #change in c
     D_C = sim.D_S+p*(sim.D_L-sim.D_S)
@@ -72,6 +71,8 @@ def Warren1995(sim):
     deltaphi = M_phi*((ebar2*eta*eta*lphi-(1-c)*H_A-c*H_B)+ebar2*eta*etap*(s2*(phiyy-phixx)+2*c2*phixy)+0.5*ebar2*(etap*etap+eta*etapp)*(-2*s2*phixy+lphi+c2*(phiyy-phixx)))
     randArray = 2*np.random.random(phi.shape)-1
     deltaphi += M_phi*sim.alpha*randArray*(16*g)*((1-c)*H_A+c*H_B)
+    np.set_printoptions(threshold=np.inf)
+    
     
     #apply changes
     sim.fields[0].data += deltaphi*dt
@@ -83,8 +84,7 @@ def init_Warren1995(sim, dim, diamond_size=15):
     phi = np.zeros(dim)
     phi += 1.
     for i in range(diamond_size):
-        phi[(int)(dim[0]/4-i):(int)(dim[0]/4+i), ((int)(dim[1]/2-(diamond_size-i))):(int)(dim[1]/2+(diamond_size-i))] = 0
-        phi[(int)(3*dim[0]/4-i):(int)(3*dim[0]/4+i), ((int)(dim[1]/2-(diamond_size-i))):(int)(dim[1]/2+(diamond_size-i))] = 0
+        phi[(int)(dim[0]/2-i):(int)(dim[0]/2+i), ((int)(dim[1]/2-(diamond_size-i))):(int)(dim[1]/2+(diamond_size-i))] = 0
     phi_field = Field(data=phi, name="phi", simulation=sim)
     sim.add_field(phi_field)
     c = np.zeros(dim)

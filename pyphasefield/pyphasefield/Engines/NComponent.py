@@ -142,7 +142,7 @@ def npvalue(var, string, tdb):
     """
     return sp.lambdify(var, tdb.symbols[string], 'numpy')(1000)
 
-def NComponent(sim):
+def engine_NComponent(sim):
     #load fields to easier-to-reference variables
     phi = sim.fields[0].data
     q1 = sim.fields[1].data
@@ -332,8 +332,9 @@ def NComponent(sim):
     sim.fields[0].data += deltaphi*dt
     sim.fields[1].data += deltaq1*dt
     sim.fields[2].data += deltaq4*dt
-    if(sim.get_time_step_counter()%10 == 0):
-        sim.fields[1].data, sim.fields[2].data = renormalize(sim.fields[1].data, sim.fields[2].data)
+    
+    #always renormalize quaternion fields after every step
+    sim.fields[1].data, sim.fields[2].data = renormalize(sim.fields[1].data, sim.fields[2].data)
 
     #This code segment prints the progress after every 5% of the simulation is done (for convenience)
     #disabled for now, may bring it back in the simulate function of simulation.py
@@ -343,7 +344,7 @@ def NComponent(sim):
 
     #This code segment adds nuclei
     #note: nuclei are added *before* saving the data, so stray nuclei may be found before evolving the system
-    step = sim.get_time_step_counter()
+    #step = sim.get_time_step_counter()
     #if(step%500 == 0):
         #find the stochastic nucleation critical probabilistic cutoff
         #attn -- Q and T_liq are hard coded parameters for Ni-10%Cu
@@ -408,6 +409,212 @@ def init_tdb_parameters(sim):
         print("Could not load every parameter required from the TDB file!")
         print(e)
         return False
+    
+def functional_NComponent():
+    print("The functional for this engine is given by the following LaTeX expressions:")
+    print("$$ F = \\int_\\Omega (f_{int} + f_{bulk} + f_{well} + f_{ori} + f_{q2} + \\lambda(1-\\sqrt{\\sum q_i^2}) $$")
+    print("$$ f_{int} = \\frac{\\epsilon_\\phi^2\\eta T}{2}|\\nabla \\phi|^2 $$")
+    print("$$ f_{bulk} = G_L(\\textbf{c}, T) + h(\\phi)(G_S(\\textbf{c}, T) - G_L(\\textbf{c}, T)) $$")
+    print("$$ f_{well} = \\sum_i c_iW_ig(\\phi) $$
+    print("$$ f_{ori} = 2HTp(\\phi)|\\nabla \\textbf{q}| $$")
+    print("$$ f_{q2} = \\frac{\\epsilon_q^2}{2}|\\nabla \\textbf{q}|^2 $$")
+    print("$$ h(\\phi) = \\phi^3(6\\phi^2 - 15\\phi + 10) $$")
+    print("$$ g(\\phi) = \\phi^2(1-\\phi)^2 $$")
+    print("$$ p(\\phi) = \\phi^2 $$")
+    print("$$ \\eta = 1 - 3\\gamma_\\epsilon + 4\\gamma_\\epsilon\\frac{\\psi_x^4 + \\psi_y^4 + \\psi_z^4}{|\\nabla \\phi|^4} $$")
+    
+def engine_params_NComponent(sim):
+    #load fields to easier-to-reference variables
+    phi = sim.fields[0].data
+    q1 = sim.fields[1].data
+    q4 = sim.fields[2].data
+    c = []
+    for i in range(3, len(sim.fields)):
+        c.append(sim.fields[i].data)
+    T = sim.temperature.data
+    dim = len(phi.shape)
+    dx = sim.get_cell_spacing()
+    
+    g = _g(phi)
+    h = _h(phi)
+    m = 1-h;
+    M_q = 1e-6 + (sim.M_qmax-1e-6)*m
+
+    lq1 = grad2(q1, dx, dim)
+    lq4 = grad2(q4, dx, dim)
+
+    #additional interpolating functions
+    p = phi*phi
+    hprime = _hprime(phi)
+    gprime = _gprime(phi)
+
+    #quaternion gradient terms
+    gq1l = grad_l(q1, dx, dim)
+    gq4l = grad_l(q4, dx, dim)
+    gqsl = []
+    for j in range(dim):
+        gqsl.append(gq1l[j]*gq1l[j]+gq4l[j]*gq4l[j])
+
+    gq1r = grad_r(q1, dx, dim)
+    gq4r = grad_r(q4, dx, dim)
+
+    gqsr = []
+    for j in range(dim):
+        gqsr.append(np.roll(gqsl[j], -1, j))
+
+    gqs = (gqsl[0]+gqsr[0])/2
+    for j in range(1, dim):
+        gqs += (gqsl[j]+gqsr[j])/2
+    rgqs_0 = np.sqrt(gqs)
+
+    gphi = grad_l(phi, dx, 2)
+    vertex_averaged_gphi = []
+    vertex_averaged_gphi.append((gphi[0]+np.roll(gphi[0], 1, 1))/2.)
+    vertex_averaged_gphi.append((gphi[1]+np.roll(gphi[1], 1, 0))/2.)
+    vertex_averaged_q1 = (q1 + np.roll(q1, 1, 0))/2.
+    vertex_averaged_q1 = (vertex_averaged_q1 + np.roll(vertex_averaged_q1, 1, 1))/2.
+    vertex_averaged_q4 = (q4 + np.roll(q4, 1, 0))/2.
+    vertex_averaged_q4 = (vertex_averaged_q4 + np.roll(vertex_averaged_q4, 1, 1))/2.
+    vertex_averaged_T = (T + np.roll(T, 1, 0))/2.
+    vertex_averaged_T = (vertex_averaged_T + np.roll(vertex_averaged_T, 1, 1))/2.
+
+    a2_b2 = vertex_averaged_q1*vertex_averaged_q1-vertex_averaged_q4*vertex_averaged_q4
+    ab2 = 2.*vertex_averaged_q1*vertex_averaged_q4
+
+    vertex_centered_gpsi = []
+    vertex_centered_gpsi.append(a2_b2*vertex_averaged_gphi[0] - ab2*vertex_averaged_gphi[1])
+    vertex_centered_gpsi.append(a2_b2*vertex_averaged_gphi[1] + ab2*vertex_averaged_gphi[0])
+
+    psi_xxy = vertex_centered_gpsi[0]*vertex_centered_gpsi[0]*vertex_centered_gpsi[1]
+    psi_xyy = vertex_centered_gpsi[0]*vertex_centered_gpsi[1]*vertex_centered_gpsi[1]
+    psi_xxyy = psi_xxy*vertex_centered_gpsi[1]
+
+    vertex_centered_mgphi2 = vertex_averaged_gphi[0]*vertex_averaged_gphi[0] + vertex_averaged_gphi[1]*vertex_averaged_gphi[1]
+
+    #"clip" the grid: if values are smaller than "smallest", set them equal to "smallest"
+    #also clip the mgphi values to avoid divide by zero errors!
+    smallest = 1.5
+    for j in range(dim):
+        gqsl[j] = np.clip(gqsl[j], smallest, np.inf)
+        gqsr[j] = np.clip(gqsr[j], smallest, np.inf)
+
+    vertex_centered_mgphi2 = np.clip(vertex_centered_mgphi2, 0.000000001, np.inf)
+
+    rgqsl = []
+    rgqsr = []
+    for j in range(dim):
+        rgqsl.append(np.sqrt(gqsl[j]))
+        rgqsr.append(np.sqrt(gqsr[j]))
+
+    #compute values from tdb
+    G_L, dGLdc = compute_tdb_energy_nc(sim, T, c, "LIQUID")
+    G_S, dGSdc = compute_tdb_energy_nc(sim, T, c, "FCC_A1")
+
+    #change in c1, c2
+    M_c = []
+    dFdc = []
+    deltac = []
+    #find the standard deviation as an array 
+    std_c=np.sqrt(np.absolute(2*sim.R*T/sim.v_m))
+    for j in range(len(c)):
+        #find the actual random noise
+        noise_c=np.random.normal(0, std_c, phi.shape)
+        M_c.append(sim.v_m*c[j]*(sim.D_S+m*(sim.D_L-sim.D_S))/sim.R/1574.)
+        #add the change in noise inside the functional
+        dFdc.append((dGSdc[j] + m*(dGLdc[j]-dGSdc[j]))/sim.v_m + (sim.W[j]-sim.W[len(c)])*g*T+noise_c)
+    for j in range(len(c)):
+        deltac.append(divagradb(M_c[j]*(1-c[j]), dFdc[j], dx, dim))
+        for k in range(len(c)):
+            if not (j == k):
+                deltac[j] -= divagradb(M_c[j]*c[k], dFdc[k], dx, dim)
+
+    #change in phi
+    divTgradphi = divagradb(T, phi, dx, dim)
+
+    #compute overall order mobility, from order mobility coefficients
+    c_N = 1-np.sum(c, axis=0)
+    M_phi = c_N*sim.M[len(c)]
+    for j in range(len(c)):
+        M_phi += c[j]*sim.M[j]
+
+    #compute well size term for N-components
+    well = c_N*sim.W[len(c)]
+    for j in range(len(c)):
+        well += c[j]*sim.W[j]
+    well *= (T*gprime)
+
+    psix3 = vertex_centered_gpsi[0]*vertex_centered_gpsi[0]*vertex_centered_gpsi[0]
+    psiy3 = vertex_centered_gpsi[1]*vertex_centered_gpsi[1]*vertex_centered_gpsi[1]
+    pf_comp_x = 8*sim.y_e*T*((2*a2_b2*psix3 + 2*ab2*psiy3)/vertex_centered_mgphi2 - vertex_averaged_gphi[0]*(psix3*vertex_centered_gpsi[0] + psiy3*vertex_centered_gpsi[1])/(vertex_centered_mgphi2*vertex_centered_mgphi2))
+    pf_comp_x = (np.roll(pf_comp_x, -1, 0) - pf_comp_x)/dx
+    pf_comp_x = (np.roll(pf_comp_x, -1, 1) + pf_comp_x)/2.
+    pf_comp_y = 8*sim.y_e*T*((2*a2_b2*psiy3 - 2*ab2*psix3)/vertex_centered_mgphi2 - vertex_averaged_gphi[1]*(psix3*vertex_centered_gpsi[0] + psiy3*vertex_centered_gpsi[1])/(vertex_centered_mgphi2*vertex_centered_mgphi2))
+    pf_comp_y = (np.roll(pf_comp_y, -1, 1) - pf_comp_y)/dx
+    pf_comp_y = (np.roll(pf_comp_y, -1, 0) + pf_comp_y)/2.
+    deltaphi = M_phi*(sim.ebar*sim.ebar*((1-3*sim.y_e)*divTgradphi + pf_comp_x + pf_comp_y)-30*g*(G_S-G_L)/sim.v_m-well-4*sim.H*T*phi*rgqs_0)
+
+    #noise in phi, based on Langevin Noise
+    std_phi=np.sqrt(np.absolute(2*sim.R*M_phi*T/sim.v_m))
+    noise_phi=np.random.normal(0, std_phi, phi.shape)
+    deltaphi += noise_phi
+
+    #changes in q, part 1
+    dq_component = 2*sim.H*T*p
+
+    gaq1 = gaq(gq1l, gq1r, rgqsl, rgqsr, dq_component, dx, dim)
+    gaq4 = gaq(gq4l, gq4r, rgqsl, rgqsr, dq_component, dx, dim)
+
+    q1px = vertex_averaged_q1*vertex_averaged_gphi[0]
+    q1py = vertex_averaged_q1*vertex_averaged_gphi[1]
+    q4px = vertex_averaged_q4*vertex_averaged_gphi[0]
+    q4py = vertex_averaged_q4*vertex_averaged_gphi[1]
+
+    t1_temp = (16*sim.ebar*sim.ebar*T*sim.y_e/vertex_centered_mgphi2)*(psi_xyy*(q1px - q4py) + psi_xxy*(q1py + q4px))
+    t4_temp = (16*sim.ebar*sim.ebar*T*sim.y_e/vertex_centered_mgphi2)*(psi_xyy*(-q4px - q1py) + psi_xxy*(-q4py + q1px))
+    cc_t1_temp = (t1_temp + np.roll(t1_temp, -1, 0))/2.
+    cc_t1_temp = (cc_t1_temp + np.roll(cc_t1_temp, -1, 1))/2.
+    cc_t4_temp = (t4_temp + np.roll(t4_temp, -1, 0))/2.
+    cc_t4_temp = (cc_t4_temp + np.roll(cc_t4_temp, -1, 1))/2.
+    
+    t1 = gaq1 + cc_t1_temp
+    t4 = gaq4 + cc_t4_temp
+
+    #add Dorr2010 term to quaternion field
+    t1 += sim.eqbar*sim.eqbar*lq1
+    t4 += sim.eqbar*sim.eqbar*lq4
+    
+    lmbda = (q1*t1+q4*t4)
+    deltaq1 = M_q*(t1-q1*lmbda)
+    deltaq4 = M_q*(t4-q4*lmbda)
+
+
+    #make dict to return, containing variables of interest
+    rd = {}
+    rd["deltaphi"] = {}
+    rd["deltac"] = {}
+    rd["deltaq1"] = {}
+    rd["deltaq4"] = {}
+    rd["energy"] = {}
+    
+    #add energetic terms
+    psix4 = psix3*vertex_centered_gpsi[0]
+    psiy4 = psiy3*vertex_centered_gpsi[1]
+    psix4y4 = (psix4+psiy4)/vertex_centered_mgphi2
+    psix4y4 = 0.5*(psix4y4 + np.roll(psix4y4, -1, 0))
+    psix4y4 = 0.5*(psix4y4 + np.roll(psix4y4, -1, 1))
+    eta = 1-3*sim.y_e+4*sim.y_e*(psix4y4)
+    rd["energy"]["f_int"] = sim.ebar**2/2*eta*T
+    wellenergy = c_N*sim.W[len(c)]
+    for j in range(len(c)):
+        wellenergy += c[j]*sim.W[j]
+    wellenergy *= (T*g)
+    rd["energy"]["f_well"] = wellenergy
+    rd["energy"]["f_bulk"] = G_S + h*(G_L-G_S)
+    rd["energy"]["f_ori"] = 2*sim.H*T*p*rgqs_0
+    rd["energy"]["f_q2"] = 0.5*sim.eqbar**2 * (rgqs_0)**2
+    
+    return rd
+    
         
 def init_NComponent(sim, dim=[200,200], sim_type="seed", number_of_seeds=1, tdb_path="Ni-Cu_Ideal.tdb", thermal_type="isothermal", 
                            initial_temperature=1574, thermal_gradient=0, cooling_rate=0, thermal_file_path="T.xdmf", 
@@ -418,7 +625,7 @@ def init_NComponent(sim, dim=[200,200], sim_type="seed", number_of_seeds=1, tdb_
     sim.load_tdb(tdb_path)
     sim.set_cell_spacing(cell_spacing)
     sim.d = sim.get_cell_spacing()*d_ratio
-    sim.set_engine(NComponent)
+    sim.set_engine(engine_NComponent)
     init_tdb_parameters(sim)
     if(thermal_type=="isothermal"):
         sim.set_thermal_isothermal(initial_temperature)
