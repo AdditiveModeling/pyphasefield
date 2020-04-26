@@ -210,12 +210,11 @@ def engine_NComponent(sim):
 
     vertex_centered_mgphi2 = vertex_averaged_gphi[0]*vertex_averaged_gphi[0] + vertex_averaged_gphi[1]*vertex_averaged_gphi[1]
 
-    #"clip" the grid: if values are smaller than "smallest", set them equal to "smallest"
+    #"clip" the grid: if values are smaller than sim.beta, set them equal to sim.beta
     #also clip the mgphi values to avoid divide by zero errors!
-    smallest = 1.5
     for j in range(dim):
-        gqsl[j] = np.clip(gqsl[j], smallest, np.inf)
-        gqsr[j] = np.clip(gqsr[j], smallest, np.inf)
+        gqsl[j] = np.clip(gqsl[j], sim.beta, np.inf)
+        gqsr[j] = np.clip(gqsr[j], sim.beta, np.inf)
 
     vertex_centered_mgphi2 = np.clip(vertex_centered_mgphi2, 0.000000001, np.inf)
 
@@ -270,7 +269,7 @@ def engine_NComponent(sim):
     pf_comp_y = 8*sim.y_e*T*((2*a2_b2*psiy3 - 2*ab2*psix3)/vertex_centered_mgphi2 - vertex_averaged_gphi[1]*(psix3*vertex_centered_gpsi[0] + psiy3*vertex_centered_gpsi[1])/(vertex_centered_mgphi2*vertex_centered_mgphi2))
     pf_comp_y = (np.roll(pf_comp_y, -1, 1) - pf_comp_y)/dx
     pf_comp_y = (np.roll(pf_comp_y, -1, 0) + pf_comp_y)/2.
-    deltaphi = M_phi*(sim.ebar*sim.ebar*((1-3*sim.y_e)*divTgradphi + pf_comp_x + pf_comp_y)-30*g*(G_S-G_L)/sim.v_m-well-4*sim.H*T*phi*rgqs_0*1574.)
+    deltaphi = M_phi*(sim.ebar*sim.ebar*((1-3*sim.y_e)*divTgradphi + pf_comp_x + pf_comp_y)-30*g*(G_S-G_L)/sim.v_m-well-4*sim.H*T*phi*rgqs_0)
 
     #old noise from Warren1995:
     #randArray = 2*np.random.random_sample(shape)-1
@@ -300,8 +299,8 @@ def engine_NComponent(sim):
     cc_t4_temp = (t4_temp + np.roll(t4_temp, -1, 0))/2.
     cc_t4_temp = (cc_t4_temp + np.roll(cc_t4_temp, -1, 1))/2.
     
-    t1 = (gaq1)*1574. + cc_t1_temp
-    t4 = (gaq4)*1574. + cc_t4_temp
+    t1 = gaq1 + cc_t1_temp
+    t4 = gaq4 + cc_t4_temp
 
     #add Dorr2010 term to quaternion field
     t1 += sim.eqbar*sim.eqbar*lq1
@@ -404,6 +403,7 @@ def init_tdb_parameters(sim):
         sim.ebar = np.sqrt(6*np.sqrt(2)*sim.S[1]*sim.d/sim.T_M[1])
         sim.eqbar = 0.5*sim.ebar
         sim.set_time_step_length(sim.get_cell_spacing()**2/5./sim.D_L/20)
+        sim.beta = 1.5
         return True
     except Exception as e:
         print("Could not load every parameter required from the TDB file!")
@@ -415,7 +415,7 @@ def functional_NComponent():
     print("$$ F = \\int_\\Omega (f_{int} + f_{bulk} + f_{well} + f_{ori} + f_{q2} + \\lambda(1-\\sqrt{\\sum q_i^2}) $$")
     print("$$ f_{int} = \\frac{\\epsilon_\\phi^2\\eta T}{2}|\\nabla \\phi|^2 $$")
     print("$$ f_{bulk} = G_L(\\textbf{c}, T) + h(\\phi)(G_S(\\textbf{c}, T) - G_L(\\textbf{c}, T)) $$")
-    print("$$ f_{well} = \\sum_i c_iW_ig(\\phi) $$
+    print("$$ f_{well} = \\sum_i c_iW_ig(\\phi) $$")
     print("$$ f_{ori} = 2HTp(\\phi)|\\nabla \\textbf{q}| $$")
     print("$$ f_{q2} = \\frac{\\epsilon_q^2}{2}|\\nabla \\textbf{q}|^2 $$")
     print("$$ h(\\phi) = \\phi^3(6\\phi^2 - 15\\phi + 10) $$")
@@ -491,12 +491,11 @@ def engine_params_NComponent(sim):
 
     vertex_centered_mgphi2 = vertex_averaged_gphi[0]*vertex_averaged_gphi[0] + vertex_averaged_gphi[1]*vertex_averaged_gphi[1]
 
-    #"clip" the grid: if values are smaller than "smallest", set them equal to "smallest"
+    #"clip" the grid: if values are smaller than sim.beta, set them equal to sim.beta
     #also clip the mgphi values to avoid divide by zero errors!
-    smallest = 1.5
     for j in range(dim):
-        gqsl[j] = np.clip(gqsl[j], smallest, np.inf)
-        gqsr[j] = np.clip(gqsr[j], smallest, np.inf)
+        gqsl[j] = np.clip(gqsl[j], sim.beta, np.inf)
+        gqsr[j] = np.clip(gqsr[j], sim.beta, np.inf)
 
     vertex_centered_mgphi2 = np.clip(vertex_centered_mgphi2, 0.000000001, np.inf)
 

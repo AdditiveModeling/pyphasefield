@@ -335,6 +335,9 @@ class Simulation:
     def set_dimensions(self, dimensions_of_simulation_region):
         self._dimensions_of_simulation_region = dimensions_of_simulation_region
         return
+    
+    def get_dimensions(self):
+        return self._dimensions_of_simulation_region
 
     def set_cell_spacing(self, cell_spacing):
         self._cell_spacing_in_meters = cell_spacing
@@ -426,8 +429,8 @@ class Simulation:
     def generate_python_script(self):
         return
 
-    def init_sim_Diffusion(self, dim=[200]):
-        Engines.init_Diffusion(self, dim)
+    def init_sim_Diffusion(self, dim=[200], solver="explicit", gmres=False, adi=False):
+        Engines.init_Diffusion(self, dim, solver=solver, gmres=gmres, adi=adi)
         return
 
     def init_sim_Warren1995(self, dim=[200, 200], diamond_size=15):
