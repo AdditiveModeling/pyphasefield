@@ -1,5 +1,6 @@
 import numpy as np
 from ..field import Field
+from ..ppf_utils import COLORMAP_OTHER, COLORMAP_PHASE_INV
 
 def __p(phi):
     return phi*phi*phi*(10-15*phi+6*phi*phi)
@@ -85,11 +86,11 @@ def init_Warren1995(sim, dim, diamond_size=15):
     phi += 1.
     for i in range(diamond_size):
         phi[(int)(dim[0]/2-i):(int)(dim[0]/2+i), ((int)(dim[1]/2-(diamond_size-i))):(int)(dim[1]/2+(diamond_size-i))] = 0
-    phi_field = Field(data=phi, name="phi", simulation=sim)
+    phi_field = Field(data=phi, name="phi", simulation=sim, colormap=COLORMAP_PHASE_INV)
     sim.add_field(phi_field)
     c = np.zeros(dim)
     c += 0.40831
-    c_field = Field(data=c, name="c", simulation=sim)
+    c_field = Field(data=c, name="c", simulation=sim, colormap=COLORMAP_OTHER)
     sim.add_field(c_field)
     sim.T_mA = 1728. #melting point of nickel
     sim.T_mB = 1358. #melting point of copper

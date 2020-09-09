@@ -5,21 +5,14 @@ from . import Engines
 from pathlib import Path
 import matplotlib.cm as cm
 from matplotlib import pyplot as plt
+from . import ppf_utils
+try:
+    import pycalphad as pyc
+    from . import ppf_gpu_utils
+except:
+    pass
 
-
-def successfully_imported_pycalphad():
-    """
-    Checks if pycalphad is installed. 
-    If not, warns the user that pycalphad-dependent features cannot be used
-    Also tells the user how to install it (if the user has Anaconda)
-    """
-    try:
-        import pycalphad as pyc
-    except ImportError:
-        print("The feature you are trying to use requires pycalphad")
-        print("In Anaconda, use \'conda install -c pycalphad -c conda-forge pycalphad\' to install it")
-        return False
-    return True
+#TODO: neumann boundary conditions breaks for "1d" sims (size 1 dimensions)
     
 def expand_T_array(T, nbc):
     """Used by Simulation.set_thermal_file() to add boundary cells if not using periodic boundary conditions."""
@@ -40,7 +33,17 @@ def expand_T_array(T, nbc):
     final[len(final)-1] = final[len(final)-offset_y-1]
     final[:, 0] = final[:, offset_x]
     final[:, len(final[0])-1] = final[:, len(final[0])-offset_x-1]
-    return final
+    return np.squeeze(final)
+
+def get_non_edge_cells_from_nbcs(array, nbc):
+    offset_x = 0
+    offset_y= 0
+    if(nbc[0]):
+        offset_x = 1;
+    if(nbc[1]):
+        offset_y = 1;
+    return array[offset_y:len(array)-offset_y, offset_x:len(array[0])-offset_x]
+        
 
 class Simulation:
     def __init__(self, save_path=None):
@@ -57,14 +60,16 @@ class Simulation:
         Data specific to a particular field is stored within the Field class
         """
         self.fields = []
+        self.uses_gpu = False
         self.temperature = None
+        self.temperature_gpu_device = None
         self._dimensions_of_simulation_region = [200, 200]
         self._cell_spacing_in_meters = 1.
         self._time_step_in_seconds = 1.
         self._time_step_counter = 0
         self._temperature_type = "isothermal"
         self._initial_temperature_left_side = 1574.
-        self._thermal_gradient_Kelvin_per_meter = 0.
+        self._temperature_gradient_Kelvin_per_meter = 0.
         self._cooling_rate_Kelvin_per_second = 0.  # cooling is a negative number! this is dT/dt
         self._tdb = None
         self._tdb_path = ""
@@ -97,8 +102,10 @@ class Simulation:
             self.increment_time_step_counter()
             self._engine(self)  # run engine on Simulation instance for 1 time step
             self.apply_boundary_conditions()
-            self.update_thermal_field()
+            self.update_temperature_field()
             if self._time_step_counter % self._time_steps_per_checkpoint == 0:
+                if(self.uses_gpu):
+                    ppf_gpu_utils.retrieve_fields_from_GPU(self)
                 self.save_simulation()
 
     def load_tdb(self, tdb_path, phases=None, components=None):
@@ -113,7 +120,7 @@ class Simulation:
         phases and components lists are always in alphabetical order, and will be automatically 
             sorted if not already done by the user
         """
-        if not successfully_imported_pycalphad():
+        if not ppf_utils.successfully_imported_pycalphad():
             return
         import pycalphad as pyc
         self._tdb_path = tdb_path
@@ -142,7 +149,7 @@ class Simulation:
         self._time_step_in_seconds = time_step
         return
 
-    def set_thermal_isothermal(self, temperature):
+    def set_temperature_isothermal(self, temperature):
         """
         Sets the simulation to use an isothermal temperature profile
         The temperature variable is a Field instance
@@ -158,7 +165,7 @@ class Simulation:
         self.temperature = t_field
         return
 
-    def set_thermal_gradient(self, initial_T_left_side, dTdx, dTdt):
+    def set_temperature_gradient(self, initial_T_left_side, dTdx, dTdt):
         """
         Sets the simulation to use a linear gradient temperature profile (frozen gradient approximation)
         The temperature variable is a Field instance, data stored within the Field instance is a numpy ndarray
@@ -173,35 +180,34 @@ class Simulation:
         """
         self._temperature_type = "gradient"
         self._initial_temperature_left_side = initial_T_left_side
-        self._thermal_gradient_Kelvin_per_meter = dTdx
+        self._temperature_gradient_Kelvin_per_meter = dTdx
         self._cooling_rate_Kelvin_per_second = dTdt
         array = np.zeros(self._dimensions_of_simulation_region)
-        array += self.temperature
-        array += np.linspace(0, dTdx * self.shape[1] * self._cell_spacing_in_m, self.shape[1])
-        array += self.get_time_step_reached() * self.get_time_step_length() * dTdt
+        array += initial_T_left_side
+        array += np.linspace(0, dTdx * self._dimensions_of_simulation_region[1] * self._cell_spacing_in_meters, self._dimensions_of_simulation_region[1])
+        array += self.get_time_step_counter() * self.get_time_step_length() * dTdt
         t_field = Field(data=array, name="Temperature (K)")
         self.temperature = t_field
         return
 
-    def set_thermal_file(self, thermal_file_path):
+    def set_temperature_file(self, temperature_file_path):
         """
         Sets the simulation to import the temperature from an xdmf file containing the temperature at given timesteps
         The temperature variable is a Field instance, data stored within the Field instance is a numpy ndarray
-        Loads the file at the path "[thermal_file_path]/T.xdmf"
+        Loads the file at the path "[temperature_file_path]/T.xdmf"
         Uses linear interpolation to find the temperature at times between stored timesteps
         E.g.: If we have T0 stored at t=1 second, T1 stored at t=2 seconds, the temperature
             profile at t=1.25 seconds = 0.75*T0 + 0.25*T1
         """
         self._temperature_type = "file"
-        self._
         self.t_index = 1
         nbc = []
         for i in range(len(self._dimensions_of_simulation_region)):
-            if(boundary_conditions[i] == "periodic"):
+            if(self._boundary_conditions_type[i] == "periodic"):
                 nbc.append(False)
             else:
                 nbc.append(True)
-        with mio.XdmfTimeSeriesReader(self._save_path+"/T.xdmf") as reader:
+        with mio.xdmf.TimeSeriesReader(self._save_path+"/T.xdmf") as reader:
             dt = self.get_time_step_length()
             step = self.get_time_step_counter()
             points, cells = reader.read_points_cells()
@@ -209,20 +215,25 @@ class Simulation:
             self.T0 = expand_T_array(point_data0['T'], nbc)
             self.t_end, point_data1, cell_data0 = reader.read_data(self.t_index)
             self.T1 = expand_T_array(point_data1['T'], nbc)
-            while(dt*step > t_end):
+            print(self.T0.shape, self.T1.shape)
+            while(dt*step > self.t_end):
                 self.t_start= self.t_end
                 self.T0 = self.T1
                 self.t_index += 1
                 self.t_end, point_data1, cell_data0 = reader.read_data(self.t_index)
                 self.T1 = expand_T_array(point_data1['T'], nbc)
+                print(self.T0.shape, self.T1.shape)
             array = self.T0*(self.t_end - dt*step)/(self.t_end-self.t_start) + self.T1*(dt*step-self.t_start)/(self.t_end-self.t_start)
             t_field = Field(data=array, name="Temperature (K)")
             self.temperature = t_field
         return
 
-    def update_thermal_field(self):
+    def update_temperature_field(self):
         """Updates the thermal field, method assumes only one timestep has passed"""
-        if(self._temperature_type == "isothermal"):
+        if(self.uses_gpu):
+            ppf_gpu_utils.update_temperature_field(self)
+            return
+        elif(self._temperature_type == "isothermal"):
             return
         elif(self._temperature_type == "gradient"):
             self.temperature.data += self._cooling_rate_Kelvin_per_second*self._time_step_in_seconds
@@ -230,14 +241,15 @@ class Simulation:
         elif(self._temperature_type == "file"):
             dt = self.get_time_step_length()
             step = self.get_time_step_counter()
-            if(dt*step > t_end):
+            while(dt*step > self.t_end):
                 nbc = []
                 for i in range(len(self._dimensions_of_simulation_region)):
                     if(self._boundary_conditions_type[i] == "periodic"):
                         nbc.append(False)
                     else:
                         nbc.append(True)
-                with mio.XdmfTimeSeriesReader(self._save_path+"/T.xdmf") as reader:
+                with mio.xdmf.TimeSeriesReader(self._save_path+"/T.xdmf") as reader:
+                    reader.cells=[]
                     self.t_start= self.t_end
                     self.T0 = self.T1
                     self.t_index += 1
@@ -307,6 +319,10 @@ class Simulation:
                 self._time_step_counter = int(filename[step_start_index:i])
         else:
             self._time_step_counter = int(step)
+        if(self._temperature_type == "gradient"):
+            self.temperature.data += self._time_step_counter*self._cooling_rate_Kelvin_per_second*self._time_step_in_seconds
+        if(self._temperature_type == "file"):
+            self.update_temperature_field()
         return 0
     
     def save_simulation(self):
@@ -331,6 +347,31 @@ class Simulation:
 
         np.savez(str(save_loc) + "/step_" + str(self._time_step_counter), **save_dict)
         return 0
+    
+    def plot_simulation(self, fields=None, interpolation="bicubic"):
+        if(self.uses_gpu):
+            ppf_gpu_utils.retrieve_fields_from_GPU(self)
+        if fields is None:
+            fields = range(len(self.fields))
+        if(len(self.fields[0].data.shape) == 1): #1d plot
+            x = np.arange(0, len(self.fields[0].data))
+            for i in fields:
+                plt.plot(x, self.fields[i].data)
+            plt.show()
+        elif((len(self.fields[0].data) == 1) or (len(self.fields[0].data[0]) == 1)): #effective 1d plot, 2d but one dimension = 1
+            x = np.arange(0, len(self.fields[0].data.flatten()))
+            legend = []
+            for i in fields:
+                plt.plot(x, self.fields[i].data.flatten())
+                legend.append(self.fields[i].name)
+            plt.legend(legend)
+            plt.show()
+        else:
+            for i in fields:
+                plt.imshow(self.fields[i].data, interpolation=interpolation, cmap=self.fields[i].colormap)
+                plt.title(self.fields[i].name)
+                plt.show()
+                
 
     def set_dimensions(self, dimensions_of_simulation_region):
         self._dimensions_of_simulation_region = dimensions_of_simulation_region
@@ -375,6 +416,9 @@ class Simulation:
         return
 
     def apply_boundary_conditions(self):
+        if(self.uses_gpu):
+            ppf_gpu_utils.apply_boundary_conditions(self)
+            return
         if(self._boundary_conditions_type[0] == "neumann"):
             for i in range(len(self.fields)):
                 length=len(self.fields[i].data[0])
@@ -391,6 +435,16 @@ class Simulation:
         return
 
     def cutoff_order_values(self):
+        return
+    
+    def send_fields_to_GPU(self):
+        if(ppf_utils.successfully_imported_numba()):
+            ppf_gpu_utils.send_fields_to_GPU(self)
+        return
+    
+    def retrieve_fields_from_GPU(self):
+        if(ppf_utils.successfully_imported_numba()):
+            ppf_gpu_utils.retrieve_fields_from_GPU(self)
         return
 
     def plot_all_fields(self):
@@ -410,6 +464,8 @@ class Simulation:
         Plots each field as a matplotlib 2d image. Takes in a field object as arg and saves
         the image to the data folder as namePlot_step_n.png
         """
+        if(self.uses_gpu):
+            ppf_gpu_utils.retrieve_fields_from_GPU(self)
         if save_path is None:
             save_path = self._save_path
         fig, ax = plt.subplots()
@@ -428,9 +484,19 @@ class Simulation:
 
     def generate_python_script(self):
         return
+    
+    #import statements, specific to built-in Engines
 
     def init_sim_Diffusion(self, dim=[200], solver="explicit", gmres=False, adi=False):
         Engines.init_Diffusion(self, dim, solver=solver, gmres=gmres, adi=adi)
+        return
+    
+    def init_sim_CahnAllen(self, dim=[200], solver="explicit", gmres=False, adi=False):
+        Engines.init_CahnAllen(self, dim, solver=solver, gmres=gmres, adi=adi)
+        return
+    
+    def init_sim_CahnHilliard(self, dim=[200], solver="explicit", gmres=False, adi=False):
+        Engines.init_CahnHilliard(self, dim, solver=solver, gmres=gmres, adi=adi)
         return
 
     def init_sim_Warren1995(self, dim=[200, 200], diamond_size=15):
@@ -438,15 +504,34 @@ class Simulation:
         return
 
     def init_sim_NComponent(self, dim=[200, 200], sim_type="seed", number_of_seeds=1, tdb_path="Ni-Cu_Ideal.tdb",
-                            thermal_type="isothermal",
-                            initial_temperature=1574, thermal_gradient=0, cooling_rate=0, thermal_file_path="T.xdmf",
-                            initial_concentration_array=[0.40831], cell_spacing=0.0000046, d_ratio=1/0.94):
+                            temperature_type="isothermal",
+                            initial_temperature=1574, temperature_gradient=0, cooling_rate=0, temperature_file_path="T.xdmf",
+                            initial_concentration_array=[0.40831], cell_spacing=0.0000046, d_ratio=1/0.94, solver="explicit", 
+                            nbc=["periodic", "periodic"]):
         #initializes a Multicomponent simulation, using the NComponent model
-        if not successfully_imported_pycalphad():
+        if not ppf_utils.successfully_imported_pycalphad():
             return
         Engines.init_NComponent(self, dim=dim, sim_type=sim_type, number_of_seeds=number_of_seeds, 
-                                tdb_path=tdb_path, thermal_type=thermal_type, 
-                                initial_temperature=initial_temperature, thermal_gradient=thermal_gradient, 
-                                cooling_rate=cooling_rate, thermal_file_path=thermal_file_path, 
-                                cell_spacing=cell_spacing, d_ratio=d_ratio, initial_concentration_array=initial_concentration_array)
+                                tdb_path=tdb_path, temperature_type=temperature_type, 
+                                initial_temperature=initial_temperature, temperature_gradient=temperature_gradient, 
+                                cooling_rate=cooling_rate, temperature_file_path=temperature_file_path, 
+                                cell_spacing=cell_spacing, d_ratio=d_ratio, initial_concentration_array=initial_concentration_array, 
+                                solver=solver, nbc=nbc)
         return
+    
+    def init_sim_NCGPU(self, dim=[200, 200], sim_type="seed", number_of_seeds=1, tdb_path="Ni-Cu_Ideal.tdb",
+                            temperature_type="isothermal",
+                            initial_temperature=1574, temperature_gradient=0, cooling_rate=0, temperature_file_path="T.xdmf",
+                            initial_concentration_array=[0.40831], cell_spacing=0.0000046, d_ratio=1/0.94, solver="explicit", 
+                            nbc=["periodic", "periodic"], cuda_blocks = (16,16), cuda_threads_per_block = (256,1)):
+        if not ppf_utils.successfully_imported_pycalphad():
+            return
+        if not ppf_utils.successfully_imported_numba():
+            return
+        
+        Engines.init_NCGPU(self, dim=dim, sim_type=sim_type, number_of_seeds=number_of_seeds, 
+                                tdb_path=tdb_path, temperature_type=temperature_type, 
+                                initial_temperature=initial_temperature, temperature_gradient=temperature_gradient, 
+                                cooling_rate=cooling_rate, temperature_file_path=temperature_file_path, 
+                                cell_spacing=cell_spacing, d_ratio=d_ratio, initial_concentration_array=initial_concentration_array, 
+                                solver=solver, nbc=nbc, cuda_blocks=cuda_blocks, cuda_threads_per_block=cuda_threads_per_block)

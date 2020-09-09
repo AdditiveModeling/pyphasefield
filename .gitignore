@@ -33,6 +33,7 @@
 
 # Compiled python files
 *.pyc
+**/__pycache__
 
 # compiled setup files, these can be generated using 'python setup.py sdist bdist_wheel'
 *.gz
@@ -41,3 +42,11 @@
 # ignore setup generated folders
 **/build
 **/pyphasefield.egg-info
+**/dist
+
+# ignore data folders
+**/data
+
+#ignore .ipynb_checkpoints
+**/.ipynb_checkpoints
+
