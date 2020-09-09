@@ -5,13 +5,13 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="pyphasefield",
-    version="0.0.6",
+    version="0.0.15",
     author="Scott Peters",
     author_email="scott@dpeters.net",
     description="Python phase field simulation",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/AdditiveModeling/SolidificationMicrostructure",
+    url="https://github.com/AdditiveModeling/pyphasefield",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
@@ -20,8 +20,9 @@ setuptools.setup(
     ],
 	install_requires=[
         "numpy",
-		"pycalphad",
+		"scipy",
 		"matplotlib",
+		"meshio",
     ],
     python_requires='>=3.6',
 )
