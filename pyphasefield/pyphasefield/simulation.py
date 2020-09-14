@@ -491,6 +491,12 @@ class Simulation:
         Engines.init_Diffusion(self, dim, solver=solver, gmres=gmres, adi=adi)
         return
     
+    def init_sim_DiffusionGPU(self, dim=[200, 200], cuda_blocks=(16,16), cuda_threads_per_block=(256,1)):
+        if not ppf_utils.successfully_imported_numba():
+            return
+        Engines.init_DiffusionGPU(self, dim=dim, cuda_blocks=cuda_blocks, cuda_threads_per_block=cuda_threads_per_block)
+        return
+    
     def init_sim_CahnAllen(self, dim=[200], solver="explicit", gmres=False, adi=False):
         Engines.init_CahnAllen(self, dim, solver=solver, gmres=gmres, adi=adi)
         return

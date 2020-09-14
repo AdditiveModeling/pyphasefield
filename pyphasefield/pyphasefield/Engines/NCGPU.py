@@ -36,7 +36,7 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
     H = params[4]
     y_e = params[5]
     beta = params[6]
-    D_L = params[7]
+    dt = params[9]
     L = c_params[0]
     T_M = c_params[1]
     S = c_params[2]
@@ -55,12 +55,6 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
         
     ebar2 = 6.*math.sqrt(2.)*S[1]*d/T_M[1]
     eqbar2 = 0.25*ebar2
-    D_dt = M[0]*ebar2*1685.
-    if D_dt < M[1]*ebar2*1685.:
-        D_dt = M[1]*ebar2*1685.
-    if D_dt < D_L:
-        D_dt = D_L
-    dt = dx**2/20./D_dt
     
     for i in range(starty, fields[0].shape[0], stridey):
         for j in range(startx, fields[0].shape[1], stridex):
@@ -210,21 +204,6 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
             
             dq1dt = M_q*((1-fields[1][i][j]**2)*(f_ori_1+lq1*eqbar2-dfintdq1+noise_q1) - fields[1][i][j]*fields[2][i][j]*(f_ori_4+lq4*eqbar2-dfintdq4+noise_q4))
             dq4dt = M_q*((1-fields[2][i][j]**2)*(f_ori_4+lq4*eqbar2-dfintdq4+noise_q4) - fields[1][i][j]*fields[2][i][j]*(f_ori_1+lq1*eqbar2-dfintdq1+noise_q1))
-            if(i == 4 and j == 4):
-                q = ebar2*(1-3*y_e)*(T[i][j]*lphi + dTdx*dphidx + dTdy*dphidy)
-                q += d_term_dx + d_term_dy
-                q -= hprime*(transfer[1][i][j] - transfer[0][i][j])/v_m
-                q -= gprime*T[i][j]*cW
-                q -= 4*H*T[i][j]*fields[0][i][j]*mag_grad_q
-                q *= M_phi
-                print("q=", q)
-                print(ebar2*(1-3*y_e)*(T[i][j]*lphi + dTdx*dphidx + dTdy*dphidy))
-                print(d_term_dx + d_term_dy)
-                print(hprime*(transfer[1][i][j] - transfer[0][i][j])/v_m)
-                print(gprime*T[i][j]*cW)
-                print(4*H*T[i][j]*fields[0][i][j]*mag_grad_q)
-                print(M_phi)
-                print(dphidt)
             fields_out[0][i][j] = fields[0][i][j] + dt*dphidt
             if(fields_out[0][i][j] < 0.000001):
                 fields_out[0][i][j] = 0.000001
@@ -232,7 +211,7 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
                 fields_out[0][i][j] = 0.999999
             fields_out[1][i][j] = fields[1][i][j] + dt*dq1dt
             fields_out[2][i][j] = fields[2][i][j] + dt*dq4dt
-            renorm = (fields_out[1][i][j]**2+fields_out[2][i][j]**2)
+            renorm = math.sqrt((fields_out[1][i][j]**2+fields_out[2][i][j]**2))
             fields_out[1][i][j] = fields_out[1][i][j]/renorm
             fields_out[2][i][j] = fields_out[2][i][j]/renorm
             for l in range(3, len(fields)):
@@ -530,6 +509,7 @@ def init_NCGPU(sim, dim=[200,200], sim_type="seed", number_of_seeds=1, tdb_path=
     params.append(sim.beta)
     params.append(sim.D_L)
     params.append(sim.D_S)
+    params.append(sim.get_time_step_length())
     c_params.append(sim.L)
     c_params.append(sim.T_M)
     c_params.append(sim.S)

@@ -34,22 +34,18 @@ Parameter G(Liquid, NI; 0) 298.15  G_NI_LIQUID; 6000 N !
 $ Interfacial parameters/other necessary variables
 
 $ Latent heat, J/cm^3 (could get this from pycalphad, but easier to just input for now!)
-FUNCTION AL_L 0 1080; 6000 N !
 FUNCTION CU_L 0 1728; 6000 N !
 FUNCTION NI_L 0 2350; 6000 N !	 
 
 $ Melting Point, K (could also get this from pycalphad)
-FUNCTION AL_TM 0 933.5; 6000 N !
 FUNCTION CU_TM 0 1358; 6000 N !
 FUNCTION NI_TM 0 1728; 6000 N !
 
 $ Surface energy, J/cm^2
-FUNCTION AL_S 0 0.00002; 6000 N !
 FUNCTION CU_S 0 0.000029; 6000 N !
 FUNCTION NI_S 0 0.000037; 6000 N !
 
 $ Linear kinetic coefficient, cm/(K*s)
-FUNCTION AL_B 0 0.36; 6000 N !
 FUNCTION CU_B 0 0.39; 6000 N !
 FUNCTION NI_B 0 0.33; 6000 N !
 
@@ -61,10 +57,10 @@ FUNCTION D_L 0 0.00001; 6000 N !
 FUNCTION D_S 0 0.000000001; 6000 N !
 
 $ Orientational Mobility, 1/(s*J)
-FUNCTION M_Q 0 80000000/1574.0; 6000 N !
+FUNCTION M_Q 0 40000; 6000 N !
 
 $ Orientational energy, J/(K*cm)
-FUNCTION H 0 0.0000004369; 6000 N !
+FUNCTION H 0 0.0000001; 6000 N !
 
 $ Anisotropy
 FUNCTION Y_E 0 0.12; 6000 N !
