@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="pyphasefield",
-    version="0.0.15",
+    version="0.1.1",
     author="Scott Peters",
     author_email="scott@dpeters.net",
     description="Python phase field simulation",

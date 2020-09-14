@@ -431,8 +431,8 @@ def engine_NComponent_Explicit(sim):
         rgqsr.append(np.sqrt(gqsr[j]))
 
     #compute values from tdb
-    G_L, dGLdc = compute_tdb_energy_nc(sim, T, c, "LIQUID")
-    G_S, dGSdc = compute_tdb_energy_nc(sim, T, c, "FCC_A1")
+    G_L, dGLdc = compute_tdb_energy_nc_rev(sim, T, c, "LIQUID")
+    G_S, dGSdc = compute_tdb_energy_nc_rev(sim, T, c, "FCC_A1")
 
     #change in c1, c2
     M_c = []
@@ -652,7 +652,7 @@ def engine_NComponent_FrozenOrientation(sim):
     for j in range(len(c)):
         #find the actual random noise
         noise_c=np.random.normal(0, std_c, phi.shape)
-        noise_c=0 #use this line to zero out the noise
+        #noise_c=0 #use this line to zero out the noise
         M_c.append(sim.v_m*c[j]*(sim.D_S+m*(sim.D_L-sim.D_S))/sim.R/1574.)
         #add the change in noise inside the functional
         dFdc.append((dGSdc[j] + m*(dGLdc[j]-dGSdc[j]))/sim.v_m + (sim.W[j]-sim.W[len(c)])*g*T+noise_c)
@@ -670,9 +670,6 @@ def engine_NComponent_FrozenOrientation(sim):
     M_phi = c_N*sim.M[len(c)]
     for j in range(len(c)):
         M_phi += c[j]*sim.M[j]
-    
-    #arbitrary multiplying factor for phi mobility - testing
-    #M_phi *= 12
     
     #compute well size term for N-components
     well = c_N*sim.W[len(c)]
@@ -696,8 +693,8 @@ def engine_NComponent_FrozenOrientation(sim):
     #deltaphi += M_phi*alpha*randArray*(16*g)*(30*g*(G_S-G_L)/v_m+well)
 
     #noise in phi, based on Langevin Noise
-    #std_phi=np.sqrt(np.absolute(2*sim.R*M_phi*T/sim.v_m))
-    #noise_phi=np.random.normal(0, std_phi, phi.shape)
+    std_phi=np.sqrt(np.absolute(2*sim.R*M_phi*T/sim.v_m))
+    noise_phi=np.random.normal(0, std_phi, phi.shape)
     #deltaphi += noise_phi
     
     """
@@ -706,10 +703,6 @@ def engine_NComponent_FrozenOrientation(sim):
     print("M_B: "+str(sim.M[1]))
     print("W_A: "+str(sim.W[0]))
     print("W_B: "+str(sim.W[1]))
-    
-    print("G_S: "+str(G_S))
-    print("G_L: "+str(G_L))
-    
     print("dphi/M (int1): "+str((sim.ebar*sim.ebar*((1-3*sim.y_e)*divTgradphi + pf_comp_x + pf_comp_y))))
     print("dphi/M (int2): "+str((sim.ebar*sim.ebar*((1-3*sim.y_e)*divTgradphi + pf_comp_x + pf_comp_y))))
     print("dphi/M (bulk): "+str((-30*g*(G_S-G_L)/sim.v_m)))
@@ -722,7 +715,6 @@ def engine_NComponent_FrozenOrientation(sim):
     print("dphi (ori): "+str(M_phi*(-4*sim.H*T*phi*rgqs_0)))
     print("dc: "+str(deltac[0]))
     """
-    
     
     #apply changes
     dt = sim.get_time_step_length()
@@ -1112,11 +1104,12 @@ def init_tdb_parameters(sim):
             g = sp.Symbol(i)
             sympyexpr_solid = sympyexpr_solid.subs(g, d)
             sympyexpr_liquid = sympyexpr_liquid.subs(g, d)
-
-        #print(sympyexpr_solid+ime_solid)
                     
-        ufunc_g_s = sp.lambdify(tuple(sympysyms_list_solid), sympyexpr_solid+ime_solid, 'math')
-        ufunc_g_l = sp.lambdify(tuple(sympysyms_list_liquid), sympyexpr_liquid+ime_liquid, 'math')
+        
+        
+
+        ufunc_g_s = sp.lambdify(tuple(sympysyms_list_solid), sympyexpr_solid+ime_solid, "numpy")
+        ufunc_g_l = sp.lambdify(tuple(sympysyms_list_liquid), sympyexpr_liquid+ime_liquid, "numpy")
             
         return True
     except Exception as e:
@@ -1375,6 +1368,9 @@ def init_NComponent(sim, dim=[200,200], sim_type="seed", number_of_seeds=1, tdb_
         sim.set_temperature_gradient(initial_temperature, temperature_gradient, cooling_rate)
     elif(temperature_type=="file"):
         sim.set_temperature_file(temperature_file_path)
+        #set size of simulation equal to the thermal file dimensions
+        dim = list(sim.temperature.data.shape)
+        sim.set_dimensions(dim)
     else:
         print("Temperature type of "+temperature_type+" is not recognized, defaulting to isothermal with a temperature of "+str(initial_temperature))
         sim.set_temperature_isothermal(initial_temperature)
