@@ -348,7 +348,7 @@ class Simulation:
         np.savez(str(save_loc) + "/step_" + str(self._time_step_counter), **save_dict)
         return 0
     
-    def plot_simulation(self, fields=None, interpolation="bicubic"):
+    def plot_simulation(self, fields=None, interpolation="bicubic", units="cells"):
         if(self.uses_gpu):
             ppf_gpu_utils.retrieve_fields_from_GPU(self)
         if fields is None:
@@ -368,8 +368,21 @@ class Simulation:
             plt.show()
         else:
             for i in fields:
-                plt.imshow(self.fields[i].data, interpolation=interpolation, cmap=self.fields[i].colormap)
+                if(units == "cells"):
+                    extent = [0, self.fields[i].data.shape[1], 0, self.fields[i].data.shape[0]]
+                elif(units == "cm"):
+                    extent = [0, self.fields[i].data.shape[1]*self.get_cell_spacing(), 0, self.fields[i].data.shape[0]*self.get_cell_spacing()]
+                elif(units == "m"):
+                    extent = [0, self.fields[i].data.shape[1]*self.get_cell_spacing()/100., 0, self.fields[i].data.shape[0]*self.get_cell_spacing()/100.]
+                plt.imshow(self.fields[i].data, interpolation=interpolation, cmap=self.fields[i].colormap, extent=extent)
                 plt.title(self.fields[i].name)
+                plt.colorbar()
+                if(units == "cm"):
+                    plt.xlabel("cm")
+                    plt.ylabel("cm")
+                elif(units == "m"):
+                    plt.xlabel("m")
+                    plt.ylabel("m")
                 plt.show()
                 
 

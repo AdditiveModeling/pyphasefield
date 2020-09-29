@@ -1,5 +1,6 @@
 from matplotlib.colors import LinearSegmentedColormap
 import matplotlib.pyplot as plt
+import meshio
 
 colors = [(0, 0, 1), (0, 1, 1), (0, 1, 0), (1, 1, 0), (1, 0, 0)]
 COLORMAP_OTHER = LinearSegmentedColormap.from_list('rgb', colors)
@@ -59,3 +60,32 @@ def expand_T_array(T, nbc):
     final[:, 0] = final[:, offset_x]
     final[:, len(final[0])-1] = final[:, len(final[0])-offset_x-1]
     return np.squeeze(final)
+
+def CSVtoXDMF(csv_path):
+    try:
+        f = open(csv_path)
+        s = f.readline() #header
+        s = f.readline() #origins
+        s = f.readline() #value of origins
+        s = f.readline() #spacings
+        s = f.readline() #value of spacings
+        s = f.readline() #numpoints
+        s = f.readline() #value of numpoints
+        dims = [int(item) for item in s.strip('\n').split(", ")]
+        print(dims)
+        s = f.readline() #time, temperature header
+        s = f.readline() #first value for time, temperature array!
+        points = np.array([[[0, 0],[0, 0]], [[0, 0],[0, 0]]])
+        cells = {}
+        with meshio.xdmf.TimeSeriesWriter("T.xdmf") as writer:
+            writer.write_points_cells(points, cells)
+            while(s):
+                s = s.split(",", 1)
+                time = float(s[0])*0.000001
+                #reshape T to dims.reverse(), due to ordering of array (last term is num_cols)
+                T = 1000*np.resize(np.array([float(item) for item in s[1].split(',')]), dims)
+                writer.write_data(time, point_data={"T": np.transpose(T)})
+                s = f.readline()
+
+    finally:
+        f.close()

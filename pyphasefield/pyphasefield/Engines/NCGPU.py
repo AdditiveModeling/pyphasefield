@@ -56,8 +56,8 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
     ebar2 = 6.*math.sqrt(2.)*S[1]*d/T_M[1]
     eqbar2 = 0.25*ebar2
     
-    for i in range(starty, fields[0].shape[0], stridey):
-        for j in range(startx, fields[0].shape[1], stridex):
+    for i in range(starty+1, fields[0].shape[0]-1, stridey):
+        for j in range(startx+1, fields[0].shape[1]-1, stridex):
             #interpolating functions
             g = (fields[0][i][j]**2)*(1-fields[0][i][j])**2
             h = (fields[0][i][j]**3)*(6.*fields[0][i][j]**2 - 15.*fields[0][i][j] + 10.)
@@ -162,7 +162,7 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
             
             #noise in phi
             noise_phi = math.sqrt(2.*8.314*T[i][j]*M_phi/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
-            dphidt += noise_phi
+            #dphidt += noise_phi
             
             #dcidt
             for l in range(3, len(fields)):
