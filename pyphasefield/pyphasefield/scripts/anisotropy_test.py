@@ -154,7 +154,7 @@ if(num_widths_aniso > 0):
     for i in range(num_widths_aniso):
         plt.plot(all_a[i], all_r[i], "o", c=cmap(i))
         legend.append("dx/d = "+str(2.+i*(max_width_aniso-2.)/(num_widths_aniso-1)))
-    plt.plot(all_a[0], np.minimum(all_a[0], np.pi/4-all_a[0]), "k")
+    plt.plot(all_a[0], np.minimum(all_a[0], np.pi/2-np.array(all_a[0])), "k")
     legend.append("Ideal")
     plt.xlabel("Input angle")
     plt.ylabel("Growth angle")
