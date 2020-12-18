@@ -115,17 +115,17 @@ def update_temperature_field(sim):
         current_time = sim.get_time_step_length()*sim.get_time_step_counter()
         while(current_time > sim.t_end):
             nbc = [] #will be fully True for GPU code, as all boundary conditions use boundary cells
-            for i in range(len(sim.get_dimensions)):
+            for i in range(len(sim.get_dimensions())):
                 nbc.append(True)
             with mio.xdmf.TimeSeriesReader(sim._save_path+"/T.xdmf") as reader:
                 reader.cells=[]
-                sim.t_start= self.t_end
-                sim.T0 = self.T1
+                sim.t_start= sim.t_end
+                sim.T0 = sim.T1
                 sim.t_index += 1
-                sim.t_end, point_data1, cell_data0 = reader.read_data(self.t_index)
+                sim.t_end, point_data1, cell_data0 = reader.read_data(sim.t_index)
                 sim.T1 = ppf_utils.expand_T_array(point_data1['T'], nbc)
                 sim.T0_device, sim.T1_device = sim.T1_device, sim.T0_device
                 sim.T1_device = cuda.to_device(sim.T1)
-        update_thermal_gradient_kernel[sim.cuda_blocks, sim.cuda_threads_per_block](sim.temperature_gpu_device, 
+        update_thermal_file_kernel[sim.cuda_blocks, sim.cuda_threads_per_block](sim.temperature_gpu_device, 
                                                                                     sim.T0_device, sim.T1_device, 
                                                                                     sim.t_start, sim.t_end, current_time)

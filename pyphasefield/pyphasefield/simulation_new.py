@@ -5,7 +5,6 @@ from . import Engines
 from pathlib import Path
 import matplotlib.cm as cm
 from matplotlib import pyplot as plt
-from matplotlib.colors import PowerNorm
 from . import ppf_utils
 try:
     import pycalphad as pyc
@@ -320,8 +319,6 @@ class Simulation:
                 self._time_step_counter = int(filename[step_start_index:i])
         else:
             self._time_step_counter = int(step)
-        if(self.uses_gpu):
-            self.send_fields_to_GPU()
         if(self._temperature_type == "gradient"):
             self.temperature.data += self._time_step_counter*self._cooling_rate_Kelvin_per_second*self._time_step_in_seconds
         if(self._temperature_type == "file"):
@@ -351,7 +348,7 @@ class Simulation:
         np.savez(str(save_loc) + "/step_" + str(self._time_step_counter), **save_dict)
         return 0
     
-    def plot_simulation(self, fields=None, interpolation="bicubic", units="cells", save_images="False", size=None, norm=False):
+    def plot_simulation(self, fields=None, interpolation="bicubic", units="cells", save_images="False", size=None):
         if(self.uses_gpu):
             ppf_gpu_utils.retrieve_fields_from_GPU(self)
         if fields is None:
@@ -379,13 +376,7 @@ class Simulation:
                     extent = [0, self.fields[i].data.shape[1]*self.get_cell_spacing()/100., 0, self.fields[i].data.shape[0]*self.get_cell_spacing()/100.]
                 if not (size is None):
                     plt.figure(figsize=size)
-                if(norm):
-                    if(i == 0):
-                        plt.imshow(self.fields[i].data, interpolation=interpolation, cmap=self.fields[i].colormap, extent=extent, norm=PowerNorm(10, vmin=0, vmax=1))
-                    else:
-                        plt.imshow(self.fields[i].data, interpolation=interpolation, cmap=self.fields[i].colormap, extent=extent)
-                else:
-                    plt.imshow(self.fields[i].data, interpolation=interpolation, cmap=self.fields[i].colormap, extent=extent)
+                plt.imshow(self.fields[i].data, interpolation=interpolation, cmap=self.fields[i].colormap, extent=extent)
                 plt.title(self.fields[i].name)
                 plt.colorbar()
                 if(units == "cm"):
@@ -536,15 +527,15 @@ class Simulation:
         return
 
     def init_sim_NComponent(self, dim=[200, 200], sim_type="seed", number_of_seeds=1, tdb_path="Ni-Cu_Ideal.tdb",
-                            temperature_type="isothermal",
+                            tdb_phases = ["FCC_A1", "LIQUID"], tdb_components = None, temperature_type="isothermal",
                             initial_temperature=1574, temperature_gradient=0, cooling_rate=0, temperature_file_path="T.xdmf",
                             initial_concentration_array=[0.40831], cell_spacing=0.0000046, d_ratio=1/0.94, solver="explicit", 
                             nbc=["periodic", "periodic"]):
-        #initializes a Multicomponent simulation, using the NComponent model
+        #initializes a multi-component simulation, using the NComponent model
         if not ppf_utils.successfully_imported_pycalphad():
             return
-        Engines.init_NComponent(self, dim=dim, sim_type=sim_type, number_of_seeds=number_of_seeds, 
-                                tdb_path=tdb_path, temperature_type=temperature_type, 
+        Engines.init_NComponent(self, dim=dim, sim_type=sim_type, number_of_seeds=number_of_seeds, tdb_path=tdb_path, 
+                                tdb_phases=tdb_phases, tdb_components=tdb_components, temperature_type=temperature_type, 
                                 initial_temperature=initial_temperature, temperature_gradient=temperature_gradient, 
                                 cooling_rate=cooling_rate, temperature_file_path=temperature_file_path, 
                                 cell_spacing=cell_spacing, d_ratio=d_ratio, initial_concentration_array=initial_concentration_array, 
@@ -552,17 +543,18 @@ class Simulation:
         return
     
     def init_sim_NCGPU(self, dim=[200, 200], sim_type="seed", number_of_seeds=1, tdb_path="Ni-Cu_Ideal.tdb",
-                            temperature_type="isothermal",
+                            tdb_phases = ["FCC_A1", "LIQUID"], tdb_components = None, temperature_type="isothermal",
                             initial_temperature=1574, temperature_gradient=0, cooling_rate=0, temperature_file_path="T.xdmf",
                             initial_concentration_array=[0.40831], cell_spacing=0.0000046, d_ratio=1/0.94, solver="explicit", 
                             nbc=["periodic", "periodic"], cuda_blocks = (16,16), cuda_threads_per_block = (256,1)):
+        #initializes a multi-component simulation, using the NComponent model coded for GPUs
         if not ppf_utils.successfully_imported_pycalphad():
             return
         if not ppf_utils.successfully_imported_numba():
             return
         
-        Engines.init_NCGPU(self, dim=dim, sim_type=sim_type, number_of_seeds=number_of_seeds, 
-                                tdb_path=tdb_path, temperature_type=temperature_type, 
+        Engines.init_NCGPU(self, dim=dim, sim_type=sim_type, number_of_seeds=number_of_seeds, tdb_path=tdb_path, 
+                                tdb_phases=tdb_phases, tdb_components=tdb_components, temperature_type=temperature_type, 
                                 initial_temperature=initial_temperature, temperature_gradient=temperature_gradient, 
                                 cooling_rate=cooling_rate, temperature_file_path=temperature_file_path, 
                                 cell_spacing=cell_spacing, d_ratio=d_ratio, initial_concentration_array=initial_concentration_array, 
