@@ -567,3 +567,16 @@ class Simulation:
                                 cooling_rate=cooling_rate, temperature_file_path=temperature_file_path, 
                                 cell_spacing=cell_spacing, d_ratio=d_ratio, initial_concentration_array=initial_concentration_array, 
                                 solver=solver, nbc=nbc, cuda_blocks=cuda_blocks, cuda_threads_per_block=cuda_threads_per_block)
+        
+        
+    def init_sim_AnisoDorrGPU(self, dim=[200, 200], sim_type="seed", number_of_seeds=1,
+                            initial_temperature=1574, initial_concentration_array=[0.40831], 
+                            nbc=["periodic", "periodic"], cuda_blocks = (16,16), cuda_threads_per_block = (256,1)):
+        if not ppf_utils.successfully_imported_pycalphad():
+            return
+        if not ppf_utils.successfully_imported_numba():
+            return
+        
+        Engines.init_AnisoDorrGPU(self, dim=dim, sim_type=sim_type, number_of_seeds=number_of_seeds, 
+                                initial_temperature=initial_temperature, initial_concentration_array=initial_concentration_array, 
+                                nbc=nbc, cuda_blocks=cuda_blocks, cuda_threads_per_block=cuda_threads_per_block)
