@@ -47,7 +47,10 @@ def get_non_edge_cells_from_nbcs(array, nbc):
         
 
 class Simulation:
-    def __init__(self, save_path=None):
+    def __init__(self, framework="numpy", dim=None, dx=None, dt=None, initial_time_step=0, 
+                 temperature_type="none", initial_T=None, dTdx=None, dTdt=None, 
+                 tdb_path=None, tdb_components=None, tdb_phases=None, save_path=None,
+                 autosave=False, save_images=False, autosave_rate=None, boundary_conditions=None):
         """
         Class used by pyphasefield to store data related to a given simulation
         Methods of Simulation are used to:
@@ -61,28 +64,30 @@ class Simulation:
         Data specific to a particular field is stored within the Field class
         """
         self.fields = []
-        self.uses_gpu = False
+        self._framework = framework
+        self._uses_gpu = False
+        if(framework == "numba" or framework == "cupy"): """cupy not yet implemented!"""
+            self._uses_gpu = True
+        self.dimensions = dimensions
+        self.dx = dx
+        self.dt = dt
+        self.time_step_counter = 0
         self.temperature = None
-        self.temperature_gpu_device = None
-        self._dimensions_of_simulation_region = [200, 200]
-        self._cell_spacing_in_meters = 1.
-        self._time_step_in_seconds = 1.
-        self._time_step_counter = 0
+        self._temperature_gpu_device = None
         self._temperature_type = "isothermal"
-        self._initial_temperature_left_side = 1574.
-        self._temperature_gradient_Kelvin_per_meter = 0.
-        self._cooling_rate_Kelvin_per_second = 0.  # cooling is a negative number! this is dT/dt
+        self._initial_T = initial_T
+        self._dTdx = dTdx
+        self._dTdt = dTdt
         self._tdb = None
         self._tdb_path = ""
         self._components = []
         self._phases = []
-        self._engine = None
         self._save_path = save_path
         self._time_steps_per_checkpoint = 500
         self._save_images_at_each_checkpoint = False
         self._boundary_conditions_type = ["periodic", "periodic"]
 
-    def simulate(self, number_of_timesteps, dt=None):
+    def simulate(self, number_of_timesteps):
         """
         Evolves the simulation for a specified number of timesteps
         If a length of timestep is not specified, uses the timestep length stored within the Simulation instance
@@ -96,12 +101,8 @@ class Simulation:
                 - File: Use linear interpolation to find the thermal field of the new timestep
             * If the timestep counter is a multiple of time_steps_per_checkpoint, save a checkpoint of the simulation
         """
-        if dt is None:
-            dt = self._time_step_in_seconds
-        self._time_step_in_seconds = dt
         for i in range(number_of_timesteps):
-            self.increment_time_step_counter()
-            self._engine(self)  # run engine on Simulation instance for 1 time step
+            self.time_step_counter += 1
             self.apply_boundary_conditions()
             self.update_temperature_field()
             if self._time_step_counter % self._time_steps_per_checkpoint == 0:
@@ -567,16 +568,3 @@ class Simulation:
                                 cooling_rate=cooling_rate, temperature_file_path=temperature_file_path, 
                                 cell_spacing=cell_spacing, d_ratio=d_ratio, initial_concentration_array=initial_concentration_array, 
                                 solver=solver, nbc=nbc, cuda_blocks=cuda_blocks, cuda_threads_per_block=cuda_threads_per_block)
-        
-        
-    def init_sim_AnisoDorrGPU(self, dim=[200, 200], sim_type="seed", number_of_seeds=1,
-                            initial_temperature=1574, initial_concentration_array=[0.40831], 
-                            nbc=["periodic", "periodic"], cuda_blocks = (16,16), cuda_threads_per_block = (256,1)):
-        if not ppf_utils.successfully_imported_pycalphad():
-            return
-        if not ppf_utils.successfully_imported_numba():
-            return
-        
-        Engines.init_AnisoDorrGPU(self, dim=dim, sim_type=sim_type, number_of_seeds=number_of_seeds, 
-                                initial_temperature=initial_temperature, initial_concentration_array=initial_concentration_array, 
-                                nbc=nbc, cuda_blocks=cuda_blocks, cuda_threads_per_block=cuda_threads_per_block)
