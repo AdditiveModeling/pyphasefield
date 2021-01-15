@@ -48,8 +48,8 @@ def get_non_edge_cells_from_nbcs(array, nbc):
 
 class Simulation:
     def __init__(self, framework="numpy", dim=None, dx=None, dt=None, initial_time_step=0, 
-                 temperature_type="none", initial_T=None, dTdx=None, dTdt=None, 
-                 tdb_path=None, tdb_components=None, tdb_phases=None, save_path=None,
+                 temperature_type="none", initial_T=None, dTdx=None, dTdt=None, temperature_path=None
+                 tdb_path=None, tdb_components=[], tdb_phases=[], save_path=None,
                  autosave=False, save_images=False, autosave_rate=None, boundary_conditions=None):
         """
         Class used by pyphasefield to store data related to a given simulation
@@ -71,21 +71,24 @@ class Simulation:
         self.dimensions = dimensions
         self.dx = dx
         self.dt = dt
-        self.time_step_counter = 0
+        self.time_step_counter = initial_time_step
         self.temperature = None
         self._temperature_gpu_device = None
-        self._temperature_type = "isothermal"
+        self._temperature_type = temperature_type
+        self._temperature_path = temperature_path
         self._initial_T = initial_T
         self._dTdx = dTdx
         self._dTdt = dTdt
         self._tdb = None
-        self._tdb_path = ""
-        self._components = []
-        self._phases = []
+        self._tdb_path = tdb_path
+        self._tdb_components = tdb_component
+        self._tdb_phases = tdb_phases
         self._save_path = save_path
-        self._time_steps_per_checkpoint = 500
-        self._save_images_at_each_checkpoint = False
+        self._autosave_flag = autosave
+        self._autosave_rate = autosave_rate
+        self._autosave_save_images_flag = save_images
         self._boundary_conditions_type = ["periodic", "periodic"]
+        self.init_temperature_field(temperature_type)
 
     def simulate(self, number_of_timesteps):
         """
