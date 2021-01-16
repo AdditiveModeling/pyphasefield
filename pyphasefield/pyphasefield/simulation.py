@@ -63,7 +63,6 @@ class Simulation:
         
         Data specific to a particular field is stored within the Field class
         """
-        self.fields = []
         self._framework = framework
         self._uses_gpu = False
         if(framework == "numba" or framework == "cupy"): """cupy not yet implemented!"""
@@ -87,8 +86,11 @@ class Simulation:
         self._autosave_flag = autosave
         self._autosave_rate = autosave_rate
         self._autosave_save_images_flag = save_images
-        self._boundary_conditions_type = ["periodic", "periodic"]
+        
+        self.init_fields(framework=framework, num_fields=num_fields)
+        self.init_boundary_conditions(boundary_conditions)
         self.init_temperature_field(temperature_type)
+        self.init_tdb_params(path=tdb_path, components=tdb_components, phases=tdb_phases)
 
     def simulate(self, number_of_timesteps):
         """
