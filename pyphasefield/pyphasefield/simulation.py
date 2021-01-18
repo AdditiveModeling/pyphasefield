@@ -1,7 +1,6 @@
 import numpy as np
 import meshio as mio
 from .field import Field
-from . import Engines
 from pathlib import Path
 import matplotlib.cm as cm
 from matplotlib import pyplot as plt
@@ -47,8 +46,8 @@ def get_non_edge_cells_from_nbcs(array, nbc):
         
 
 class Simulation:
-    def __init__(self, framework="numpy", dim=None, dx=None, dt=None, initial_time_step=0, 
-                 temperature_type="none", initial_T=None, dTdx=None, dTdt=None, temperature_path=None
+    def __init__(self, framework="numpy", dimensions=None, dx=None, dt=None, initial_time_step=0, 
+                 temperature_type="none", initial_T=None, dTdx=None, dTdt=None, temperature_path=None,
                  tdb_path=None, tdb_components=[], tdb_phases=[], save_path=None,
                  autosave=False, save_images=False, autosave_rate=None, boundary_conditions=None):
         """
@@ -65,8 +64,10 @@ class Simulation:
         """
         self._framework = framework
         self._uses_gpu = False
-        if(framework == "numba" or framework == "cupy"): """cupy not yet implemented!"""
+        if(framework == "numba" or framework == "cupy"): 
+            """cupy not yet implemented!"""
             self._uses_gpu = True
+        self.fields = []
         self.dimensions = dimensions
         self.dx = dx
         self.dt = dt
@@ -80,17 +81,30 @@ class Simulation:
         self._dTdt = dTdt
         self._tdb = None
         self._tdb_path = tdb_path
-        self._tdb_components = tdb_component
+        self._tdb_components = tdb_components
         self._tdb_phases = tdb_phases
         self._save_path = save_path
         self._autosave_flag = autosave
         self._autosave_rate = autosave_rate
         self._autosave_save_images_flag = save_images
+        self._boundary_conditions_type = ["periodic", "periodic"]
         
-        self.init_fields(framework=framework, num_fields=num_fields)
-        self.init_boundary_conditions(boundary_conditions)
-        self.init_temperature_field(temperature_type)
-        self.init_tdb_params(path=tdb_path, components=tdb_components, phases=tdb_phases)
+        #self.init_fields(framework, num_fields)
+        #self.init_boundary_conditions(boundary_conditions)
+        #self.init_temperature_field(temperature_type)
+        #self.init_tdb_params(tdb_path, components=tdb_components, phases=tdb_phases)
+        
+    def init_fields(framework, num_fields):
+        pass
+    
+    def init_boundary_conditions(boundary_conditions):
+        pass
+        
+    def init_temperature_field(temperature_type):
+        pass
+        
+    def init_tdb_params(path, components=[], phases=[]):
+        pass
 
     def simulate(self, number_of_timesteps):
         """
@@ -106,14 +120,24 @@ class Simulation:
                 - File: Use linear interpolation to find the thermal field of the new timestep
             * If the timestep counter is a multiple of time_steps_per_checkpoint, save a checkpoint of the simulation
         """
+        self.initialize_simulation()
         for i in range(number_of_timesteps):
             self.time_step_counter += 1
+            self.simulation_loop()
             self.apply_boundary_conditions()
             self.update_temperature_field()
-            if self._time_step_counter % self._time_steps_per_checkpoint == 0:
-                if(self.uses_gpu):
-                    ppf_gpu_utils.retrieve_fields_from_GPU(self)
-                self.save_simulation()
+            if(self._autosave_flag):
+                if self.time_step_counter % self._autosave_rate == 0:
+                    if(self._uses_gpu):
+                        ppf_gpu_utils.retrieve_fields_from_GPU(self)
+                    self.save_simulation()
+                
+    def initialize_simulation(self):
+        if(self._uses_gpu):
+            self.send_fields_to_GPU()
+                
+    def simulation_loop(self):
+        pass
 
     def load_tdb(self, tdb_path, phases=None, components=None):
         """
@@ -145,11 +169,11 @@ class Simulation:
 
     def get_time_step_length(self):
         """Returns the length of a single timestep"""
-        return self._time_step_in_seconds
+        return self.dt
 
     def get_time_step_counter(self):
         """Returns the number of timesteps that have passed for a given simulation"""
-        return self._time_step_counter
+        return self.time_step_counter
 
     def set_time_step_length(self, time_step):
         """Sets the length of a single timestep for a simulation instance"""
@@ -237,7 +261,7 @@ class Simulation:
 
     def update_temperature_field(self):
         """Updates the thermal field, method assumes only one timestep has passed"""
-        if(self.uses_gpu):
+        if(self._uses_gpu):
             ppf_gpu_utils.update_temperature_field(self)
             return
         elif(self._temperature_type == "isothermal"):
@@ -264,7 +288,7 @@ class Simulation:
                     self.T1 = expand_T_array(point_data1['T'], nbc)
             self.temperature.data = self.T0*(self.t_end - dt*step)/(self.t_end-self.t_start) + self.T1*(dt*step-self.t_start)/(self.t_end-self.t_start)
             return
-        if self._temperature_type not in ["isothermal", "gradient", "file"]:
+        if self._temperature_type not in ["isothermal", "gradient", "file", "none"]:
             raise ValueError("Unknown temperature profile.")
 
     def load_simulation(self, file_path=None, step=-1):
@@ -326,7 +350,7 @@ class Simulation:
                 self._time_step_counter = int(filename[step_start_index:i])
         else:
             self._time_step_counter = int(step)
-        if(self.uses_gpu):
+        if(self._uses_gpu):
             self.send_fields_to_GPU()
         if(self._temperature_type == "gradient"):
             self.temperature.data += self._time_step_counter*self._cooling_rate_Kelvin_per_second*self._time_step_in_seconds
@@ -358,7 +382,7 @@ class Simulation:
         return 0
     
     def plot_simulation(self, fields=None, interpolation="bicubic", units="cells", save_images="False", size=None, norm=False):
-        if(self.uses_gpu):
+        if(self._uses_gpu):
             ppf_gpu_utils.retrieve_fields_from_GPU(self)
         if fields is None:
             fields = range(len(self.fields))
@@ -448,7 +472,7 @@ class Simulation:
         return
 
     def apply_boundary_conditions(self):
-        if(self.uses_gpu):
+        if(self._uses_gpu):
             ppf_gpu_utils.apply_boundary_conditions(self)
             return
         if(self._boundary_conditions_type[0] == "neumann"):
@@ -496,7 +520,7 @@ class Simulation:
         Plots each field as a matplotlib 2d image. Takes in a field object as arg and saves
         the image to the data folder as namePlot_step_n.png
         """
-        if(self.uses_gpu):
+        if(self._uses_gpu):
             ppf_gpu_utils.retrieve_fields_from_GPU(self)
         if save_path is None:
             save_path = self._save_path

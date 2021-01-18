@@ -1,3 +1,5 @@
+import numpy as np
+
 def __h(phi):
     return phi*phi*phi*(10-15*phi+6*phi*phi)
 
@@ -63,7 +65,7 @@ def renormalize(q1, q2, q3, q4):
     return q1/q, q2/q, q3/q, q4/q
 
 def Dorr2010(sim):
-    
+    pass
     
 def init_Dorr2010(sim):
     sim.T = 873.

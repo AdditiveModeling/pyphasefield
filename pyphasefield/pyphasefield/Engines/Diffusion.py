@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.sparse.linalg import gmres
 from ..field import Field
+from ..simulation import Simulation
 
 def diffusion_matrix_1d(xsize, centervalue, neighborvalue):
     """
@@ -448,8 +449,7 @@ def engine_CrankNicolsonDiffusion3D_ADI_GMRES(sim):
     for i in range(dim[0]): #finally, iterate through ADI method in the x direction
         for j in range(dim[1]):
             c[i, j], exitCode = gmres(matrix1d_x, c[i, j], atol='legacy')
-    sim.fields[0].data = c
-        
+    sim.fields[0].data = c     
 
 def init_Diffusion(sim, dim, solver="explicit", gmres=False, adi=False):
     sim.D = 0.1
@@ -528,3 +528,40 @@ def init_Diffusion(sim, dim, solver="explicit", gmres=False, adi=False):
                     sim.set_engine(engine_CrankNicolsonDiffusion3D_ADI)
                 else:
                     sim.set_engine(engine_CrankNicolsonDiffusion3D)
+                    
+class Diffusion(Simulation):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.D = 1.
+        self.dt = 0.1
+        self.dx = 1.
+        dim = self.dimensions
+        c = np.zeros(dim)
+        if(len(dim) == 1):
+            length = dim[0]
+            c[length // 4:3 * length // 4] = 1
+        elif(len(dim) == 2):
+            length = dim[0]
+            width = dim[1]
+            c[length // 4:3 * length // 4, width // 4:3 * width // 4] = 1
+        elif(len(dim) == 3):
+            length = dim[0]
+            width = dim[1]
+            depth = dim[2]
+            c[length // 4:3 * length // 4, width // 4:3 * width // 4, depth // 4:3 * depth // 4] = 1
+        c_field = Field(data=c, name="c", simulation=self)
+        self.add_field(c_field)
+        
+    def simulation_loop(self):
+        dt = self.dt
+        dx = self.dx
+        c = self.fields[0].data
+        laplacian_c = 0.
+        for i in range(len(c.shape)):
+            laplacian_c += (np.roll(c, 1, i) + np.roll(c, -1, i) - 2*c)
+        laplacian_c /= (dx*dx)
+        dc = dt * (self.D * laplacian_c)
+        self.fields[0].data += dc
+        
+    def initialize_simulation(self):
+        super().initialize_simulation()
