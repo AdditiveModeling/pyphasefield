@@ -50,6 +50,10 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
     #c is fields 3 to k, where k equals the number of components +1. 
     #For N components this is N-1 fields, the last one being implicitly defined
     
+    phi_out = fields[0]
+    q1_out = fields[1]
+    q4_out = fields[2]
+    
     G_L = transfer[0]
     G_S = transfer[1]
     #M_c is transfer 2 to len(fields)-2 (for 2 components, eg Ni and Cu, M_c is just 2
@@ -58,8 +62,8 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
     ebar2 = 6.*math.sqrt(2.)*S[1]*d/T_M[1]
     eqbar2 = 0.25*ebar2
     
-    for i in range(starty+1, fields[0].shape[0]-1, stridey):
-        for j in range(startx+1, fields[0].shape[1]-1, stridex):
+    for i in range(starty+1, phi.shape[0]-1, stridey):
+        for j in range(startx+1, phi.shape[1]-1, stridex):
             #interpolating functions
             g = (phi[i][j]**2)*(1-phi[i][j])**2
             h = (phi[i][j]**3)*(6.*phi[i][j]**2 - 15.*phi[i][j] + 10.)
@@ -78,23 +82,22 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
             dTdy = 0.5*idx*(T[i+1][j]-T[i-1][j])
             d2phidx2 = (phi[i][j+1]+phi[i][j-1]-2*phi[i][j])*idx*idx
             d2phidy2 = (phi[i+1][j]+phi[i-1][j]-2*phi[i][j])*idx*idx
-            #REACHED HERE
             lphi = d2phidx2 + d2phidy2
-            d2phidxy = 0.25*(fields[0][i+1][j+1]-fields[0][i+1][j-1]-fields[0][i-1][j+1]+fields[0][i-1][j-1])*idx*idx
+            d2phidxy = 0.25*(phi[i+1][j+1]-phi[i+1][j-1]-phi[i-1][j+1]+phi[i-1][j-1])*idx*idx
             mag_grad_phi2 = dphidx**2 + dphidy**2
             if(mag_grad_phi2 < 1e-6):
                 mag_grad_phi2 = 1e-6
             mag_grad_phi4 = mag_grad_phi2**2
             mag_grad_phi8 = mag_grad_phi4**2
             
-            dq1dx = 0.5*idx*(fields[1][i][j+1]-fields[1][i][j-1])
-            dq1dy = 0.5*idx*(fields[1][i+1][j]-fields[1][i-1][j])
-            dq4dx = 0.5*idx*(fields[2][i][j+1]-fields[2][i][j-1])
-            dq4dy = 0.5*idx*(fields[2][i+1][j]-fields[2][i-1][j])
-            mgq_xp = idx*math.sqrt((fields[1][i][j+1]-fields[1][i][j])**2 + (fields[2][i][j+1]-fields[2][i][j])**2)
-            mgq_xm = idx*math.sqrt((fields[1][i][j-1]-fields[1][i][j])**2 + (fields[2][i][j-1]-fields[2][i][j])**2)
-            mgq_yp = idx*math.sqrt((fields[1][i+1][j]-fields[1][i][j])**2 + (fields[2][i+1][j]-fields[2][i][j])**2)
-            mgq_ym = idx*math.sqrt((fields[1][i-1][j]-fields[1][i][j])**2 + (fields[2][i-1][j]-fields[2][i][j])**2)
+            dq1dx = 0.5*idx*(q1[i][j+1]-q1[i][j-1])
+            dq1dy = 0.5*idx*(q1[i+1][j]-q1[i-1][j])
+            dq4dx = 0.5*idx*(q4[i][j+1]-q4[i][j-1])
+            dq4dy = 0.5*idx*(q4[i+1][j]-q4[i-1][j])
+            mgq_xp = idx*math.sqrt((q1[i][j+1]-q1[i][j])**2 + (q4[i][j+1]-q4[i][j])**2)
+            mgq_xm = idx*math.sqrt((q1[i][j-1]-q1[i][j])**2 + (q4[i][j-1]-q4[i][j])**2)
+            mgq_yp = idx*math.sqrt((q1[i+1][j]-q1[i][j])**2 + (q4[i+1][j]-q4[i][j])**2)
+            mgq_ym = idx*math.sqrt((q1[i-1][j]-q1[i][j])**2 + (q4[i-1][j]-q4[i][j])**2)
             mag_grad_q = 0.5*(mgq_xp+mgq_xm+mgq_yp+mgq_ym)
             if(mgq_xp < beta):
                 mgq_xp = beta
@@ -106,8 +109,8 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
                 mgq_ym = beta
             
             #psi terms
-            q2q2 = (fields[1][i][j]**2 - fields[2][i][j]**2)
-            qq2 = 2*fields[1][i][j]*fields[2][i][j]
+            q2q2 = (q1[i][j]**2 - q4[i][j]**2)
+            qq2 = 2*q1[i][j]*q4[i][j]
             psix = q2q2*dphidx - qq2*dphidy
             psiy = qq2*dphidx + q2q2*dphidy
             psix2 = psix**2
@@ -117,10 +120,10 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
             psiy3 = psiy2*psiy
             psiy4 = psiy2**2
             #eta = 1. - 3.*y_e + 4.*y_e*(psix**4 + psiy**4)/mag_grad_phi4
-            dq2q2dx = (2*fields[1][i][j]*dq1dx - 2*fields[2][i][j]*dq4dx)
-            dqq2dx = (2*fields[2][i][j]*dq1dx + 2*fields[1][i][j]*dq4dx)
-            dq2q2dy = (2*fields[1][i][j]*dq1dy - 2*fields[2][i][j]*dq4dy)
-            dqq2dy = (2*fields[2][i][j]*dq1dy + 2*fields[1][i][j]*dq4dy)
+            dq2q2dx = (2*q1[i][j]*dq1dx - 2*q4[i][j]*dq4dx)
+            dqq2dx = (2*q4[i][j]*dq1dx + 2*q1[i][j]*dq4dx)
+            dq2q2dy = (2*q1[i][j]*dq1dy - 2*q4[i][j]*dq4dy)
+            dqq2dy = (2*q4[i][j]*dq1dy + 2*q1[i][j]*dq4dy)
             dpsixdx = dq2q2dx*dphidx + q2q2*d2phidx2 - dqq2dx*dphidy - qq2*d2phidxy
             dpsixdy = dq2q2dy*dphidx + q2q2*d2phidxy - dqq2dy*dphidy - qq2*d2phidy2
             dpsiydx = dq2q2dx*dphidy + q2q2*d2phidxy + dqq2dx*dphidx + qq2*d2phidx2
@@ -144,10 +147,12 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
             cW = 0.
             c_N = 1.
             M_phi = 0.
+            #REACHED HERE
             for l in range(3, len(fields)):
-                cW += fields[l][i][j]*W[l-3]
-                c_N -= fields[l][i][j]
-                M_phi += fields[l][i][j]*M[l-3]
+                c_i = fields[l][i][j]
+                cW += c_i*W[l-3]
+                c_N -= c_i
+                M_phi += c_i*M[l-3]
             cW += c_N*W[len(fields)-3]
             M_phi += c_N*M[len(fields)-3]
             
@@ -158,9 +163,9 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
             #dphidt
             dphidt = ebar2*(1-3*y_e)*(T[i][j]*lphi + dTdx*dphidx + dTdy*dphidy)
             dphidt += d_term_dx + d_term_dy
-            dphidt -= hprime*(transfer[1][i][j] - transfer[0][i][j])/v_m
+            dphidt -= hprime*(G_S[i][j] - G_L[i][j])/v_m
             dphidt -= gprime*T[i][j]*cW
-            dphidt -= 4*H*T[i][j]*fields[0][i][j]*mag_grad_q
+            dphidt -= 4*H*T[i][j]*phi[i][j]*mag_grad_q
             dphidt *= M_phi
             
             #noise in phi
@@ -169,57 +174,60 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
             
             #dcidt
             for l in range(3, len(fields)):
-                fields_out[l][i][j] = (divagradb(transfer[l-1][i][j], transfer[l-1][i][j+1], transfer[l-1][i][j-1], transfer[l-1][i+1][j], 
-                                                 transfer[l-1][i-1][j], transfer[l-1+len(fields)-3][i][j], 
-                                                 transfer[l-1+len(fields)-3][i][j+1], transfer[l-1+len(fields)-3][i][j-1], 
-                                                 transfer[l-1+len(fields)-3][i+1][j], transfer[l-1+len(fields)-3][i-1][j], idx))
+                c_i_out = fields_out[l]
+                M_c = transfer[l-1]
+                dFdci = transfer[l-1+len(fields)-3]
+                c_i_out[i][j] = (divagradb(M_c[i][j], M_c[i][j+1], M_c[i][j-1], M_c[i+1][j], M_c[i-1][j], 
+                                           dFdci[i][j], dFdci[i][j+1], dFdci[i][j-1], dFdci[i+1][j], dFdci[i-1][j], idx))
                 for m in range(3, len(fields)):
-                    fields_out[l][i][j] -= divagradb(transfer[l-1][i][j]*fields[m][i][j], transfer[l-1][i][j+1]*fields[m][i][j+1], 
-                                                transfer[l-1][i][j-1]*fields[m][i][j-1], transfer[l-1][i+1][j]*fields[m][i+1][j], 
-                                                transfer[l-1][i-1][j]*fields[m][i-1][j], transfer[m-1+len(fields)-3][i][j], 
-                                                transfer[m-1+len(fields)-3][i][j+1], transfer[m-1+len(fields)-3][i][j-1], 
-                                                transfer[m-1+len(fields)-3][i+1][j], transfer[m-1+len(fields)-3][i-1][j], idx)
+                    c_j = fields[m]
+                    dFdcj = transfer[m-1+len(fields)-3]
+                    c_i_out[i][j] -= divagradb(M_c[i][j]*c_j[i][j], M_c[i][j+1]*c_j[i][j+1], M_c[i][j-1]*c_j[i][j-1], 
+                                               M_c[i+1][j]*c_j[i+1][j], M_c[i-1][j]*c_j[i-1][j], 
+                                               dFdcj[i][j], dFdcj[i][j+1], dFdcj[i][j-1], dFdcj[i+1][j], dFdcj[i-1][j], idx)
             
             #dqdt
-            D_q = 2.*H*T[i][j]*(fields[0][i][j]**2)
-            D_q_xp = 2.*H*T[i][j+1]*(fields[0][i][j+1]**2)
-            D_q_xm = 2.*H*T[i][j-1]*(fields[0][i][j-1]**2)
-            D_q_yp = 2.*H*T[i+1][j]*(fields[0][i+1][j]**2)
-            D_q_ym = 2.*H*T[i-1][j]*(fields[0][i-1][j]**2)
+            D_q = 2.*H*T[i][j]*(phi[i][j]**2)
+            D_q_xp = 2.*H*T[i][j+1]*(phi[i][j+1]**2)
+            D_q_xm = 2.*H*T[i][j-1]*(phi[i][j-1]**2)
+            D_q_yp = 2.*H*T[i+1][j]*(phi[i+1][j]**2)
+            D_q_ym = 2.*H*T[i-1][j]*(phi[i-1][j]**2)
                 
             f_ori_1 = f_ori_term(D_q, D_q_xp, D_q_xm, D_q_yp, D_q_ym, mgq_xp, mgq_xm, mgq_yp, mgq_ym,
-                                 fields[1][i][j], fields[1][i][j+1], fields[1][i][j-1], fields[1][i+1][j], fields[1][i-1][j], idx)
+                                 q1[i][j], q1[i][j+1], q1[i][j-1], q1[i+1][j], q1[i-1][j], idx)
             f_ori_4 = f_ori_term(D_q, D_q_xp, D_q_xm, D_q_yp, D_q_ym, mgq_xp, mgq_xm, mgq_yp, mgq_ym,
-                                 fields[2][i][j], fields[2][i][j+1], fields[2][i][j-1], fields[2][i+1][j], fields[2][i-1][j], idx)
+                                 q4[i][j], q4[i][j+1], q4[i][j-1], q4[i+1][j], q4[i-1][j], idx)
             
-            dfintdq1 = 16.*ebar2*T[i][j]*y_e/mag_grad_phi2 * (psix3*(fields[1][i][j]*dphidx - fields[2][i][j]*dphidy) + psiy3*(fields[2][i][j]*dphidx + fields[1][i][j]*dphidy))
-            dfintdq4 = 16.*ebar2*T[i][j]*y_e/mag_grad_phi2 * (psix3*(-fields[2][i][j]*dphidx - fields[1][i][j]*dphidy) + psiy3*(fields[1][i][j]*dphidx - fields[2][i][j]*dphidy))
+            dfintdq1 = 16.*ebar2*T[i][j]*y_e/mag_grad_phi2 * (psix3*(q1[i][j]*dphidx - q4[i][j]*dphidy) + psiy3*(q4[i][j]*dphidx + q1[i][j]*dphidy))
+            dfintdq4 = 16.*ebar2*T[i][j]*y_e/mag_grad_phi2 * (psix3*(-q4[i][j]*dphidx - q1[i][j]*dphidy) + psiy3*(q1[i][j]*dphidx - q4[i][j]*dphidy))
             #dfintdq1 = 0. #use these blocks to zero out twisting in quaternion fields to lower interfacial energy
             #dfintdq4 = 0.
             
-            lq1 = (fields[1][i][j+1]+fields[1][i][j-1]+fields[1][i+1][j]+fields[1][i-1][j]-4*fields[1][i][j])*idx*idx
-            lq4 = (fields[2][i][j+1]+fields[2][i][j-1]+fields[2][i+1][j]+fields[2][i-1][j]-4*fields[2][i][j])*idx*idx
+            lq1 = (q1[i][j+1]+q1[i][j-1]+q1[i+1][j]+q1[i-1][j]-4*q1[i][j])*idx*idx
+            lq4 = (q4[i][j+1]+q4[i][j-1]+q4[i+1][j]+q4[i-1][j]-4*q4[i][j])*idx*idx
             
             #noise_q1 = math.sqrt(8.314*T[i][j]/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
             #noise_q4 = math.sqrt(8.314*T[i][j]/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
             noise_q1 = 0
             noise_q4 = 0
             
-            dq1dt = M_q*((1-fields[1][i][j]**2)*(f_ori_1+lq1*eqbar2-dfintdq1+noise_q1) - fields[1][i][j]*fields[2][i][j]*(f_ori_4+lq4*eqbar2-dfintdq4+noise_q4))
-            dq4dt = M_q*((1-fields[2][i][j]**2)*(f_ori_4+lq4*eqbar2-dfintdq4+noise_q4) - fields[1][i][j]*fields[2][i][j]*(f_ori_1+lq1*eqbar2-dfintdq1+noise_q1))
-            fields_out[0][i][j] = fields[0][i][j] + dt*dphidt
-            if(fields_out[0][i][j] < 0.000001):
-                fields_out[0][i][j] = 0.000001
-            if(fields_out[0][i][j] > 0.999999):
-                fields_out[0][i][j] = 0.999999
-            fields_out[1][i][j] = fields[1][i][j] + dt*dq1dt
-            fields_out[2][i][j] = fields[2][i][j] + dt*dq4dt
-            renorm = math.sqrt((fields_out[1][i][j]**2+fields_out[2][i][j]**2))
-            fields_out[1][i][j] = fields_out[1][i][j]/renorm
-            fields_out[2][i][j] = fields_out[2][i][j]/renorm
+            dq1dt = M_q*((1-q1[i][j]**2)*(f_ori_1+lq1*eqbar2-dfintdq1+noise_q1) - q1[i][j]*q4[i][j]*(f_ori_4+lq4*eqbar2-dfintdq4+noise_q4))
+            dq4dt = M_q*((1-q4[i][j]**2)*(f_ori_4+lq4*eqbar2-dfintdq4+noise_q4) - q1[i][j]*q4[i][j]*(f_ori_1+lq1*eqbar2-dfintdq1+noise_q1))
+            phi_out[i][j] = phi[i][j] + dt*dphidt
+            if(phi_out[i][j] < 0.000001):
+                phi_out[i][j] = 0.000001
+            if(phi_out[i][j] > 0.999999):
+                phi_out[i][j] = 0.999999
+            q1_out[i][j] = q1[i][j] + dt*dq1dt
+            q4_out[i][j] = q4[i][j] + dt*dq4dt
+            renorm = math.sqrt((q1_out[i][j]**2+q4_out[i][j]**2))
+            q1_out[i][j] = q1_out[i][j]/renorm
+            q4_out[i][j] = q4_out[i][j]/renorm
             for l in range(3, len(fields)):
-                fields_out[l][i][j] *= dt
-                fields_out[l][i][j] += fields[l][i][j]
+                c_i = fields[l]
+                c_i_out = fields_out[l]
+                c_i_out[i][j] *= dt
+                c_i_out[i][j] += c_i[i][j]
 
 @numba.jit
 def get_thermodynamics(ufunc, array):
@@ -240,11 +248,23 @@ def NComponent_helper_kernel(fields, T, transfer, rng_states, ufunc_array, param
     D_S = params[8]
     W = c_params[4]
     
+    phi = fields[0]
+    q1 = fields[1]
+    q4 = fields[2]
+    #c is fields 3 to k, where k equals the number of components +1. 
+    #For N components this is N-1 fields, the last one being implicitly defined
+    
+    phi_out = fields[0]
+    q1_out = fields[1]
+    q4_out = fields[2]
+    
+    G_L = transfer[0]
+    G_S = transfer[1]
     #M_c is transfer 2 to len(fields)-2 (for 2 components, eg Ni and Cu, M_c is just 2
     #dFdc is transfer len(fields)-1 to 2*len(fields)-5 (for 2 components, eg Ni and Cu, dFdc is just 3
     
-    for i in range(startx, fields[0].shape[0], stridex):
-        for j in range(starty, fields[0].shape[1], stridey):
+    for i in range(startx, phi.shape[0], stridex):
+        for j in range(starty, phi.shape[1], stridey):
             c_N = 1.
             for l in range(3, len(fields)):
                 ufunc_array[i][j][l-3] = fields[l][i][j]
@@ -252,19 +272,21 @@ def NComponent_helper_kernel(fields, T, transfer, rng_states, ufunc_array, param
             ufunc_array[i][j][len(fields)-3] = c_N
             ufunc_array[i][j][len(fields)-2] = T[i][j]
             #dGdc = numba.cuda.local.array((2,1), numba.float64)
-            transfer[0][i][j], dGLdc = get_thermodynamics(ufunc_g_l, ufunc_array[i][j])
-            transfer[1][i][j], dGSdc = get_thermodynamics(ufunc_g_s, ufunc_array[i][j])
+            G_L[i][j], dGLdc = get_thermodynamics(ufunc_g_l, ufunc_array[i][j])
+            G_S[i][j], dGSdc = get_thermodynamics(ufunc_g_s, ufunc_array[i][j])
             
-            g = (fields[0][i][j]**2)*(1-fields[0][i][j])**2
-            h = (fields[0][i][j]**3)*(6.*fields[0][i][j]**2 - 15.*fields[0][i][j] + 10.)
+            g = (phi[i][j]**2)*(1-phi[i][j])**2
+            h = (phi[i][j]**3)*(6.*phi[i][j]**2 - 15.*phi[i][j] + 10.)
             
             #get Langevin noise, put in c_noise
             noise_c = math.sqrt(2.*8.314*T[i][j]/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
             #noise_c = 0.
             
             for l in range(3, len(fields)):
-                transfer[l-1][i][j] = v_m*fields[l][i][j]*(D_L + h*(D_S - D_L))/(8.314*T[i][j])
-                transfer[l-1+len(fields)-3][i][j] = (dGLdc + h*(dGSdc-dGLdc))/v_m + (W[l-3]-W[len(fields)-3])*g*T[i][j]+noise_c
+                M_c = transfer[l-1]
+                dFdc = transfer[l-1+len(fields)-3]
+                M_c[i][j] = v_m*fields[l][i][j]*(D_L + h*(D_S - D_L))/(8.314*T[i][j])
+                dFdc[i][j] = (dGLdc + h*(dGSdc-dGLdc))/v_m + (W[l-3]-W[len(fields)-3])*g*T[i][j]+noise_c
                 
 def make_seed(phi, q1, q4, x, y, angle, seed_radius):
     shape = phi.shape
