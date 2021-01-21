@@ -44,12 +44,14 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
     W = c_params[4]
     M = c_params[5]
     
-    #phi = fields[0]
-    #q1 = fields[1]
-    #q4 = fields[2]
+    phi = fields[0]
+    q1 = fields[1]
+    q4 = fields[2]
+    #c is fields 3 to k, where k equals the number of components +1. 
+    #For N components this is N-1 fields, the last one being implicitly defined
     
-    #G_L = transfer[0]
-    #G_S = transfer[1]
+    G_L = transfer[0]
+    G_S = transfer[1]
     #M_c is transfer 2 to len(fields)-2 (for 2 components, eg Ni and Cu, M_c is just 2
     #dFdc is transfer len(fields)-1 to 2*len(fields)-5 (for 2 components, eg Ni and Cu, dFdc is just 3
         
@@ -59,23 +61,24 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
     for i in range(starty+1, fields[0].shape[0]-1, stridey):
         for j in range(startx+1, fields[0].shape[1]-1, stridex):
             #interpolating functions
-            g = (fields[0][i][j]**2)*(1-fields[0][i][j])**2
-            h = (fields[0][i][j]**3)*(6.*fields[0][i][j]**2 - 15.*fields[0][i][j] + 10.)
+            g = (phi[i][j]**2)*(1-phi[i][j])**2
+            h = (phi[i][j]**3)*(6.*phi[i][j]**2 - 15.*phi[i][j] + 10.)
             hprime = 30.*g
-            gprime = 4.*fields[0][i][j]**3 - 6.*fields[0][i][j]**2 + 2*fields[0][i][j]
+            gprime = 4.*phi[i][j]**3 - 6.*phi[i][j]**2 + 2*phi[i][j]
             
             #gradients
             idx = 1./dx
-            dphidx = 0.5*(fields[0][i][j+1]-fields[0][i][j-1])*idx
+            dphidx = 0.5*(phi[i][j+1]-phi[i][j-1])*idx
             dphidx2 = dphidx**2
             dphidx3 = dphidx2*dphidx
-            dphidy = 0.5*(fields[0][i+1][j]-fields[0][i-1][j])*idx
+            dphidy = 0.5*(phi[i+1][j]-phi[i-1][j])*idx
             dphidy2 = dphidy**2
             dphidy3 = dphidy2*dphidy
             dTdx = 0.5*idx*(T[i][j+1]-T[i][j-1])
             dTdy = 0.5*idx*(T[i+1][j]-T[i-1][j])
-            d2phidx2 = (fields[0][i][j+1]+fields[0][i][j-1]-2*fields[0][i][j])*idx*idx
-            d2phidy2 = (fields[0][i+1][j]+fields[0][i-1][j]-2*fields[0][i][j])*idx*idx
+            d2phidx2 = (phi[i][j+1]+phi[i][j-1]-2*phi[i][j])*idx*idx
+            d2phidy2 = (phi[i+1][j]+phi[i-1][j]-2*phi[i][j])*idx*idx
+            #REACHED HERE
             lphi = d2phidx2 + d2phidy2
             d2phidxy = 0.25*(fields[0][i+1][j+1]-fields[0][i+1][j-1]-fields[0][i-1][j+1]+fields[0][i-1][j-1])*idx*idx
             mag_grad_phi2 = dphidx**2 + dphidy**2

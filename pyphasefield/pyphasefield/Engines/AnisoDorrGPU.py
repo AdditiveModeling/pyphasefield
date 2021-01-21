@@ -101,9 +101,22 @@ def AnisoDorr_kernel(fields, T, transfer, fields_out, rng_states, params, c_para
     M_A = T_mA*T_mA*B_A/(6.*math.sqrt(2.)*L_A*d)
     M_B = T_mB*T_mB*B_B/(6.*math.sqrt(2.)*L_B*d)
     
-    #phi = fields[0]
-    #q1 = fields[1]
-    #q4 = fields[2]
+    phi = fields[0]
+    q1 = fields[1]
+    q4 = fields[2]
+    c = fields[3]
+    
+    pf_comp_xmm = transfer[0]
+    pf_comp_ymm = transfer[1]
+    t1_temp = transfer[2]
+    t4_temp = transfer[3]
+    temp = transfer[4]
+    D_C = transfer[5]
+    
+    phi_out = fields_out[0]
+    q1_out = fields_out[1]
+    q4_out = fields_out[2]
+    c_out = fields_out[3]
     
     #G_L = transfer[0]
     #G_S = transfer[1]
@@ -112,19 +125,14 @@ def AnisoDorr_kernel(fields, T, transfer, fields_out, rng_states, params, c_para
     
     for i in range(starty+1, fields[0].shape[0]-1, stridey):
         for j in range(startx+1, fields[0].shape[1]-1, stridex):
-            #mostly for reference
-            phi = fields[0][i][j]
-            q1 = fields[1][i][j]
-            q4 = fields[2][i][j]
-            c = fields[3][i][j]
             #interpolating functions
-            g = _g(phi)
-            h = _h(phi)
+            g = _g(phi[i][j])
+            h = _h(phi[i][j])
             m = 1-h;
             M_q = 1e-6 + (M_qmax-1e-6)*m
             
-            lq1 = grad2(q1, fields[1][i][j+1], fields[1][i][j-1], fields[1][i+1][j], fields[1][i-1][j], idx)
-            lq4 = grad2(q4, fields[2][i][j+1], fields[2][i][j-1], fields[2][i+1][j], fields[2][i-1][j], idx)
+            lq1 = grad2(q1[i][j], q1[i][j+1], q1[i][j-1], q1[i+1][j], q1[i-1][j], idx)
+            lq4 = grad2(q4[i][j], q4[i][j+1], q4[i][j-1], q4[i+1][j], q4[i-1][j], idx)
             
             
 
@@ -136,30 +144,30 @@ def AnisoDorr_kernel(fields, T, transfer, fields_out, rng_states, params, c_para
                 deltaphi = 0
                 t1 = eqbar*eqbar*lq1
                 t4 = eqbar*eqbar*lq4
-                lmbda = (q1*t1+q4*t4)
-                deltaq1 = M_q*(t1-q1*lmbda)
-                deltaq4 = M_q*(t4-q4*lmbda)
+                lmbda = (q1[i][j]*t1+q4[i][j]*t4)
+                deltaq1 = M_q*(t1-q1[i][j]*lmbda)
+                deltaq4 = M_q*(t4-q4[i][j]*lmbda)
 
             else:
                 #additional interpolating functions
-                p = phi*phi
-                pp = 2*phi
-                hprime = _hprime(phi)
-                gprime = _gprime(phi)
+                p = phi[i][j]*phi[i][j]
+                pp = 2*phi[i][j]
+                hprime = _hprime(phi[i][j])
+                gprime = _gprime(phi[i][j])
 
                 #bulk energy terms, using ideal solution model from Warren1995
                 H_A = W_A*gprime - 30*L_A*(1/T-1/T_mA)*g
                 H_B = W_B*gprime - 30*L_B*(1/T-1/T_mB)*g
                 
                 #quaternion gradient terms
-                gq1_xm = (q1-fields[1][i][j-1])*idx
-                gq1_ym = (q1-fields[1][i-1][j])*idx
-                gq1_xp = (q1-fields[1][i][j+1])*idx
-                gq1_yp = (q1-fields[1][i+1][j])*idx
-                gq4_xm = (q4-fields[2][i][j-1])*idx
-                gq4_ym = (q4-fields[2][i-1][j])*idx
-                gq4_xp = (q4-fields[2][i][j+1])*idx
-                gq4_yp = (q4-fields[2][i+1][j])*idx
+                gq1_xm = (q1[i][j]-q1[i][j-1])*idx
+                gq1_ym = (q1[i][j]-q1[i-1][j])*idx
+                gq1_xp = (q1[i][j]-q1[i][j+1])*idx
+                gq1_yp = (q1[i][j]-q1[i+1][j])*idx
+                gq4_xm = (q4[i][j]-q4[i][j-1])*idx
+                gq4_ym = (q4[i][j]-q4[i-1][j])*idx
+                gq4_xp = (q4[i][j]-q4[i][j+1])*idx
+                gq4_yp = (q4[i][j]-q4[i+1][j])*idx
                 
                 gqs_xm = gq1_xm*gq1_xm+gq4_xm*gq4_xm
                 gqs_ym = gq1_ym*gq1_ym+gq4_ym*gq4_ym
@@ -182,25 +190,21 @@ def AnisoDorr_kernel(fields, T, transfer, fields_out, rng_states, params, c_para
                 rgqs_yp = math.sqrt(gqs_yp)
 
                 #change in c
-                temp = transfer[4][i][j]
-                D_C = transfer[5][i][j]
-                deltac = divagradb(temp, transfer[4][i][j+1], transfer[4][i][j-1], transfer[4][i+1][j], transfer[4][i-1][j], 
-                                   phi, fields[0][i][j+1], fields[0][i][j-1], fields[0][i+1][j], fields[0][i-1][j], idx)
-                deltac += divagradb(D_C, transfer[5][i][j+1], transfer[5][i][j-1], transfer[5][i+1][j], transfer[5][i-1][j], 
-                                   c, fields[3][i][j+1], fields[3][i][j-1], fields[3][i+1][j], fields[3][i-1][j], idx)
+                deltac = divagradb(temp[i][j], temp[i][j+1], temp[i][j-1], temp[i+1][j], temp[i-1][j], 
+                                   phi[i][j], phi[i][j+1], phi[i][j-1], phi[i+1][j], phi[i-1][j], idx)
+                deltac += divagradb(D_C[i][j], D_C[i][j+1], D_C[i][j-1], D_C[i+1][j], D_C[i-1][j], 
+                                   c[i][j], c[i][j+1], c[i][j-1], c[i+1][j], c[i-1][j], idx)
                 
 
                 #change in phi
-                lphi = grad2(phi, fields[0][i][j+1], fields[0][i][j-1], fields[0][i+1][j], fields[0][i-1][j], idx)
-                pf_comp_xmm = transfer[0][i][j]
-                pf_comp_x = 0.5*idx*(transfer[0][i][j+1] + transfer[0][i+1][j+1] - pf_comp_xmm - transfer[0][i+1][j])
-                pf_comp_ymm = transfer[1][i][j]
-                pf_comp_y = 0.5*idx*(transfer[1][i+1][j] + transfer[1][i+1][j+1] - pf_comp_ymm - transfer[1][i][j+1])
-                M_phi = (1-c)*M_A + c*M_B
-                deltaphi = M_phi*(ebar*ebar*((1-3*y_e)*lphi + pf_comp_x + pf_comp_y)-(1-c)*H_A-c*H_B-2*H*T*pp*rgqs_0)
+                lphi = grad2(phi[i][j], phi[i][j+1], phi[i][j-1], phi[i+1][j], phi[i-1][j], idx)
+                pf_comp_x = 0.5*idx*(pf_comp_xmm[i][j+1] + pf_comp_xmm[i+1][j+1] - pf_comp_xmm[i][j] - pf_comp_xmm[i+1][j])
+                pf_comp_y = 0.5*idx*(pf_comp_ymm[i+1][j] + pf_comp_ymm[i+1][j+1] - pf_comp_ymm[i][j] - pf_comp_ymm[i][j+1])
+                M_phi = (1-c[i][j])*M_A + c[i][j]*M_B
+                deltaphi = M_phi*(ebar*ebar*((1-3*y_e)*lphi + pf_comp_x + pf_comp_y)-(1-c[i][j])*H_A-c[i][j]*H_B-2*H*T*pp*rgqs_0)
                 rand = cuda.random.xoroshiro128p_uniform_float32(rng_states, threadId)
                 alpha = 0.3
-                deltaphi += M_phi*alpha*rand*(16*g)*((1-c)*H_A+c*H_B)
+                deltaphi += M_phi*alpha*rand*(16*g)*((1-c[i][j])*H_A+c[i][j]*H_B)
 
                 #changes in q, part 1
                 base = 2*H*T
@@ -213,33 +217,31 @@ def AnisoDorr_kernel(fields, T, transfer, fields_out, rng_states, params, c_para
                 ######REACHED HERE FOR RETRANSLATION######
 
                 gaq1 = f_ori_term(D_q, D_q_xp, D_q_xm, D_q_yp, D_q_ym, rgqs_xp, rgqs_xm, rgqs_yp, rgqs_ym, 
-                                  q1, fields[1][i][j+1], fields[1][i][j-1], fields[1][i+1][j], fields[1][i-1][j], idx)
+                                  q1[i][j], q1[i][j+1], q1[i][j-1], q1[i+1][j], q1[i-1][j], idx)
                 gaq4 = f_ori_term(D_q, D_q_xp, D_q_xm, D_q_yp, D_q_ym, rgqs_xp, rgqs_xm, rgqs_yp, rgqs_ym, 
-                                  q4, fields[2][i][j+1], fields[2][i][j-1], fields[2][i+1][j], fields[2][i-1][j], idx)
+                                  q4[i][j], q4[i][j+1], q4[i][j-1], q4[i+1][j], q4[i-1][j], idx)
 
-                t1_temp = transfer[2][i][j]
-                t4_temp = transfer[3][i][j]
-                cc_t1_temp = 0.25*(t1_temp+transfer[2][i+1][j]+transfer[2][i][j+1]+transfer[2][i+1][j+1])
-                cc_t4_temp = 0.25*(t4_temp+transfer[3][i+1][j]+transfer[3][i][j+1]+transfer[3][i+1][j+1])
+                cc_t1_temp = 0.25*(t1_temp[i][j]+t1_temp[i+1][j]+t1_temp[i][j+1]+t1_temp[i+1][j+1])
+                cc_t4_temp = 0.25*(t4_temp[i][j]+t4_temp[i+1][j]+t4_temp[i][j+1]+t4_temp[i+1][j+1])
 
                 t1 = eqbar*eqbar*lq1+(gaq1) + cc_t1_temp
                 t4 = eqbar*eqbar*lq4+(gaq4) + cc_t4_temp
-                lmbda = (q1*t1+q4*t4)
-                deltaq1 = M_q*(t1-q1*lmbda)
-                deltaq4 = M_q*(t4-q4*lmbda)
+                lmbda = (q1[i][j]*t1+q4[i][j]*t4)
+                deltaq1 = M_q*(t1-q1[i][j]*lmbda)
+                deltaq4 = M_q*(t4-q4[i][j]*lmbda)
 
             #changes in q
 
 
 
             #apply changes
-            fields_out[0][i][j] = fields[0][i][j] + deltaphi*dt
-            fields_out[1][i][j] = fields[1][i][j] + deltaq1*dt
-            fields_out[2][i][j] = fields[2][i][j] + deltaq4*dt
-            fields_out[3][i][j] = fields[3][i][j] + deltac*dt
-            renorm = math.sqrt((fields_out[1][i][j]**2+fields_out[2][i][j]**2))
-            fields_out[1][i][j] = fields_out[1][i][j]/renorm
-            fields_out[2][i][j] = fields_out[2][i][j]/renorm
+            phi_out[i][j] = phi[i][j] + deltaphi*dt
+            q1_out[i][j] = q1[i][j] + deltaq1*dt
+            q4_out[i][j] = q4[i][j] + deltaq4*dt
+            c_out[i][j] = c[i][j] + deltac*dt
+            renorm = math.sqrt((q1_out[i][j]**2+q4_out[i][j]**2))
+            q1_out[i][j] = q1_out[i][j]/renorm
+            q4_out[i][j] = q4_out[i][j]/renorm
 
 @numba.jit
 def get_thermodynamics(ufunc, array):
@@ -250,7 +252,7 @@ def get_thermodynamics(ufunc, array):
             
 @cuda.jit
 def AnisoDorr_helper_kernel(fields, T, transfer, rng_states, ufunc_array, params, c_params):
-    #initializes certain arrays that are used in div-grad terms, to avoid recomputing terms 4 or 6 times
+    #initializes certain arrays that are used in div-grad terms, to avoid recomputing terms many times
     #transfer[0] is pf_comp_x, defined at the vertex mm
     #transfer[1] is pf_comp_y, defined at the vertex mm
     #transfer[2] is t1_temp, defined at the vertex mm
@@ -303,30 +305,34 @@ def AnisoDorr_helper_kernel(fields, T, transfer, rng_states, ufunc_array, params
     M_A = T_mA*T_mA*B_A/(6.*math.sqrt(2.)*L_A*d)
     M_B = T_mB*T_mB*B_B/(6.*math.sqrt(2.)*L_B*d)
     
+    phi = fields[0]
+    q1 = fields[1]
+    q4 = fields[2]
+    c = fields[3]
+    
+    pf_comp_xmm = transfer[0]
+    pf_comp_ymm = transfer[1]
+    t1_temp = transfer[2]
+    t4_temp = transfer[3]
+    temp = transfer[4]
+    D_C = transfer[5]
+    
     for i in range(startx, fields[0].shape[0], stridex):
         for j in range(starty, fields[0].shape[1], stridey):
-            #mostly for reference
-            phi = fields[0][i][j]
-            q1 = fields[1][i][j]
-            q4 = fields[2][i][j]
-            c = fields[3][i][j]
-            
-            
-            
-            g = _g(phi)
-            gprime = _gprime(phi)
-            h = _h(phi)
+            g = _g(phi[i][j])
+            gprime = _gprime(phi[i][j])
+            h = _h(phi[i][j])
             m = 1-h;
             H_A = W_A*gprime - 30*L_A*(1/T-1/T_mA)*g
             H_B = W_B*gprime - 30*L_B*(1/T-1/T_mB)*g
             
             #vertex_averaged_gphi
-            gphi_xmm = 0.5*(phi-fields[0][i][j-1]+fields[0][i-1][j]-fields[0][i-1][j-1])*idx
-            gphi_ymm = 0.5*(phi-fields[0][i-1][j]+fields[0][i][j-1]-fields[0][i-1][j-1])*idx
+            gphi_xmm = 0.5*(phi[i][j]-phi[i][j-1]+phi[i-1][j]-phi[i-1][j-1])*idx
+            gphi_ymm = 0.5*(phi[i][j]-phi[i-1][j]+phi[i][j-1]-phi[i-1][j-1])*idx
             
             #vertex_averaged_q1
-            q1_mm = 0.25*(q1+fields[1][i-1][j]+fields[1][i][j-1]+fields[1][i-1][j-1])
-            q4_mm = 0.25*(q4+fields[2][i-1][j]+fields[2][i][j-1]+fields[2][i-1][j-1])
+            q1_mm = 0.25*(q1[i][j]+q1[i-1][j]+q1[i][j-1]+q1[i-1][j-1])
+            q4_mm = 0.25*(q4[i][j]+q4[i-1][j]+q4[i][j-1]+q4[i-1][j-1])
 
             a2_b2 = q1_mm*q1_mm-q4_mm*q4_mm
             ab2 = 2.*q1_mm*q4_mm
@@ -342,28 +348,22 @@ def AnisoDorr_helper_kernel(fields, T, transfer, rng_states, ufunc_array, params
             mgphi2_mm = max(mgphi2_mm, 0.000000001)
 
             #change in c
-            D_C = D_S+m*(D_L-D_S)
-            temp = D_C*v_m*c*(1-c)*(H_B-H_A)/R
-            transfer[4][i][j] = temp
-            transfer[5][i][j] = D_C
+            D_C[i][j] = D_S+m*(D_L-D_S)
+            temp[i][j] = D_C*v_m*c*(1-c)*(H_B-H_A)/R
 
             #change in phi
             psix3 = gpsi_xmm*gpsi_xmm*gpsi_xmm
             psiy3 = gpsi_ymm*gpsi_ymm*gpsi_ymm
-            pf_comp_x = 4*y_e*((2*a2_b2*psix3 + 2*ab2*psiy3)/mgphi2_mm - gphi_xmm*(psix3*gphi_xmm + psiy3*gphi_ymm)/(mgphi2_mm*mgphi2_mm))
-            pf_comp_y = 4*y_e*((2*a2_b2*psiy3 - 2*ab2*psix3)/mgphi2_mm - gphi_ymm*(psix3*gphi_xmm + psiy3*gphi_ymm)/(mgphi2_mm*mgphi2_mm))
-            transfer[0][i][j] = pf_comp_x
-            transfer[1][i][j] = pf_comp_y
+            pf_comp_xmm[i][j] = 4*y_e*((2*a2_b2*psix3 + 2*ab2*psiy3)/mgphi2_mm - gphi_xmm*(psix3*gphi_xmm + psiy3*gphi_ymm)/(mgphi2_mm*mgphi2_mm))
+            pf_comp_ymm[i][j] = 4*y_e*((2*a2_b2*psiy3 - 2*ab2*psix3)/mgphi2_mm - gphi_ymm*(psix3*gphi_xmm + psiy3*gphi_ymm)/(mgphi2_mm*mgphi2_mm))
 
             q1px = q1_mm*gphi_xmm
             q1py = q1_mm*gphi_ymm
             q4px = q4_mm*gphi_xmm
             q4py = q4_mm*gphi_ymm
 
-            t1_temp = (16*ebar*ebar*y_e/mgphi2_mm)*(psi_xyy*(q1px - q4py) + psi_xxy*(q1py + q4px))
-            t4_temp = (16*ebar*ebar*y_e/mgphi2_mm)*(psi_xyy*(-q4px - q1py) + psi_xxy*(-q4py + q1px))
-            transfer[2][i][j] = t1_temp
-            transfer[3][i][j] = t4_temp
+            t1_temp[i][j] = (16*ebar*ebar*y_e/mgphi2_mm)*(psi_xyy*(q1px - q4py) + psi_xxy*(q1py + q4px))
+            t4_temp[i][j] = (16*ebar*ebar*y_e/mgphi2_mm)*(psi_xyy*(-q4px - q1py) + psi_xxy*(-q4py + q1px))
                 
 def make_seed(phi, q1, q4, x, y, angle, seed_radius):
     shape = phi.shape

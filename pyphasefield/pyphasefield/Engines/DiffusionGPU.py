@@ -9,13 +9,13 @@ def diffusion_kernel(fields, fields_out, D, dx):
     
     alpha = D/(dx*dx) #laplacian coefficient in diffusion discretization
     
-    #fields[0] = c
-    #fields_out[0] = c_out
+    c = fields[0]
+    c_out = fields_out[0]
 
     # assuming x and y inputs are same length
-    for i in range(starty, fields[0].shape[0], stridey):
-        for j in range(startx, fields[0].shape[1], stridex):
-            fields_out[0][i][j] = fields[0][i][j]+alpha*(-4*fields[0][i][j]+fields[0][i+1][j]+fields[0][i-1][j]+fields[0][i][j+1]+fields[0][i][j-1])
+    for i in range(starty, c.shape[0], stridey):
+        for j in range(startx, c.shape[1], stridex):
+            c_out[i][j] = c[i][j]+alpha*(-4*c[i][j]+c[i+1][j]+c[i-1][j]+c[i][j+1]+c[i][j-1])
             
 def engine_DiffusionGPU(sim):
     cuda.synchronize()
