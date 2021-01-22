@@ -46,7 +46,7 @@ def get_non_edge_cells_from_nbcs(array, nbc):
         
 
 class Simulation:
-    def __init__(self, framework="numpy", dimensions=None, dx=None, dt=None, initial_time_step=0, 
+    def __init__(self, dimensions, framework="CPU_SERIAL", dx=None, dt=None, initial_time_step=0, 
                  temperature_type="none", initial_T=None, dTdx=None, dTdt=None, temperature_path=None,
                  tdb_path=None, tdb_components=[], tdb_phases=[], save_path=None,
                  autosave=False, save_images=False, autosave_rate=None, boundary_conditions=None):
@@ -63,9 +63,10 @@ class Simulation:
         Data specific to a particular field is stored within the Field class
         """
         self._framework = framework
+        self._requires_initialization = True
         self._uses_gpu = False
-        if(framework == "numba" or framework == "cupy"): 
-            """cupy not yet implemented!"""
+        if(framework == "GPU_SERIAL" or framework == "GPU_PARALLEL"): 
+            """parallel not yet implemented!"""
             self._uses_gpu = True
         self.fields = []
         self.dimensions = dimensions
@@ -95,6 +96,7 @@ class Simulation:
         #self.init_tdb_params(tdb_path, components=tdb_components, phases=tdb_phases)
         
     def init_fields(framework, num_fields):
+        #exclusively used by the subclass, base Simulation class does not initialize fields!
         pass
     
     def init_boundary_conditions(boundary_conditions):
@@ -106,7 +108,7 @@ class Simulation:
     def init_tdb_params(path, components=[], phases=[]):
         pass
 
-    def simulate(self, number_of_timesteps):
+    def simulate(self, number_of_timesteps, reset=False):
         """
         Evolves the simulation for a specified number of timesteps
         If a length of timestep is not specified, uses the timestep length stored within the Simulation instance
@@ -120,7 +122,9 @@ class Simulation:
                 - File: Use linear interpolation to find the thermal field of the new timestep
             * If the timestep counter is a multiple of time_steps_per_checkpoint, save a checkpoint of the simulation
         """
-        self.initialize_simulation()
+        if(self._requires_initialization):
+            self.initialize_simulation()
+            self._requires_initialization = False
         for i in range(number_of_timesteps):
             self.time_step_counter += 1
             self.simulation_loop()
@@ -131,6 +135,8 @@ class Simulation:
                     if(self._uses_gpu):
                         ppf_gpu_utils.retrieve_fields_from_GPU(self)
                     self.save_simulation()
+        if(reset):
+            self._requires_initialization = True
                 
     def initialize_simulation(self):
         if(self._uses_gpu):
