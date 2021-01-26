@@ -4,10 +4,21 @@ from matplotlib.colors import LinearSegmentedColormap
 class Field():
     
     def __init__(self, data=None, simulation=None, name=None, colormap="GnBu"):
-        self.data = data
+        #add boundary cells
+        dim = data.shape
+        self._slice = []
+        for i in range(len(dim)):
+            dim[i] += 2
+            self._slice.append(slice(1, -1)) #build dynamic slice tuple for access to center cells
+        self._slice = tuple(self._slice)
+        fullarray = None
+        fullarray = np.zeros(dim)
+        fullarray[self._slice] += data
+        self.data = fullarray
         self.name = name
         self._simulation = simulation
         self.colormap = colormap
+        
 
     def __str__(self):
         return self.data.__str__()
@@ -55,6 +66,8 @@ class Field():
             result += (np.roll(self.data, -1, i) + np.roll(self.data, 1, i) - 2 * self.data) * inverse_dx_squared
         return result
 
-    def get_nonboundary_cells(self, boundary_conditions_type):
-        # for periodic, this is simply the following
+    def get_cells(self):
+        return self.data[self._slice]
+    
+    def get_all_cells(self):
         return self.data

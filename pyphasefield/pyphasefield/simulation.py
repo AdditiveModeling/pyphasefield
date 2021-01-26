@@ -12,43 +12,10 @@ try:
 except:
     pass
 
-#TODO: neumann boundary conditions breaks for "1d" sims (size 1 dimensions)
-    
-def expand_T_array(T, nbc):
-    """Used by Simulation.set_thermal_file() to add boundary cells if not using periodic boundary conditions."""
-    shape = list(T.shape)
-    offset_x = 0
-    offset_y = 0
-    if(nbc[0]):
-        shape[1] += 2
-        offset_x = 1
-    if(nbc[1]):
-        shape[0] += 2
-        offset_y = 1
-    final = np.zeros(shape)
-    #set center region equal to T
-    final[offset_y:len(final)-offset_y, offset_x:len(final[0])-offset_x] += T
-    #set edges to nbcs, if applicable
-    final[0] = final[offset_y]
-    final[len(final)-1] = final[len(final)-offset_y-1]
-    final[:, 0] = final[:, offset_x]
-    final[:, len(final[0])-1] = final[:, len(final[0])-offset_x-1]
-    return np.squeeze(final)
-
-def get_non_edge_cells_from_nbcs(array, nbc):
-    offset_x = 0
-    offset_y= 0
-    if(nbc[0]):
-        offset_x = 1;
-    if(nbc[1]):
-        offset_y = 1;
-    return array[offset_y:len(array)-offset_y, offset_x:len(array[0])-offset_x]
-        
-
 class Simulation:
     def __init__(self, dimensions, framework="CPU_SERIAL", dx=None, dt=None, initial_time_step=0, 
-                 temperature_type="none", initial_T=None, dTdx=None, dTdt=None, temperature_path=None,
-                 tdb_path=None, tdb_components=[], tdb_phases=[], save_path=None,
+                 temperature_type="NONE", initial_T=None, dTdx=0, dTdy=0, dTdz=0, dTdt=0, temperature_path=None, temperature_units="K",
+                 tdb_path=None, tdb_components=[], tdb_phases=[], save_path=None, user_data={},
                  autosave=False, save_images=False, autosave_rate=None, boundary_conditions=None):
         """
         Class used by pyphasefield to store data related to a given simulation
@@ -62,51 +29,168 @@ class Simulation:
         
         Data specific to a particular field is stored within the Field class
         """
+        #framework (cpu, gpu, parallel) specific variables
         self._framework = framework
-        self._requires_initialization = True
         self._uses_gpu = False
-        if(framework == "GPU_SERIAL" or framework == "GPU_PARALLEL"): 
-            """parallel not yet implemented!"""
-            self._uses_gpu = True
+        
+        #variable for determining if class needs to be re-initialized before running simulation steps
+        self._requires_initialization = True
+        
+        #core variables: fields, length of space/time steps, dimensions of simulation region
         self.fields = []
+        self._fields_gpu_device = None
         self.dimensions = dimensions
         self.dx = dx
         self.dt = dt
         self.time_step_counter = initial_time_step
+        
+        #temperature related variables
         self.temperature = None
         self._temperature_gpu_device = None
         self._temperature_type = temperature_type
         self._temperature_path = temperature_path
+        self._temperature_units = temperature_units
         self._initial_T = initial_T
         self._dTdx = dTdx
+        self._dTdy = dTdy
+        self._dTdz = dTdz
         self._dTdt = dTdt
+        self._t_file_index = None
+        self._t_file_bounds = [0, 0]
+        self._t_file_arrays = [None, None]
+        
+        #tdb related variables
         self._tdb = None
         self._tdb_path = tdb_path
         self._tdb_components = tdb_components
         self._tdb_phases = tdb_phases
+        self._tdb_ufuncs = []
+        
+        #progress saving related variables
         self._save_path = save_path
         self._autosave_flag = autosave
         self._autosave_rate = autosave_rate
         self._autosave_save_images_flag = save_images
-        self._boundary_conditions_type = ["periodic", "periodic"]
         
-        #self.init_fields(framework, num_fields)
-        #self.init_boundary_conditions(boundary_conditions)
-        #self.init_temperature_field(temperature_type)
-        #self.init_tdb_params(tdb_path, components=tdb_components, phases=tdb_phases)
+        #boundary condition related variables
+        self._boundary_conditions_type = None
+        self._boundary_conditions_array = None
+        
+        #arbitrary subclass-specific data container (dictionary)
+        self.user_data = user_data
         
     def init_fields(framework, num_fields):
         #exclusively used by the subclass, base Simulation class does not initialize fields!
         pass
     
     def init_boundary_conditions(boundary_conditions):
-        pass
+        #self._boundary_conditions_type has two different formats, and three different types
+        #formats:
+        #    single parameter: same type of boundary conditions are applied to all dimensions in the simulation
+        #    list: one parameter per dimension, allowing for different boundary conditions on each axis
+        #types:
+        #    PERIODIC: values from one side of the field wrap around to the other side
+        #    DIRCHLET: values on the boundary have a constant value (defaults to initial values of edges!)
+        #    NEUMANN: values on the boundary have a constant derivative across the boundary (defaults to zero!)
+        dim = self.dimensions.copy()
+        for i in range(len(dim)):
+            dim[i] += 2
+        dim.insert(0, len(self.fields)) #requires initialization of fields first
+        self._boundary_conditions_array = np.zeros(dim)
+        self.apply_boundary_conditions() 
+        #note, this applies default boundary conditions to arrays, run this again after initialization to apply changes to bcs
+        
         
     def init_temperature_field(temperature_type):
-        pass
+        if(self._temperature_type == "NONE"):
+            pass
+        elif(self._temperature_type == "ISOTHERMAL"):
+            array = np.zeros(self.dimensions)
+            array += self._initial_T
+            t_field = Field(data=array, simulation=self, colormap="jet", name="Temperature ("+self._temperature_units+")")
+            self.temperature = t_field
+        elif(self._temperature_type == "LINEAR_GRADIENT"):
+            array = np.zeros(self.dimensions)
+            array += self._initial_T
+            x_length = self.dimensions[len(self.dimensions)-1]
+            x_t_array = np.arange(0, x_length*self.dx*self.dTdx, self.dTdx)
+            array += x_t_array
+            if(len(self.dimensions) > 1):
+                y_length = self.dimensions[len(self.dimensions)-2]
+                y_t_array = np.arange(0, y_length*self.dx*self.dTdy, self.dTdy)
+                y_t_array = np.expand_dims(y_t_array, axis=1)
+                array += y_t_array
+            if(len(self.dimensions) > 2):
+                z_length = self.dimensions[len(self.dimensions)-3]
+                z_t_array = np.arange(0, z_length*self.dx*self.dTdz, self.dTdz)
+                z_t_array = np.expand_dims(z_t_array, axis=1)
+                z_t_array = np.expand_dims(z_t_array, axis=2)
+                array += z_t_array
+            array += self.time_step_counter*dTdt
+            t_field = Field(data=array, simulation=self, colormap="jet", name="Temperature ("+self._temperature_units+")")
+            self.temperature = t_field
+        elif(self._temperature_type == "TEMPERATURE_FILE"):
+            self._t_file_index = 1
+            with mio.xdmf.TimeSeriesReader(self._save_path+"/T.xdmf") as reader:
+                dt = self.dt
+                step = self.time_step_counter
+                points, cells = reader.read_points_cells()
+                self._t_file_bounds[0], point_data0, cell_data0 = reader.read_data(0)
+                self._t_file_arrays[0] = point_data0['T']
+                self._t_file_bounds[1], point_data1, cell_data0 = reader.read_data(self._t_file_index)
+                self._t_file_arrays[1] = point_data1['T']
+                while(dt*step > self._t_file_end):
+                    self._t_file_bounds[0] = self._t_file_bounds[1]
+                    self._t_file_arrays[0] = self._t_file_arrays[1]
+                    self._t_file_index += 1
+                    self._t_file_bounds[1], point_data1, cell_data0 = reader.read_data(self.t_file_index)
+                    self._t_file_arrays[1] = point_data1['T']
+                array = self._t_file_arrays[0]*(self._t_file_bounds[1] - dt*step)/(self._t_file_bounds[1]-self._t_file_bounds[0]) + self._t_file_arrays[1]*(dt*step-self._t_file_bounds[0])/(self._t_file_bounds[1]-self._t_file_bounds[0])
+                t_field = Field(data=array, simulation=self, colormap="jet", name="Temperature ("+self._temperature_units+")")
+                self.temperature = t_field
         
-    def init_tdb_params(path, components=[], phases=[]):
-        pass
+    def init_tdb_params():
+        param_search = sim._tdb.search
+        self._tdb_components = sorted(self._tdb_components)
+        self._tdb_phases = sorted(self._tdb_phases)
+        for k in range(len(self._tdb_phases)):
+            phase_id = self._tdb_phases[k]
+            phase = self._tdb.phases[phase_id]
+            g_param_query = (
+                (where('phase_name') == phase.name) & \
+                ((where('parameter_type') == 'G') | \
+                (where('parameter_type') == 'L'))
+            )
+            if(len(self._tdb_components) == 0): #import all elements
+                model = pyc.Model(self._tdb, list(self._tdb.elements), phase_id)
+            else:
+                model = pyc.Model(self._tdb, self._tdb_components, phase_id)
+            sympyexpr = model.redlich_kister_sum(phase, param_search, g_param_query)
+            ime = model.ideal_mixing_energy(sim._tdb)
+
+            sympysyms_list = []
+            T = None
+            for i in list(sim._tdb.elements):
+                for j in sympyexpr_solid.free_symbols:
+                    if j.name == phase_id+"0"+i: 
+                        #this may need additional work for phases with sublattices...
+                        sympysyms_list_solid.append(j)
+                    if j.name == "T":
+                        T = j
+            sympysyms_list = sorted(sympysyms_list, key=lambda t:t.name)
+            sympysyms_list.append(T)
+        
+            for i in self._tdb.symbols:
+                d = self._tdb.symbols[i]
+                g = sp.Symbol(i)
+                sympyexpr = sympyexpr.subs(g, d)
+            
+            if(self._framework == "CPU_SERIAL" or self._framework == "CPU_PARALLEL"):
+                #use numpy for CPUs
+                self._tdb_ufuncs.append(sp.lambdify(tuple(sympysyms_list), sympyexpr+ime, 'numpy'))
+            else: 
+                #use numba for GPUs
+                self._tdb_ufuncs.append(numba.jit(sp.lambdify(tuple(sympysyms_list), sympyexpr+ime, 'math')))
 
     def simulate(self, number_of_timesteps, reset=False):
         """
@@ -128,8 +212,8 @@ class Simulation:
         for i in range(number_of_timesteps):
             self.time_step_counter += 1
             self.simulation_loop()
-            self.apply_boundary_conditions()
             self.update_temperature_field()
+            self.apply_boundary_conditions()
             if(self._autosave_flag):
                 if self.time_step_counter % self._autosave_rate == 0:
                     if(self._uses_gpu):
@@ -139,11 +223,21 @@ class Simulation:
             self._requires_initialization = True
                 
     def initialize_simulation(self):
+        if(framework == "GPU_SERIAL" or framework == "GPU_PARALLEL"): 
+            """parallel not yet implemented!"""
+            self._uses_gpu = True
+        self.init_boundary_conditions()
+        self.init_temperature_field()
+        self.init_tdb_params()
         if(self._uses_gpu):
             self.send_fields_to_GPU()
                 
     def simulation_loop(self):
         pass
+    
+    def add_field(self, array, array_name, colormap="GnBu"):
+        field = Field(data=array, name=array_name, simulation=self, colormap=colormap)
+        self.fields.append(field)
 
     def load_tdb(self, tdb_path, phases=None, components=None):
         """
@@ -478,19 +572,63 @@ class Simulation:
         return
 
     def apply_boundary_conditions(self):
+        neumann_slices_1 = [[(0), (None, 0), (None, None, 0)], [(1), (None, 1), (None, None, 1)]]
+        neumann_slices_2 = [[(-1), (None, -1), (None, None, -1)], [(-2), (None, -2), (None, None, -2)]]
+        periodic_slices_1 = [[(0), (None, 0), (None, None, 0)], [(-2), (None, -2), (None, None, -2)]]
+        periodic_slices_2 = [[(-1), (None, -1), (None, None, -1)], [(1), (None, 1), (None, None, 1)]]
+        dirchlet_slices_1 = [(0), (None, 0), (None, None, 0)]
+        dirchlet_slices_2 = [(-1), (None, -1), (None, None, -1)]
         if(self._uses_gpu):
             ppf_gpu_utils.apply_boundary_conditions(self)
             return
-        if(self._boundary_conditions_type[0] == "neumann"):
-            for i in range(len(self.fields)):
-                length=len(self.fields[i].data[0])
-                self.fields[i].data[:,0] = self.fields[i].data[:,1]
-                self.fields[i].data[:,(length-1)] = self.fields[i].data[:,(length-2)]
-        if(self._boundary_conditions_type[1] == "neumann"):
-            for i in range(len(self.fields)):
-                length=len(self.fields[i].data)
-                self.fields[i].data[0] = self.fields[i].data[1]
-                self.fields[i].data[(length-1)] = self.fields[i].data[(length-2)]
+        if(self._boundary_conditions_type == "PERIODIC"):
+            dims = len(self.fields[0].data.shape)
+            for i in range(dims):
+                if not(self.temperature is None):
+                    self.temperature.data[periodic_slices_1[0][i]] = self.temperature.data[periodic_slices_1[1][i]]
+                for j in range(len(self.fields)):
+                    self.fields[j].data[periodic_slices_1[0][i]] = self.fields[j].data[periodic_slices_1[1][i]]
+                    self.fields[j].data[periodic_slices_2[0][i]] = self.fields[j].data[periodic_slices_2[1][i]]
+        elif(self._boundary_conditions_type == "NEUMANN"):
+            dims = len(self.fields[0].data.shape)
+            _slice = []
+            for i in range(dims):
+                if not(self.temperature is None):
+                    self.temperature.data[neumann_slices_1[0][i]] = self.temperature.data[neumann_slices_1[1][i]]
+                for j in range(len(self.fields)):
+                    self.fields[j].data[neumann_slices_1[0][i]] = self.fields[j].data[neumann_slices_1[1][i]] - self.dx*self._boundary_conditions_array[j][neumann_slices_1[0][i]]
+                    self.fields[j].data[neumann_slices_2[0][i]] = self.fields[j].data[neumann_slices_2[1][i]] - self.dx*self._boundary_conditions_array[j][neumann_slices_2[0][i]]
+        elif(self._boundary_conditions_type == "DIRCHLET"):
+            dims = len(self.fields[0].data.shape)
+            _slice = []
+            for i in range(dims):
+                if not(self.temperature is None):
+                    #use neumann boundary conditions for temperature field if using dirchlet boundary conditions
+                    self.temperature.data[neumann_slices_1[0][i]] = self.temperature.data[neumann_slices_1[1][i]]
+                for j in range(len(self.fields)):
+                    self.fields[j].data[dirchlet_slices_1[i]] = self._boundary_conditions_array[j][dirchlet_slices_1[i]]
+                    self.fields[j].data[dirchlet_slices_2[i]] = self._boundary_conditions_array[j][dirchlet_slices_2[i]]
+        else: #is array
+            for i in range(len(self._boundary_conditions_type)):
+                if(self._boundary_conditions_type[i] == "PERIODIC"):
+                    if not(self.temperature is None):
+                        self.temperature.data[periodic_slices_1[0][i]] = self.temperature.data[periodic_slices_1[1][i]]
+                    for j in range(len(self.fields)):
+                        self.fields[j].data[periodic_slices_1[0][i]] = self.fields[j].data[periodic_slices_1[1][i]]
+                        self.fields[j].data[periodic_slices_2[0][i]] = self.fields[j].data[periodic_slices_2[1][i]]
+                elif(self._boundary_conditions_type[i] == "NEUMANN"):
+                    if not(self.temperature is None):
+                        self.temperature.data[neumann_slices_1[0][i]] = self.temperature.data[neumann_slices_1[1][i]]
+                    for j in range(len(self.fields)):
+                        self.fields[j].data[neumann_slices_1[0][i]] = self.fields[j].data[neumann_slices_1[1][i]] - self.dx*self._boundary_conditions_array[j][neumann_slices_1[0][i]]
+                        self.fields[j].data[neumann_slices_2[0][i]] = self.fields[j].data[neumann_slices_2[1][i]] - self.dx*self._boundary_conditions_array[j][neumann_slices_2[0][i]]
+                elif(self._boundary_conditions_type[i] == "DIRCHLET"):
+                    if not(self.temperature is None):
+                        #use neumann boundary conditions for temperature field if using dirchlet boundary conditions
+                        self.temperature.data[neumann_slices_1[0][i]] = self.temperature.data[neumann_slices_1[1][i]]
+                    for j in range(len(self.fields)):
+                        self.fields[j].data[dirchlet_slices_1[i]] = self._boundary_conditions_array[j][dirchlet_slices_1[i]]
+                        self.fields[j].data[dirchlet_slices_2[i]] = self._boundary_conditions_array[j][dirchlet_slices_2[i]]
         return
 
     def renormalize_quaternions(self):
