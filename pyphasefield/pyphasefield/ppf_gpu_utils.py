@@ -75,21 +75,22 @@ def update_thermal_file_kernel(T, T0, T1, start, end, current):
             
 def send_fields_to_GPU(sim):
     if not (sim.temperature is None):
-        sim.temperature_gpu_device = cuda.to_device(sim.temperature.data)
+        sim._temperature_gpu_device = cuda.to_device(sim.temperature.data)
+        if(sim._temperature_type == "FILE"):
+            sim._t_file_gpu_devices[0] = cuda.to_device(sim._t_file_arrays[0])
+            sim._t_file_gpu_devices[1] = cuda.to_device(sim._t_file_arrays[1])
     fields = []
     for i in range(len(sim.fields)):
         fields.append(sim.fields[i].data)
     fields = np.array(fields)
-    sim.fields_gpu_device = cuda.to_device(fields)
-    if not (sim.temperature is None):
-        if(sim._temperature_type == "file"):
-            sim.T0_device = cuda.to_device(sim.T0)
-            sim.T1_device = cuda.to_device(sim.T1)
+    sim._fields_gpu_device = cuda.to_device(fields)
+    sim._boundary_conditions_gpu_device = cuda.to_device(sim._boundary_conditions_array)
+        
         
 def retrieve_fields_from_GPU(sim):
     if not (sim.temperature is None):
-        sim.temperature.data = sim.temperature_gpu_device.copy_to_host()
-    fields = sim.fields_gpu_device.copy_to_host()
+        sim.temperature.data = sim._temperature_gpu_device.copy_to_host()
+    fields = sim._fields_gpu_device.copy_to_host()
     for i in range(len(sim.fields)):
         sim.fields[i].data = fields[i]
         

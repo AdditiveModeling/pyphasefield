@@ -58,6 +58,7 @@ class Simulation:
         self._t_file_index = None
         self._t_file_bounds = [0, 0]
         self._t_file_arrays = [None, None]
+        self._t_file_gpu_devices = [None, None]
         
         #tdb related variables
         self._tdb = None
@@ -129,7 +130,7 @@ class Simulation:
             array += self.time_step_counter*dTdt
             t_field = Field(data=array, simulation=self, colormap="jet", name="Temperature ("+self._temperature_units+")")
             self.temperature = t_field
-        elif(self._temperature_type == "TEMPERATURE_FILE"):
+        elif(self._temperature_type == "XDMF_FILE"):
             self._t_file_index = 1
             with mio.xdmf.TimeSeriesReader(self._save_path+"/T.xdmf") as reader:
                 dt = self.dt
@@ -149,10 +150,21 @@ class Simulation:
                 t_field = Field(data=array, simulation=self, colormap="jet", name="Temperature ("+self._temperature_units+")")
                 self.temperature = t_field
         
-    def init_tdb_params():
+    def init_tdb_params(self):
+        if(self._tdb_path is None):
+            return
+        #if tdb_path is specified, pycalphad *must* be installed
+        if not ppf_utils.successfully_imported_pycalphad():
+            raise ImportError
+        import pycalphad as pyc
+        self._tdb = pyc.Database(tdb_path)
+        if self._tdb_phases is None:
+            self._tdb_phases = list(self._tdb.phases)
+        if self._tdb_components is None:
+            self._tdb_components = list(self._tdb.elements)
+        self._tdb_phases.sort()
+        self._tdb_components.sort()
         param_search = sim._tdb.search
-        self._tdb_components = sorted(self._tdb_components)
-        self._tdb_phases = sorted(self._tdb_phases)
         for k in range(len(self._tdb_phases)):
             phase_id = self._tdb_phases[k]
             phase = self._tdb.phases[phase_id]
@@ -161,10 +173,7 @@ class Simulation:
                 ((where('parameter_type') == 'G') | \
                 (where('parameter_type') == 'L'))
             )
-            if(len(self._tdb_components) == 0): #import all elements
-                model = pyc.Model(self._tdb, list(self._tdb.elements), phase_id)
-            else:
-                model = pyc.Model(self._tdb, self._tdb_components, phase_id)
+            model = pyc.Model(self._tdb, self._tdb_components, phase_id)
             sympyexpr = model.redlich_kister_sum(phase, param_search, g_param_query)
             ime = model.ideal_mixing_energy(sim._tdb)
 
@@ -280,115 +289,29 @@ class Simulation:
         self._time_step_in_seconds = time_step
         return
 
-    def set_temperature_isothermal(self, temperature):
-        """
-        Sets the simulation to use an isothermal temperature profile
-        The temperature variable is a Field instance
-        Data stored within the Field instance is a numpy ndarray, with the same value 
-            in each cell (defined by the parameter "temperature" to this method)
-        (Could be a single value, but this way it won't break Engines that compute thermal gradients)
-        """
-        self._temperature_type = "isothermal"
-        self._initial_temperature_left_side = temperature
-        array = np.zeros(self._dimensions_of_simulation_region)
-        array += temperature
-        t_field = Field(data=array, name="Temperature (K)")
-        self.temperature = t_field
-        return
-
-    def set_temperature_gradient(self, initial_T_left_side, dTdx, dTdt):
-        """
-        Sets the simulation to use a linear gradient temperature profile (frozen gradient approximation)
-        The temperature variable is a Field instance, data stored within the Field instance is a numpy ndarray
-        Thermal profile is defined by 3 parameters:
-            * initial_T_left_side: The temperature of the left side of the 
-                simulation region (in slicing notation, this is self.temperature.data[:, 0])
-            * dTdx: Spacial derivative of temperature, which defines the gradient. The initial temperature 
-                at a point x meters from the left side equals (initial_T_left_side + dTdx*x)
-            * dTdt: Temporal derivative of temperature. Temperature at time t seconds from the start of the 
-                simulation and a distance x meters from the left side equals 
-                (initial_T_left_side + dTdx*x + dTdt*t)
-        """
-        self._temperature_type = "gradient"
-        self._initial_temperature_left_side = initial_T_left_side
-        self._temperature_gradient_Kelvin_per_meter = dTdx
-        self._cooling_rate_Kelvin_per_second = dTdt
-        array = np.zeros(self._dimensions_of_simulation_region)
-        array += initial_T_left_side
-        array += np.linspace(0, dTdx * self._dimensions_of_simulation_region[1] * self._cell_spacing_in_meters, self._dimensions_of_simulation_region[1])
-        array += self.get_time_step_counter() * self.get_time_step_length() * dTdt
-        t_field = Field(data=array, name="Temperature (K)")
-        self.temperature = t_field
-        return
-
-    def set_temperature_file(self, temperature_file_path):
-        """
-        Sets the simulation to import the temperature from an xdmf file containing the temperature at given timesteps
-        The temperature variable is a Field instance, data stored within the Field instance is a numpy ndarray
-        Loads the file at the path "[temperature_file_path]/T.xdmf"
-        Uses linear interpolation to find the temperature at times between stored timesteps
-        E.g.: If we have T0 stored at t=1 second, T1 stored at t=2 seconds, the temperature
-            profile at t=1.25 seconds = 0.75*T0 + 0.25*T1
-        """
-        self._temperature_type = "file"
-        self.t_index = 1
-        nbc = []
-        for i in range(len(self._dimensions_of_simulation_region)):
-            if(self._boundary_conditions_type[i] == "periodic"):
-                nbc.append(False)
-            else:
-                nbc.append(True)
-        with mio.xdmf.TimeSeriesReader(self._save_path+"/T.xdmf") as reader:
-            dt = self.get_time_step_length()
-            step = self.get_time_step_counter()
-            points, cells = reader.read_points_cells()
-            self.t_start, point_data0, cell_data0 = reader.read_data(0)
-            self.T0 = expand_T_array(point_data0['T'], nbc)
-            self.t_end, point_data1, cell_data0 = reader.read_data(self.t_index)
-            self.T1 = expand_T_array(point_data1['T'], nbc)
-            print(self.T0.shape, self.T1.shape)
-            while(dt*step > self.t_end):
-                self.t_start= self.t_end
-                self.T0 = self.T1
-                self.t_index += 1
-                self.t_end, point_data1, cell_data0 = reader.read_data(self.t_index)
-                self.T1 = expand_T_array(point_data1['T'], nbc)
-                print(self.T0.shape, self.T1.shape)
-            array = self.T0*(self.t_end - dt*step)/(self.t_end-self.t_start) + self.T1*(dt*step-self.t_start)/(self.t_end-self.t_start)
-            t_field = Field(data=array, name="Temperature (K)")
-            self.temperature = t_field
-        return
-
     def update_temperature_field(self):
         """Updates the thermal field, method assumes only one timestep has passed"""
         if(self._uses_gpu):
             ppf_gpu_utils.update_temperature_field(self)
             return
-        elif(self._temperature_type == "isothermal"):
+        elif(self._temperature_type == "ISOTHERMAL"):
             return
-        elif(self._temperature_type == "gradient"):
-            self.temperature.data += self._cooling_rate_Kelvin_per_second*self._time_step_in_seconds
+        elif(self._temperature_type == "LINEAR_GRADIENT"):
+            self.temperature.data += self._dTdt*self.dt
             return
-        elif(self._temperature_type == "file"):
+        elif(self._temperature_type == "XDMF_FILE"):
             dt = self.get_time_step_length()
             step = self.get_time_step_counter()
             while(dt*step > self.t_end):
-                nbc = []
-                for i in range(len(self._dimensions_of_simulation_region)):
-                    if(self._boundary_conditions_type[i] == "periodic"):
-                        nbc.append(False)
-                    else:
-                        nbc.append(True)
                 with mio.xdmf.TimeSeriesReader(self._save_path+"/T.xdmf") as reader:
                     reader.cells=[]
                     self.t_start= self.t_end
                     self.T0 = self.T1
                     self.t_index += 1
                     self.t_end, point_data1, cell_data0 = reader.read_data(self.t_index)
-                    self.T1 = expand_T_array(point_data1['T'], nbc)
-            self.temperature.data = self.T0*(self.t_end - dt*step)/(self.t_end-self.t_start) + self.T1*(dt*step-self.t_start)/(self.t_end-self.t_start)
+            self.temperature.get_cells() = self.T0*(self.t_end - dt*step)/(self.t_end-self.t_start) + self.T1*(dt*step-self.t_start)/(self.t_end-self.t_start)
             return
-        if self._temperature_type not in ["isothermal", "gradient", "file", "none"]:
+        if self._temperature_type not in ["ISOTHERMAL", "LINEAR_GRADIENT", "XDMF_FILE", "NONE"]:
             raise ValueError("Unknown temperature profile.")
 
     def load_simulation(self, file_path=None, step=-1):
