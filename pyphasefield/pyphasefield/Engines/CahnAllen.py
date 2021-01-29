@@ -38,13 +38,13 @@ def implicit_matrix_2d(ysize, xsize, centervalue, neighborvalue):
     return matrix2d
 
 def engine_CahnAllenExplicit(sim):
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     phi = sim.fields[0]
     deltaphi = dt * sim.M * (sim.epsilon**2 * phi.laplacian() - 16*sim.W*(4*phi.data**3 - 6*phi.data**2 + 2*phi.data))
     sim.fields[0].data += deltaphi
     
 def engine_CahnAllenImplicit1D(sim):
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     phi = sim.fields[0]
     dim = sim.get_dimensions()
@@ -55,7 +55,7 @@ def engine_CahnAllenImplicit1D(sim):
     sim.fields[0].data = phi_final
     
 def engine_CahnAllenImplicit1D_GMRES(sim):
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     phi = sim.fields[0]
     dim = sim.get_dimensions()
@@ -66,7 +66,7 @@ def engine_CahnAllenImplicit1D_GMRES(sim):
     sim.fields[0].data = phi_final
     
 def engine_CahnAllenImplicit2D_GMRES(sim):
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     phi = sim.fields[0].data
     alpha = sim.M*dt*(sim.epsilon**2)/(dx**2)
@@ -77,7 +77,7 @@ def engine_CahnAllenImplicit2D_GMRES(sim):
     sim.fields[0].data = phi_final.reshape(dim)
     
 def engine_CahnAllenImplicit2D_ADI(sim):
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     phi = sim.fields[0].data
     alpha = sim.M*dt*(sim.epsilon**2)/(dx**2)
@@ -93,7 +93,7 @@ def engine_CahnAllenImplicit2D_ADI(sim):
     sim.fields[0].data = phi
     
 def engine_CahnAllenCrankNicolson2D_ADI(sim):
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     phi = sim.fields[0].data
     alpha = 0.5*sim.M*dt*(sim.epsilon**2)/(dx**2)
@@ -111,7 +111,7 @@ def engine_CahnAllenCrankNicolson2D_ADI(sim):
     sim.fields[0].data = phi
     
 def engine_CahnAllenImplicit2D_ADI_GMRES(sim):
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     phi = sim.fields[0].data
     alpha = sim.M*dt*(sim.epsilon**2)/(dx**2)
@@ -127,7 +127,7 @@ def engine_CahnAllenImplicit2D_ADI_GMRES(sim):
     sim.fields[0].data = phi
     
 def engine_CahnAllenImplicit3D_ADI(sim):
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     phi = sim.fields[0].data
     alpha = sim.M*dt*(sim.epsilon**2)/(dx**2)
@@ -151,7 +151,7 @@ def engine_CahnAllenImplicit3D_ADI(sim):
     sim.fields[0].data = phi
     
 def engine_CahnAllenIMEX1D(sim):
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     phi = sim.fields[0]
     dim = sim.get_dimensions()

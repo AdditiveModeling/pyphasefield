@@ -64,7 +64,7 @@ def engine_ExplicitDiffusion(sim):
     Computes the discretization of the diffusion equation using a purely explicit scheme
     Valid for 1, 2, or 3D simulations
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     c = sim.fields[0]
     dc = dt * (sim.D * c.laplacian())
     sim.fields[0].data += dc
@@ -74,7 +74,7 @@ def engine_ImplicitDiffusion1D(sim):
     Computes the discretization of the diffusion equation using a purely implicit scheme in 1D
     Uses the function np.linalg.solve(A, b) to solve the equation Ax=b for the matrix A and vectors x and b
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0]
     alpha = sim.D*dt/dx**2
@@ -89,7 +89,7 @@ def engine_ImplicitDiffusion1D_GMRES(sim):
     Uses the function scipy.sparse.linalg.gmres(A, b) to **quickly but approximately** solve 
         the equation Ax=b for the matrix A and vectors x and b
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0]
     alpha = sim.D*dt/dx**2
@@ -103,7 +103,7 @@ def engine_ImplicitDiffusion2D(sim):
     Computes the discretization of the diffusion equation using a purely implicit scheme in 2D
     Uses the function np.linalg.solve(A, b) to solve the equation Ax=b for the matrix A and vectors x and b
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0]
     alpha = sim.D*dt/dx**2
@@ -118,7 +118,7 @@ def engine_ImplicitDiffusion2D_GMRES(sim):
     Uses the function scipy.sparse.linalg.gmres(A, b) to **quickly but approximately** solve 
         the equation Ax=b for the matrix A and vectors x and b
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0]
     alpha = sim.D*dt/dx**2
@@ -132,7 +132,7 @@ def engine_ImplicitDiffusion3D(sim):
     Computes the discretization of the diffusion equation using a purely implicit scheme in 3D
     Uses the function np.linalg.solve(A, b) to solve the equation Ax=b for the matrix A and vectors x and b
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0]
     alpha = sim.D*dt/dx**2
@@ -147,7 +147,7 @@ def engine_ImplicitDiffusion3D_GMRES(sim):
     Uses the function scipy.sparse.linalg.gmres(A, b) to **quickly but approximately** solve 
         the equation Ax=b for the matrix A and vectors x and b
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0]
     alpha = sim.D*dt/dx**2
@@ -161,7 +161,7 @@ def engine_CrankNicolsonDiffusion1D(sim):
     Computes the discretization of the diffusion equation using the Crank-Nicolson method in 1D
     Uses the function np.linalg.solve(A, b) to solve the equation Ax=b for the matrix A and vectors x and b
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0]
     alpha = 0.5*sim.D*dt/dx**2
@@ -177,7 +177,7 @@ def engine_CrankNicolsonDiffusion1D_GMRES(sim):
     Uses the function scipy.sparse.linalg.gmres(A, b) to **quickly but approximately** solve 
         the equation Ax=b for the matrix A and vectors x and b
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0]
     alpha = 0.5*sim.D*dt/dx**2
@@ -192,7 +192,7 @@ def engine_CrankNicolsonDiffusion2D(sim):
     Computes the discretization of the diffusion equation using the Crank-Nicolson method in 2D
     Uses the function np.linalg.solve(A, b) to solve the equation Ax=b for the matrix A and vectors x and b
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0]
     alpha = 0.5*sim.D*dt/dx**2
@@ -208,7 +208,7 @@ def engine_CrankNicolsonDiffusion2D_GMRES(sim):
     Uses the function scipy.sparse.linalg.gmres(A, b) to **quickly but approximately** solve 
         the equation Ax=b for the matrix A and vectors x and b
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0]
     alpha = 0.5*sim.D*dt/dx**2
@@ -223,7 +223,7 @@ def engine_CrankNicolsonDiffusion3D(sim):
     Computes the discretization of the diffusion equation using the Crank-Nicolson method in 3D
     Uses the function np.linalg.solve(A, b) to solve the equation Ax=b for the matrix A and vectors x and b
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0]
     alpha = 0.5*sim.D*dt/dx**2
@@ -239,7 +239,7 @@ def engine_CrankNicolsonDiffusion3D_GMRES(sim):
     Uses the function scipy.sparse.linalg.gmres(A, b) to **quickly but approximately** solve 
         the equation Ax=b for the matrix A and vectors x and b
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0]
     alpha = 0.5*sim.D*dt/dx**2
@@ -254,7 +254,7 @@ def engine_ImplicitDiffusion2D_ADI(sim):
     Computes the discretization of the diffusion equation using the Alternating Direction Implicit method for 2D
     Uses the function np.linalg.inv(A) to compute A^-1 directly, since it is reused several times
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0].data
     alpha = sim.D*dt/dx**2
@@ -275,7 +275,7 @@ def engine_ImplicitDiffusion2D_ADI_GMRES(sim):
     Uses the function scipy.sparse.linalg.gmres(A, b) to **quickly but approximately** solve 
         the equation Ax=b for the matrix A and vectors x and b
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0].data
     alpha = sim.D*dt/dx**2
@@ -293,7 +293,7 @@ def engine_ImplicitDiffusion3D_ADI(sim):
     Computes the discretization of the diffusion equation using the Alternating Direction Implicit method for 2D
     Uses the function np.linalg.inv(A) to compute A^-1 directly, since it is reused several times
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0].data
     alpha = sim.D*dt/dx**2
@@ -321,7 +321,7 @@ def engine_ImplicitDiffusion3D_ADI_GMRES(sim):
     Uses the function scipy.sparse.linalg.gmres(A, b) to **quickly but approximately** solve 
         the equation Ax=b for the matrix A and vectors x and b
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0].data
     alpha = sim.D*dt/dx**2
@@ -347,7 +347,7 @@ def engine_CrankNicolsonDiffusion2D_ADI(sim):
     Uses the Peaceman-Rachford discretization (explicit x + implicit y, then explicit y + implicit x)
     Uses the function np.linalg.inv(A) to compute A^-1 directly, since it is reused several times
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0].data
     alpha = 0.5*sim.D*dt/dx**2
@@ -372,7 +372,7 @@ def engine_CrankNicolsonDiffusion2D_ADI_GMRES(sim):
     Uses the function scipy.sparse.linalg.gmres(A, b) to **quickly but approximately** solve 
         the equation Ax=b for the matrix A and vectors x and b
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0].data
     alpha = 0.5*sim.D*dt/dx**2
@@ -395,7 +395,7 @@ def engine_CrankNicolsonDiffusion3D_ADI(sim):
         then explicit z + implicit x)
     Uses the function np.linalg.inv(A) to compute A^-1 directly, since it is reused several times
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0].data
     alpha = 0.5*sim.D*dt/dx**2
@@ -429,7 +429,7 @@ def engine_CrankNicolsonDiffusion3D_ADI_GMRES(sim):
     Uses the function scipy.sparse.linalg.gmres(A, b) to **quickly but approximately** solve 
         the equation Ax=b for the matrix A and vectors x and b
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0].data
     alpha = 0.5*sim.D*dt/dx**2

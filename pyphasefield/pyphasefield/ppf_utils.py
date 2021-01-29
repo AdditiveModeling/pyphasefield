@@ -41,27 +41,6 @@ def successfully_imported_numba():
         return False
     return True
 
-def expand_T_array(T, nbc):
-    """Used by Simulation.set_thermal_file() to add boundary cells if not using periodic boundary conditions."""
-    shape = list(T.shape)
-    offset_x = 0
-    offset_y = 0
-    if(nbc[0]):
-        shape[1] += 2
-        offset_x = 1
-    if(nbc[1]):
-        shape[0] += 2
-        offset_y = 1
-    final = np.zeros(shape)
-    #set center region equal to T
-    final[offset_y:len(final)-offset_y, offset_x:len(final[0])-offset_x] += T
-    #set edges to nbcs, if applicable
-    final[0] = final[offset_y]
-    final[len(final)-1] = final[len(final)-offset_y-1]
-    final[:, 0] = final[:, offset_x]
-    final[:, len(final[0])-1] = final[:, len(final[0])-offset_x-1]
-    return np.squeeze(final)
-
 def CSVtoXDMF(csv_path, T_cutoffs=False, starting_T=None, ending_T=None, reflect_X = False):
     try:
         f = open(csv_path)

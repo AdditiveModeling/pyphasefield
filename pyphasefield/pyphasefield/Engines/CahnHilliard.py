@@ -42,7 +42,7 @@ def implicit_matrix_2d(ysize, xsize, centervalue, neighborvalue, farneighborvalu
     return matrix2d
 
 def engine_CahnHilliardExplicit(sim):
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     phi = sim.fields[0]
     dfdphi = -sim.epsilon**2 * phi.laplacian() + (4*phi.data**3 - 6*phi.data**2 + 2*phi.data)
@@ -53,7 +53,7 @@ def engine_CahnHilliardExplicit(sim):
     sim.fields[0].data += sim.M*deltaphi
     
 def engine_CahnHilliardImplicit1D(sim):
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     idx2 = 1/dx**2
     e2 = sim.epsilon**2
@@ -66,7 +66,7 @@ def engine_CahnHilliardImplicit1D(sim):
     sim.fields[0].data = c_final
     
 def engine_CahnHilliardImplicit1D_GMRES(sim):
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     idx2 = 1/dx**2
     e2 = sim.epsilon**2
@@ -79,7 +79,7 @@ def engine_CahnHilliardImplicit1D_GMRES(sim):
     sim.fields[0].data = c_final
     
 def engine_CahnHilliardCrankNicolson1D(sim):
-    dt = sim._time_step_in_seconds/2
+    dt = sim.dt/2
     dx = sim.get_cell_spacing()
     phi = sim.fields[0]
     dfdphi = -sim.epsilon**2 * phi.laplacian() + (4*phi.data**3 - 6*phi.data**2 + 2*phi.data)
@@ -100,7 +100,7 @@ def engine_CahnHilliardCrankNicolson1D(sim):
     sim.fields[0].data = c_final
     
 def engine_CahnHilliardCrankNicolson1D_GMRES(sim):
-    dt = sim._time_step_in_seconds/2
+    dt = sim.dt/2
     dx = sim.get_cell_spacing()
     phi = sim.fields[0]
     dfdphi = -sim.epsilon**2 * phi.laplacian() + (4*phi.data**3 - 6*phi.data**2 + 2*phi.data)
@@ -121,7 +121,7 @@ def engine_CahnHilliardCrankNicolson1D_GMRES(sim):
     sim.fields[0].data = c_final
     
 def engine_CahnHilliardImplicit2D_GMRES(sim):
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     phi = sim.fields[0].data
     alpha = sim.M*dt*(sim.epsilon**2)/(dx**2)
@@ -132,7 +132,7 @@ def engine_CahnHilliardImplicit2D_GMRES(sim):
     sim.fields[0].data = phi_final.reshape(dim)
     
 def engine_CahnHilliardImplicit2D_ADI(sim):
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     phi = sim.fields[0].data
     alpha = sim.M*dt*(sim.epsilon**2)/(dx**2)
@@ -148,7 +148,7 @@ def engine_CahnHilliardImplicit2D_ADI(sim):
     sim.fields[0].data = phi
     
 def engine_CahnHilliardCrankNicolson2D_ADI(sim):
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     phi = sim.fields[0].data
     alpha = 0.5*sim.M*dt*(sim.epsilon**2)/(dx**2)
@@ -166,7 +166,7 @@ def engine_CahnHilliardCrankNicolson2D_ADI(sim):
     sim.fields[0].data = phi
     
 def engine_CahnHilliardImplicit2D_ADI_GMRES(sim):
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     phi = sim.fields[0].data
     alpha = sim.M*dt*(sim.epsilon**2)/(dx**2)
@@ -182,7 +182,7 @@ def engine_CahnHilliardImplicit2D_ADI_GMRES(sim):
     sim.fields[0].data = phi
     
 def engine_CahnHilliardImplicit3D_ADI(sim):
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     phi = sim.fields[0].data
     alpha = sim.M*dt*(sim.epsilon**2)/(dx**2)
@@ -206,7 +206,7 @@ def engine_CahnHilliardImplicit3D_ADI(sim):
     sim.fields[0].data = phi
     
 def engine_CahnHilliardIMEX1D(sim):
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     phi = sim.fields[0]
     dim = sim.get_dimensions()

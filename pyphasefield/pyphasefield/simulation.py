@@ -294,7 +294,7 @@ class Simulation:
 
     def set_time_step_length(self, time_step):
         """Sets the length of a single timestep for a simulation instance"""
-        self._time_step_in_seconds = time_step
+        self.dt = time_step
         return
 
     def update_temperature_field(self):
@@ -384,9 +384,9 @@ class Simulation:
             self._time_step_counter = int(step)
         if(self._uses_gpu):
             self.send_fields_to_GPU()
-        if(self._temperature_type == "gradient"):
-            self.temperature.data += self._time_step_counter*self._cooling_rate_Kelvin_per_second*self._time_step_in_seconds
-        if(self._temperature_type == "file"):
+        if(self._temperature_type == "LINEAR_GRADIENT"):
+            self.temperature.data += self._time_step_counter*self._dTdt*self.dt
+        if(self._temperature_type == "XDMF_FILE"):
             self.update_temperature_field()
         return 0
     
@@ -469,20 +469,11 @@ class Simulation:
         return self._dimensions_of_simulation_region
 
     def set_cell_spacing(self, cell_spacing):
-        self._cell_spacing_in_meters = cell_spacing
+        self.dx = cell_spacing
         return
 
     def get_cell_spacing(self):
-        return self._cell_spacing_in_meters
-
-    def add_field(self, field):
-        # warn if field dimensions dont match simulation dimensions
-        self.fields.append(field)
-        return
-
-    def set_engine(self, engine_function):
-        self._engine = engine_function
-        return
+        return self.dx
 
     def set_checkpoint_rate(self, time_steps_per_checkpoint):
         self._time_steps_per_checkpoint = time_steps_per_checkpoint
@@ -500,7 +491,7 @@ class Simulation:
         self._boundary_conditions_type = boundary_conditions_type
 
     def increment_time_step_counter(self):
-        self._time_step_counter += 1
+        self.time_step_counter += 1
         return
 
     def apply_boundary_conditions(self):
@@ -562,12 +553,6 @@ class Simulation:
                         self.fields[j].data[dirchlet_slices_1[i]] = self._boundary_conditions_array[j][dirchlet_slices_1[i]]
                         self.fields[j].data[dirchlet_slices_2[i]] = self._boundary_conditions_array[j][dirchlet_slices_2[i]]
         return
-
-    def renormalize_quaternions(self):
-        return
-
-    def cutoff_order_values(self):
-        return
     
     def send_fields_to_GPU(self):
         if(ppf_utils.successfully_imported_numba()):
@@ -617,7 +602,7 @@ class Simulation:
     def generate_python_script(self):
         return
     
-    #import statements, specific to built-in Engines
+    #import statements, specific to built-in Engines *TO BE REMOVED*
 
     def init_sim_Diffusion(self, dim=[200], solver="explicit", gmres=False, adi=False):
         Engines.init_Diffusion(self, dim, solver=solver, gmres=gmres, adi=adi)
