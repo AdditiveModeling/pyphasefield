@@ -32,6 +32,12 @@ class Simulation:
         #framework (cpu, gpu, parallel) specific variables
         self._framework = framework
         self._uses_gpu = False
+        self._gpu_blocks_per_grid_1D = (256)
+        self._gpu_blocks_per_grid_2D = (16, 16)
+        self._gpu_blocks_per_grid_3D = (8, 8, 8)
+        self._gpu_threads_per_block_1D = (256)
+        self._gpu_threads_per_block_2D = (16, 16)
+        self._gpu_threads_per_block_3D = (8, 8, 8)
         
         #variable for determining if class needs to be re-initialized before running simulation steps
         self._requires_initialization = True
@@ -76,6 +82,7 @@ class Simulation:
         #boundary condition related variables
         self._boundary_conditions_type = None
         self._boundary_conditions_array = None
+        self._boundary_conditions_gpu_device = None
         
         #arbitrary subclass-specific data container (dictionary)
         self.user_data = user_data
@@ -93,6 +100,7 @@ class Simulation:
         #    PERIODIC: values from one side of the field wrap around to the other side
         #    DIRCHLET: values on the boundary have a constant value (defaults to initial values of edges!)
         #    NEUMANN: values on the boundary have a constant derivative across the boundary (defaults to zero!)
+        
         dim = self.dimensions.copy()
         for i in range(len(dim)):
             dim[i] += 2
@@ -302,14 +310,15 @@ class Simulation:
         elif(self._temperature_type == "XDMF_FILE"):
             dt = self.get_time_step_length()
             step = self.get_time_step_counter()
-            while(dt*step > self.t_end):
-                with mio.xdmf.TimeSeriesReader(self._save_path+"/T.xdmf") as reader:
+            while(dt*step > self._t_file_bounds[1]):
+                with mio.xdmf.TimeSeriesReader(self._temperature_path) as reader:
                     reader.cells=[]
-                    self.t_start= self.t_end
-                    self.T0 = self.T1
-                    self.t_index += 1
-                    self.t_end, point_data1, cell_data0 = reader.read_data(self.t_index)
-            self.temperature.get_cells() = self.T0*(self.t_end - dt*step)/(self.t_end-self.t_start) + self.T1*(dt*step-self.t_start)/(self.t_end-self.t_start)
+                    self._t_file_bounds[0] = self._t_file_bounds[1]
+                    self._t_file_arrays[0] = self._t_file_arrays[1]
+                    self._t_file_index += 1
+                    self._t_file_bounds[1], point_data1, cell_data0 = reader.read_data(self._t_file_index)
+                    self._t_file_arrays[1] = point_data1['T']
+            self.temperature.get_cells() = self._t_file_arrays[0]*(self._t_file_bounds[1] - dt*step)/(self._t_file_bounds[1]-self._t_file_bounds[0]) + self._t_file_arrays[1]*(dt*step-self._t_file_bounds[0])/(self._t_file_bounds[1]-self._t_file_bounds[0])
             return
         if self._temperature_type not in ["ISOTHERMAL", "LINEAR_GRADIENT", "XDMF_FILE", "NONE"]:
             raise ValueError("Unknown temperature profile.")
@@ -520,7 +529,7 @@ class Simulation:
                     self.temperature.data[neumann_slices_1[0][i]] = self.temperature.data[neumann_slices_1[1][i]]
                 for j in range(len(self.fields)):
                     self.fields[j].data[neumann_slices_1[0][i]] = self.fields[j].data[neumann_slices_1[1][i]] - self.dx*self._boundary_conditions_array[j][neumann_slices_1[0][i]]
-                    self.fields[j].data[neumann_slices_2[0][i]] = self.fields[j].data[neumann_slices_2[1][i]] - self.dx*self._boundary_conditions_array[j][neumann_slices_2[0][i]]
+                    self.fields[j].data[neumann_slices_2[0][i]] = self.fields[j].data[neumann_slices_2[1][i]] + self.dx*self._boundary_conditions_array[j][neumann_slices_2[0][i]]
         elif(self._boundary_conditions_type == "DIRCHLET"):
             dims = len(self.fields[0].data.shape)
             _slice = []
@@ -544,7 +553,7 @@ class Simulation:
                         self.temperature.data[neumann_slices_1[0][i]] = self.temperature.data[neumann_slices_1[1][i]]
                     for j in range(len(self.fields)):
                         self.fields[j].data[neumann_slices_1[0][i]] = self.fields[j].data[neumann_slices_1[1][i]] - self.dx*self._boundary_conditions_array[j][neumann_slices_1[0][i]]
-                        self.fields[j].data[neumann_slices_2[0][i]] = self.fields[j].data[neumann_slices_2[1][i]] - self.dx*self._boundary_conditions_array[j][neumann_slices_2[0][i]]
+                        self.fields[j].data[neumann_slices_2[0][i]] = self.fields[j].data[neumann_slices_2[1][i]] + self.dx*self._boundary_conditions_array[j][neumann_slices_2[0][i]]
                 elif(self._boundary_conditions_type[i] == "DIRCHLET"):
                     if not(self.temperature is None):
                         #use neumann boundary conditions for temperature field if using dirchlet boundary conditions
