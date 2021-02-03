@@ -5,7 +5,7 @@ class Field():
     
     def __init__(self, data=None, simulation=None, name=None, colormap="GnBu"):
         #add boundary cells
-        dim = data.shape
+        dim = list(data.shape)
         self._slice = []
         for i in range(len(dim)):
             dim[i] += 2

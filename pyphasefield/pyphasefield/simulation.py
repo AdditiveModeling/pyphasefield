@@ -13,8 +13,8 @@ except:
     pass
 
 class Simulation:
-    def __init__(self, dimensions, framework="CPU_SERIAL", dx=None, dt=None, initial_time_step=0, 
-                 temperature_type="NONE", initial_T=None, dTdx=0, dTdy=0, dTdz=0, dTdt=0, temperature_path=None, temperature_units="K",
+    def __init__(self, dimensions, framework=None, dx=None, dt=None, initial_time_step=0, 
+                 temperature_type=None, initial_T=None, dTdx=0, dTdy=0, dTdz=0, dTdt=0, temperature_path=None, temperature_units="K",
                  tdb_path=None, tdb_components=[], tdb_phases=[], save_path=None, user_data={},
                  autosave=False, save_images=False, autosave_rate=None, boundary_conditions=None):
         """
@@ -80,18 +80,21 @@ class Simulation:
         self._autosave_save_images_flag = save_images
         
         #boundary condition related variables
-        self._boundary_conditions_type = None
+        self._boundary_conditions_type = boundary_conditions
         self._boundary_conditions_array = None
         self._boundary_conditions_gpu_device = None
+        
+        #debug mode flag, for verbose printing to track down errors
+        self._debug_mode_flag = False
         
         #arbitrary subclass-specific data container (dictionary)
         self.user_data = user_data
         
-    def init_fields(framework, num_fields):
+    def init_fields(self):
         #exclusively used by the subclass, base Simulation class does not initialize fields!
         pass
     
-    def init_boundary_conditions(boundary_conditions):
+    def init_boundary_conditions(self):
         #self._boundary_conditions_type has two different formats, and three different types
         #formats:
         #    single parameter: same type of boundary conditions are applied to all dimensions in the simulation
@@ -110,8 +113,8 @@ class Simulation:
         #note, this applies default boundary conditions to arrays, run this again after initialization to apply changes to bcs
         
         
-    def init_temperature_field(temperature_type):
-        if(self._temperature_type == "NONE"):
+    def init_temperature_field(self):
+        if(self._temperature_type is None):
             pass
         elif(self._temperature_type == "ISOTHERMAL"):
             array = np.zeros(self.dimensions)
@@ -139,8 +142,10 @@ class Simulation:
             t_field = Field(data=array, simulation=self, colormap="jet", name="Temperature ("+self._temperature_units+")")
             self.temperature = t_field
         elif(self._temperature_type == "XDMF_FILE"):
+            if(self._temperature_path is None):
+                self._temperature_path = "T.xdmf"
             self._t_file_index = 1
-            with mio.xdmf.TimeSeriesReader(self._save_path+"/T.xdmf") as reader:
+            with mio.xdmf.TimeSeriesReader(self._temperature_type) as reader:
                 dt = self.dt
                 step = self.time_step_counter
                 points, cells = reader.read_points_cells()
@@ -240,7 +245,7 @@ class Simulation:
             self._requires_initialization = True
                 
     def initialize_simulation(self):
-        if(framework == "GPU_SERIAL" or framework == "GPU_PARALLEL"): 
+        if(self._framework == "GPU_SERIAL" or self._framework == "GPU_PARALLEL"): 
             """parallel not yet implemented!"""
             self._uses_gpu = True
         self.init_boundary_conditions()
@@ -255,52 +260,18 @@ class Simulation:
     def add_field(self, array, array_name, colormap="GnBu"):
         field = Field(data=array, name=array_name, simulation=self, colormap=colormap)
         self.fields.append(field)
-
-    def load_tdb(self, tdb_path, phases=None, components=None):
-        """
-        Loads the tdb file using pycalphad. (Needless to say, this requires pycalphad!)
-        The format for phases and components attributes of Simulation are a list of strings 
-            that correspond to the terms within the tdb file
-        Examples:
-            * phases=["FCC_A1", "LIQUID"]
-            * components=["CU", "NI"]
-        Unless specified, method will load all phases and components contained within the tdb file.
-        phases and components lists are always in alphabetical order, and will be automatically 
-            sorted if not already done by the user
-        """
-        if not ppf_utils.successfully_imported_pycalphad():
-            return
-        import pycalphad as pyc
-        self._tdb_path = tdb_path
-        self._tdb = pyc.Database(tdb_path)
-        if phases is None:
-            self._phases = list(self._tdb.phases)
-        else:
-            self._phases = phases
-        if components is None:
-            self._components = list(self._tdb.elements)
-        else:
-            self._components = components
-        self._phases.sort()
-        self._components.sort()
-
-    def get_time_step_length(self):
-        """Returns the length of a single timestep"""
-        return self.dt
-
-    def get_time_step_counter(self):
-        """Returns the number of timesteps that have passed for a given simulation"""
-        return self.time_step_counter
-
-    def set_time_step_length(self, time_step):
-        """Sets the length of a single timestep for a simulation instance"""
-        self.dt = time_step
-        return
+        
+    def default_value(self, var, value):
+        original = getattr(self, var, None)
+        if(original is None):
+            setattr(self, var, value)
 
     def update_temperature_field(self):
         """Updates the thermal field, method assumes only one timestep has passed"""
         if(self._uses_gpu):
             ppf_gpu_utils.update_temperature_field(self)
+            return
+        elif(self._temperature_type is None):
             return
         elif(self._temperature_type == "ISOTHERMAL"):
             return
@@ -318,9 +289,11 @@ class Simulation:
                     self._t_file_index += 1
                     self._t_file_bounds[1], point_data1, cell_data0 = reader.read_data(self._t_file_index)
                     self._t_file_arrays[1] = point_data1['T']
-            self.temperature.get_cells() = self._t_file_arrays[0]*(self._t_file_bounds[1] - dt*step)/(self._t_file_bounds[1]-self._t_file_bounds[0]) + self._t_file_arrays[1]*(dt*step-self._t_file_bounds[0])/(self._t_file_bounds[1]-self._t_file_bounds[0])
+            array = self.temperature.get_cells()
+            array[:] = 0
+            array += self._t_file_arrays[0]*(self._t_file_bounds[1] - dt*step)/(self._t_file_bounds[1]-self._t_file_bounds[0]) + self._t_file_arrays[1]*(dt*step-self._t_file_bounds[0])/(self._t_file_bounds[1]-self._t_file_bounds[0])
             return
-        if self._temperature_type not in ["ISOTHERMAL", "LINEAR_GRADIENT", "XDMF_FILE", "NONE"]:
+        else:
             raise ValueError("Unknown temperature profile.")
 
     def load_simulation(self, file_path=None, step=-1):
@@ -367,7 +340,7 @@ class Simulation:
             self.fields.append(tmp)
             
         # Set dimensions of simulation
-        self._dimensions_of_simulation_region = self.fields[0].data.shape
+        self.dimensions = self.fields[0].data.shape
 
         # Time step set from parsing file name or manually --> defaults to 0
         if step < 0:
@@ -382,12 +355,12 @@ class Simulation:
                 self._time_step_counter = int(filename[step_start_index:i])
         else:
             self._time_step_counter = int(step)
-        if(self._uses_gpu):
-            self.send_fields_to_GPU()
         if(self._temperature_type == "LINEAR_GRADIENT"):
             self.temperature.data += self._time_step_counter*self._dTdt*self.dt
         if(self._temperature_type == "XDMF_FILE"):
             self.update_temperature_field()
+        if(self._uses_gpu):
+            self.send_fields_to_GPU()
         return 0
     
     def save_simulation(self):
@@ -461,38 +434,90 @@ class Simulation:
                 plt.show()
                 
 
-    def set_dimensions(self, dimensions_of_simulation_region):
-        self._dimensions_of_simulation_region = dimensions_of_simulation_region
-        return
-    
+    def set_dimensions(self, dimensions):
+        self.dimensions = dimensions
     def get_dimensions(self):
-        return self._dimensions_of_simulation_region
-
-    def set_cell_spacing(self, cell_spacing):
-        self.dx = cell_spacing
+        return self.dimensions
+    
+    def set_framework(self, framework):
+        self._framework = framework
+    def get_framework(self):
+        return self._framework
+    
+    def set_dx(self, dx):
+        self.dx = dx
+    def set_cell_spacing(self, dx):
+        self.dx = dx
         return
-
+    def get_dx(self):
+        return self.dx
     def get_cell_spacing(self):
         return self.dx
+    
+    """self.dt: length of a single timestep"""
+    def set_dt(self, dt):
+        self.dt = dt
+    def set_time_step_length(self, dt):
+        self.dt = dt
+    def get_dt(self):
+        return self.dt
+    def get_time_step_length(self):
+        return self.dt
+    
+    """self.time_step_counter: number of timesteps that have passed for a given simulation"""
+    def set_time_step_counter(self, time_step_counter):
+        self.time_step_counter = time_step_counter
+    def get_time_step_counter(self):
+        return self.time_step_counter
+    def increment_time_step_counter(self):
+        self.time_step_counter += 1
+    
+    def set_temperature_type(self, temperature_type):
+        self._temperature_type = temperature_type
 
-    def set_checkpoint_rate(self, time_steps_per_checkpoint):
-        self._time_steps_per_checkpoint = time_steps_per_checkpoint
-        return
+    def set_temperature_initial_T(self, initial_T):
+        self._initial_T = initial_T
 
-    def set_automatic_plot_generation(self, plot_simulation_flag):
-        self._save_images_at_each_checkpoint = plot_simulation_flag
-        return
+    def set_temperature_dTdx(self, dTdx):
+        self.dTdx = dTdx
+    def set_temperature_dTdy(self, dTdy):
+        self.dTdy = dTdy
+    def set_temperature_dTdz(self, dTdz):
+        self.dTdz = dTdz
+    def set_temperature_dTdt(self, dTdt):
+        self.dTdt = dTdt
 
-    def set_debug_mode(self, debug_mode_flag):
-        self._debug_mode_flag = debug_mode_flag
-        return
+    def set_temperature_path(self, temperature_path):
+        self._temperature_path = temperature_path
+    def set_temperature_units(self, temperature_units):
+        self._temperature_units = temperature_units
 
+    def set_tdb_path(self, tdb_path):
+        self._tdb_path = tdb_path
+    def set_tdb_phases(self, tdb_phases):
+        self._tdb_phases = tdb_phases
+    def set_tdb_components(self, tdb_components):
+        self._tdb_components = tdb_components
+    
+    def set_save_path(self, save_path):
+        self._save_path = save_path
+    def set_autosave_flag(self, autosave_flag):
+        self._autosave_flag = autosave_flag
+    def set_autosave_save_images_flag(self, autosave_save_images_flag):
+        self._autosave_save_images_flag = autosave_save_images_flag
+    def set_autosave_rate(self, autosave_rate)
+        self._autosave_rate = autosave_rate
+        
     def set_boundary_conditions(self, boundary_conditions_type):
         self._boundary_conditions_type = boundary_conditions_type
 
-    def increment_time_step_counter(self):
-        self.time_step_counter += 1
+    def set_debug_mode_flag(self, debug_mode_flag):
+        self._debug_mode_flag = debug_mode_flag
         return
+
+    
+
+    
 
     def apply_boundary_conditions(self):
         neumann_slices_1 = [[(0), (None, 0), (None, None, 0)], [(1), (None, 1), (None, None, 1)]]
