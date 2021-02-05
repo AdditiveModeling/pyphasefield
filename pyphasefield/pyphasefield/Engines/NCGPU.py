@@ -312,8 +312,9 @@ def make_seed(phi, q1, q4, x, y, angle, seed_radius):
     for i in range((int)(y-qrad), (int)(y+qrad)):
         for j in range((int)(x-qrad), (int)(x+qrad)):
             if((i-y)*(i-y)+(j-x)*(j-x) < (qrad**2)):
-                q1[i%y_size][j%x_size] = np.cos(angle)
-                q4[i%y_size][j%x_size] = np.sin(angle)
+                #angle is halved because that is how quaternions do
+                q1[i%y_size][j%x_size] = np.cos(0.5*angle)
+                q4[i%y_size][j%x_size] = np.sin(0.5*angle)
     return phi, q1, q4
 
 def npvalue(var, string, tdb):
@@ -565,3 +566,109 @@ def init_NCGPU(sim, dim=[200,200], sim_type="seed", number_of_seeds=1, tdb_path=
     ufunc_array_dim = dim.copy()
     ufunc_array_dim.append(len(sim._components)+1)
     sim.ufunc_array = cuda.device_array(ufunc_array_dim)
+    
+class NCGPU(Simulation):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._framework = "GPU_SERIAL" #must be this framework for this engine
+    
+    def initialize_fields_and_imported_data(self):
+        super().initialize_fields_and_imported_data()
+        try:
+            sim_type = self.user_data["sim_type"]
+            dim = self.dimensions
+            if(sim_type == "seed"):
+                #initialize phi, q1, q4
+                
+                phi = np.zeros(dim)
+                q1 = np.zeros(dim)
+                q4 = np.zeros(dim)
+                try:
+                    melt_angle = self.user_data["melt_angle"]
+                except:
+                    print("self.user_data[\"melt_angle\"] not defined, defaulting to 0")
+                    melt_angle = 0*np.pi/8
+                q1 += np.cos(melt_angle)
+                q4 += np.sin(melt_angle)
+                try:
+                    seed_angle = self.user_data["seed_angle"]
+                except:
+                    print("self.user_data[\"melt_angle\"] not defined, defaulting to pi/4")
+                    seed_angle = 1*np.pi/4
+                phi, q1, q4 = make_seed(phi, q1, q4, dim[1]/2, dim[0]/2, seed_angle, 5)
+                self.add_field(phi, "phi", colormap=COLORMAP_PHASE)
+                self.add_field(q1, "q1")
+                self.add_field(q4, "q4")
+                #initialize concentration array(s)
+                try:
+                    initial_concentration_array = self.user_data["initial_concentration_array"]
+                    assert((len(initial_concentration_array)+1) == len(self._tdb_components))
+                    for i in range(len(initial_concentration_array)):
+                        c_n = np.zeros(dim)
+                        c_n += initial_concentration_array[i]
+                        self.add_field(c_n, "c_"+self._tdb_components[i], colormap=COLORMAP_OTHER)
+                except: #initial_concentration array isnt defined?
+                    for i in range(len(self._tdb_components)-1):
+                        c_n = np.zeros(dim)
+                        c_n += 1./len(self._tdb_components)
+                        self.add_field(c_n, "c_"+self._tdb_components[i], colormap=COLORMAP_OTHER)
+            elif(sim_type=="seeds"):
+                #initialize phi, q1, q4
+                phi = np.zeros(dim)
+                q1 = np.zeros(dim)
+                q4 = np.zeros(dim)
+                melt_angle = 0*np.pi/8
+                q1 += np.cos(melt_angle)
+                q4 += np.sin(melt_angle)
+
+                for j in range(number_of_seeds):
+                    seed_angle = (np.random.rand()-0.5)*np.pi/2
+                    x_pos = int(np.random.rand()*dim[1])
+                    y_pos = int(np.random.rand()*dim[0])
+                    phi, q1, q4 = make_seed(phi, q1, q4, x_pos, y_pos, seed_angle, 5)
+
+                self.add_field(phi, "phi", colormap=COLORMAP_PHASE)
+                self.add_field(q1, "q1")
+                self.add_field(q4, "q4")
+
+                #initialize concentration array(s)
+                try:
+                    initial_concentration_array = self.user_data["initial_concentration_array"]
+                    assert((len(initial_concentration_array)+1) == len(self._tdb_components))
+                    for i in range(len(initial_concentration_array)):
+                        c_n = np.zeros(dim)
+                        c_n += initial_concentration_array[i]
+                        self.add_field(c_n, "c_"+self._tdb_components[i], colormap=COLORMAP_OTHER)
+                except: #initial_concentration array isnt defined?
+                    for i in range(len(self._tdb_components)-1):
+                        c_n = np.zeros(dim)
+                        c_n += 1./len(self._tdb_components)
+                        self.add_field(c_n, "c_"+self._tdb_components[i], colormap=COLORMAP_OTHER)
+        
+        except:
+            phi = np.zeros(dim)
+            q1 = np.zeros(dim)
+            q4 = np.zeros(dim)
+            melt_angle = 0
+            q1 += np.cos(melt_angle)
+            q4 += np.sin(melt_angle)
+            self.add_field(phi, "phi", colormap=COLORMAP_PHASE)
+            self.add_field(q1, "q1")
+            self.add_field(q4, "q4")
+            
+                        
+    def just_before_simulating(self):
+        
+        
+    def simulation_loop(self):
+        cuda.synchronize()
+        NComponent_helper_kernel[self.cuda_blocks, self.cuda_threads_per_block](self.fields_gpu_device, self.temperature_gpu_device,
+                                                                              self.transfer_gpu_device, self.rng_states, 
+                                                                              self.ufunc_array, self.params, self.c_params)
+        cuda.synchronize()
+        NComponent_kernel[sim.cuda_blocks, sim.cuda_threads_per_block](self.fields_gpu_device, self.temperature_gpu_device, 
+                                                                       self.transfer_gpu_device, self.fields_out_gpu_device,
+                                                                       self.rng_states, self.params, self.c_params)
+        cuda.synchronize()
+        self.fields_gpu_device, self.fields_out_gpu_device = self.fields_out_gpu_device, self.fields_gpu_device
+        

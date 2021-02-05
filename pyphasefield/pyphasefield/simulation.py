@@ -14,8 +14,9 @@ except:
 
 class Simulation:
     def __init__(self, dimensions, framework=None, dx=None, dt=None, initial_time_step=0, 
-                 temperature_type=None, initial_T=None, dTdx=0, dTdy=0, dTdz=0, dTdt=0, temperature_path=None, temperature_units="K",
-                 tdb_path=None, tdb_components=[], tdb_phases=[], save_path=None, user_data={},
+                 temperature_type=None, initial_T=None, dTdx=None, dTdy=None, dTdz=None, dTdt=None, 
+                 temperature_path=None, temperature_units="K",
+                 tdb_path=None, tdb_components=None, tdb_phases=None, save_path=None, user_data={},
                  autosave=False, save_images=False, autosave_rate=None, boundary_conditions=None):
         """
         Class used by pyphasefield to store data related to a given simulation
@@ -40,7 +41,7 @@ class Simulation:
         self._gpu_threads_per_block_3D = (8, 8, 8)
         
         #variable for determining if class needs to be re-initialized before running simulation steps
-        self._requires_initialization = True
+        self._begun_simulation = False
         
         #core variables: fields, length of space/time steps, dimensions of simulation region
         self.fields = []
@@ -214,7 +215,7 @@ class Simulation:
                 #use numba for GPUs
                 self._tdb_ufuncs.append(numba.jit(sp.lambdify(tuple(sympysyms_list), sympyexpr+ime, 'math')))
 
-    def simulate(self, number_of_timesteps, reset=False):
+    def simulate(self, number_of_timesteps):
         """
         Evolves the simulation for a specified number of timesteps
         If a length of timestep is not specified, uses the timestep length stored within the Simulation instance
@@ -228,9 +229,9 @@ class Simulation:
                 - File: Use linear interpolation to find the thermal field of the new timestep
             * If the timestep counter is a multiple of time_steps_per_checkpoint, save a checkpoint of the simulation
         """
-        if(self._requires_initialization):
-            self.initialize_simulation()
-            self._requires_initialization = False
+        if(self._begun_simulation == False):
+            self._begun_simulation == True
+            self.just_before_simulating()
         for i in range(number_of_timesteps):
             self.time_step_counter += 1
             self.simulation_loop()
@@ -241,10 +242,9 @@ class Simulation:
                     if(self._uses_gpu):
                         ppf_gpu_utils.retrieve_fields_from_GPU(self)
                     self.save_simulation()
-        if(reset):
-            self._requires_initialization = True
                 
-    def initialize_simulation(self):
+    def initialize_fields_and_imported_data(self):
+        self._requires_initialization = False
         if(self._framework == "GPU_SERIAL" or self._framework == "GPU_PARALLEL"): 
             """parallel not yet implemented!"""
             self._uses_gpu = True

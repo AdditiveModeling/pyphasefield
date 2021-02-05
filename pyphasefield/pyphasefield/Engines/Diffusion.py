@@ -532,6 +532,9 @@ def init_Diffusion(sim, dim, solver="explicit", gmres=False, adi=False):
 class Diffusion(Simulation):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        
+    def initialize_fields_and_imported_data(self):
+        super().initialize_fields_and_imported_data()
         dim = self.dimensions
         c = np.zeros(dim)
         if(len(dim) == 1):
@@ -548,6 +551,9 @@ class Diffusion(Simulation):
             c[length // 4:3 * length // 4, width // 4:3 * width // 4, depth // 4:3 * depth // 4] = 1
         self.add_field(c, "c")
         
+    def just_before_simulating(self):
+        
+        
     def simulation_loop(self):
         dt = self.dt
         dx = self.dx
@@ -560,5 +566,4 @@ class Diffusion(Simulation):
         dc = dt * (D * laplacian_c)
         self.fields[0].data += dc
         
-    def initialize_simulation(self):
-        super().initialize_simulation()
+    
