@@ -34,6 +34,22 @@ def divagradb(a, axp, axm, ayp, aym, b, bxp, bxm, byp, bym, idx):
 def f_ori_term(D_q, D_q_xp, D_q_xm, D_q_yp, D_q_ym, mgq_xp, mgq_xm, mgq_yp, mgq_ym, q, q_xp, q_xm, q_yp, q_ym, idx):
     return 0.5*idx*idx*((D_q+D_q_xp)*(q_xp-q)/mgq_xp - (D_q+D_q_xm)*(q-q_xm)/mgq_xm + (D_q+D_q_yp)*(q_yp-q)/mgq_yp - (D_q+D_q_ym)*(q-q_ym)/mgq_ym)
 
+@cuda.jit(device=True)
+def _h(phi):
+    return phi*phi*phi*(10-15*phi+6*phi*phi)
+
+@cuda.jit(device=True)
+def _hprime(phi):
+    return (30*phi*phi*(1-phi)*(1-phi))
+
+@cuda.jit(device=True)
+def _g(phi):
+    return (phi*phi*(1-phi)*(1-phi))
+
+@cuda.jit(device=True)
+def _gprime(phi):
+    return (4*phi*phi*phi - 6*phi*phi +2*phi)
+
 @cuda.jit
 def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_params):
     
@@ -68,8 +84,12 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
     
     G_L = transfer[0]
     G_S = transfer[1]
-    #M_c is transfer 2 to len(fields)-2 (for 2 components, eg Ni and Cu, M_c is just 2
-    #dFdc is transfer len(fields)-1 to 2*len(fields)-5 (for 2 components, eg Ni and Cu, dFdc is just 3
+    pf_comp_xmm = transfer[2]
+    pf_comp_ymm = transfer[3]
+    t1_temp = transfer[4]
+    t4_temp = transfer[5]
+    #M_c is transfer 6 to len(fields)+2 (for 2 components, eg Ni and Cu, M_c is just 6
+    #dFdc is transfer len(fields)+3 to 2*len(fields)-1 (for 2 components, eg Ni and Cu, dFdc is just 7
         
     ebar2 = 6.*math.sqrt(2.)*S[1]*d/T_M[1]
     eqbar2 = 0.25*ebar2
@@ -174,6 +194,9 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
             
             #dphidt
             dphidt = ebar2*(1-3*y_e)*(T[i][j]*lphi + dTdx*dphidx + dTdy*dphidy)
+            pf_comp_x = 0.5*idx*(pf_comp_xmm[i][j+1] + pf_comp_xmm[i+1][j+1] - pf_comp_xmm[i][j] - pf_comp_xmm[i+1][j])
+            pf_comp_y = 0.5*idx*(pf_comp_ymm[i+1][j] + pf_comp_ymm[i+1][j+1] - pf_comp_ymm[i][j] - pf_comp_ymm[i][j+1])
+            #dphidt += pf_comp_x + pf_comp_y
             dphidt += d_term_dx + d_term_dy
             dphidt -= hprime*(G_S[i][j] - G_L[i][j])/v_m
             dphidt -= gprime*T[i][j]*cW
@@ -187,13 +210,13 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
             #dcidt
             for l in range(3, len(fields)):
                 c_i_out = fields_out[l]
-                M_c = transfer[l-1]
-                dFdci = transfer[l-1+len(fields)-3]
+                M_c = transfer[l+3]
+                dFdci = transfer[l+len(fields)]
                 c_i_out[i][j] = (divagradb(M_c[i][j], M_c[i][j+1], M_c[i][j-1], M_c[i+1][j], M_c[i-1][j], 
                                            dFdci[i][j], dFdci[i][j+1], dFdci[i][j-1], dFdci[i+1][j], dFdci[i-1][j], idx))
                 for m in range(3, len(fields)):
                     c_j = fields[m]
-                    dFdcj = transfer[m-1+len(fields)-3]
+                    dFdcj = transfer[m+len(fields)]
                     c_i_out[i][j] -= divagradb(M_c[i][j]*c_j[i][j], M_c[i][j+1]*c_j[i][j+1], M_c[i][j-1]*c_j[i][j-1], 
                                                M_c[i+1][j]*c_j[i+1][j], M_c[i-1][j]*c_j[i-1][j], 
                                                dFdcj[i][j], dFdcj[i][j+1], dFdcj[i][j-1], dFdcj[i+1][j], dFdcj[i-1][j], idx)
@@ -210,10 +233,13 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
             f_ori_4 = f_ori_term(D_q, D_q_xp, D_q_xm, D_q_yp, D_q_ym, mgq_xp, mgq_xm, mgq_yp, mgq_ym,
                                  q4[i][j], q4[i][j+1], q4[i][j-1], q4[i+1][j], q4[i-1][j], idx)
             
-            dfintdq1 = 16.*ebar2*T[i][j]*y_e/mag_grad_phi2 * (psix3*(q1[i][j]*dphidx - q4[i][j]*dphidy) + psiy3*(q4[i][j]*dphidx + q1[i][j]*dphidy))
-            dfintdq4 = 16.*ebar2*T[i][j]*y_e/mag_grad_phi2 * (psix3*(-q4[i][j]*dphidx - q1[i][j]*dphidy) + psiy3*(q1[i][j]*dphidx - q4[i][j]*dphidy))
+            #dfintdq1 = 16.*ebar2*T[i][j]*y_e/mag_grad_phi2 * (psix3*(q1[i][j]*dphidx - q4[i][j]*dphidy) + psiy3*(q4[i][j]*dphidx + q1[i][j]*dphidy))
+            #dfintdq4 = 16.*ebar2*T[i][j]*y_e/mag_grad_phi2 * (psix3*(-q4[i][j]*dphidx - q1[i][j]*dphidy) + psiy3*(q1[i][j]*dphidx - q4[i][j]*dphidy))
             #dfintdq1 = 0. #use these blocks to zero out twisting in quaternion fields to lower interfacial energy
             #dfintdq4 = 0.
+            
+            dfintdq1 = 0.25*(t1_temp[i][j]+t1_temp[i+1][j]+t1_temp[i][j+1]+t1_temp[i+1][j+1])
+            dfintdq4 = 0.25*(t4_temp[i][j]+t4_temp[i+1][j]+t4_temp[i][j+1]+t4_temp[i+1][j+1])
             
             lq1 = (q1[i][j+1]+q1[i][j-1]+q1[i+1][j]+q1[i-1][j]-4*q1[i][j])*idx*idx
             lq4 = (q4[i][j+1]+q4[i][j-1]+q4[i+1][j]+q4[i-1][j]-4*q4[i][j])*idx*idx
@@ -255,9 +281,14 @@ def NComponent_helper_kernel(fields, T, transfer, rng_states, ufunc_array, param
     stridex, stridey = cuda.gridsize(2) 
     threadId = cuda.grid(1)
     
+    dx = params[0]
+    d = params[1]
     v_m = params[2]
+    y_e = params[5]
     D_L = params[7]
     D_S = params[8]
+    T_M = c_params[1]
+    S = c_params[2]
     W = c_params[4]
     
     phi = fields[0]
@@ -272,8 +303,15 @@ def NComponent_helper_kernel(fields, T, transfer, rng_states, ufunc_array, param
     
     G_L = transfer[0]
     G_S = transfer[1]
-    #M_c is transfer 2 to len(fields)-2 (for 2 components, eg Ni and Cu, M_c is just 2
-    #dFdc is transfer len(fields)-1 to 2*len(fields)-5 (for 2 components, eg Ni and Cu, dFdc is just 3
+    pf_comp_xmm = transfer[2]
+    pf_comp_ymm = transfer[3]
+    t1_temp = transfer[4]
+    t4_temp = transfer[5]
+    #M_c is transfer 6 to len(fields)+4 (for 2 components, eg Ni and Cu, M_c is just 6
+    #dFdc is transfer len(fields)+5 to 2*len(fields)-1 (for 2 components, eg Ni and Cu, dFdc is just 7
+    
+    idx = 1./dx
+    ebar2 = 6.*math.sqrt(2.)*S[1]*d/T_M[1]
     
     for i in range(starty, phi.shape[0], stridey):
         for j in range(startx, phi.shape[1], stridex):
@@ -287,18 +325,56 @@ def NComponent_helper_kernel(fields, T, transfer, rng_states, ufunc_array, param
             G_L[i][j], dGLdc = get_thermodynamics(ufunc_g_l, ufunc_array[i][j])
             G_S[i][j], dGSdc = get_thermodynamics(ufunc_g_s, ufunc_array[i][j])
             
-            g = (phi[i][j]**2)*(1-phi[i][j])**2
-            h = (phi[i][j]**3)*(6.*phi[i][j]**2 - 15.*phi[i][j] + 10.)
+            g = _g(phi[i][j])
+            gprime = _gprime(phi[i][j])
+            h = _h(phi[i][j])
+            m = 1-h;
             
             #get Langevin noise, put in c_noise
             noise_c = math.sqrt(2.*8.314*T[i][j]/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
             #noise_c = 0.
             
             for l in range(3, len(fields)):
-                M_c = transfer[l-1]
-                dFdc = transfer[l-1+len(fields)-3]
+                M_c = transfer[l+3]
+                dFdc = transfer[l+len(fields)]
                 M_c[i][j] = v_m*fields[l][i][j]*(D_L + h*(D_S - D_L))/(8.314*T[i][j])
                 dFdc[i][j] = (dGLdc + h*(dGSdc-dGLdc))/v_m + (W[l-3]-W[len(fields)-3])*g*T[i][j]+noise_c
+            
+            
+            #vertex_averaged_gphi
+            gphi_xmm = 0.5*(phi[i][j]-phi[i][j-1]+phi[i-1][j]-phi[i-1][j-1])*idx
+            gphi_ymm = 0.5*(phi[i][j]-phi[i-1][j]+phi[i][j-1]-phi[i-1][j-1])*idx
+            
+            #vertex_averaged_q1
+            q1_mm = 0.25*(q1[i][j]+q1[i-1][j]+q1[i][j-1]+q1[i-1][j-1])
+            q4_mm = 0.25*(q4[i][j]+q4[i-1][j]+q4[i][j-1]+q4[i-1][j-1])
+
+            a2_b2 = q1_mm*q1_mm-q4_mm*q4_mm
+            ab2 = 2.*q1_mm*q4_mm
+
+            gpsi_xmm = a2_b2*gphi_xmm - ab2*gphi_ymm
+            gpsi_ymm = a2_b2*gphi_ymm + ab2*gphi_xmm
+
+            psi_xxy = gpsi_xmm*gpsi_xmm*gpsi_ymm
+            psi_xyy = gpsi_xmm*gpsi_ymm*gpsi_ymm
+            psi_xxyy = psi_xxy*gpsi_ymm
+
+            mgphi2_mm = gpsi_xmm*gpsi_xmm + gpsi_ymm*gpsi_ymm
+            mgphi2_mm = max(mgphi2_mm, 0.000000001)
+
+            #change in phi
+            psix3 = gpsi_xmm*gpsi_xmm*gpsi_xmm
+            psiy3 = gpsi_ymm*gpsi_ymm*gpsi_ymm
+            pf_comp_xmm[i][j] = 4*y_e*((2*a2_b2*psix3 + 2*ab2*psiy3)/mgphi2_mm - gphi_xmm*(psix3*gphi_xmm + psiy3*gphi_ymm)/(mgphi2_mm*mgphi2_mm))
+            pf_comp_ymm[i][j] = 4*y_e*((2*a2_b2*psiy3 - 2*ab2*psix3)/mgphi2_mm - gphi_ymm*(psix3*gphi_xmm + psiy3*gphi_ymm)/(mgphi2_mm*mgphi2_mm))
+
+            q1px = q1_mm*gphi_xmm
+            q1py = q1_mm*gphi_ymm
+            q4px = q4_mm*gphi_xmm
+            q4py = q4_mm*gphi_ymm
+
+            t1_temp[i][j] = (16*ebar2*y_e/mgphi2_mm)*(psi_xyy*(q1px - q4py) + psi_xxy*(q1py + q4px))
+            t4_temp[i][j] = (16*ebar2*y_e/mgphi2_mm)*(psi_xyy*(-q4px - q1py) + psi_xxy*(-q4py + q1px))
                 
 def make_seed(phi, q1, q4, x, y, angle, seed_radius):
     shape = phi.shape
@@ -324,7 +400,7 @@ def npvalue(var, string, tdb):
     """
     return sp.lambdify(var, tdb.symbols[string], 'numpy')(1000)
     
-class NCGPU(Simulation):
+class NCGPU_OLDQ(Simulation):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.uses_gpu = True
@@ -371,7 +447,7 @@ class NCGPU(Simulation):
             raise Exception()
             
     def init_fields(self):
-        self._num_transfer_arrays = 2*len(self._tdb_components)
+        self._num_transfer_arrays = 2*len(self._tdb_components)+4
         self._tdb_ufunc_input_size = len(self._tdb_components)+1
         self.user_data["rng_states"] = create_xoroshiro128p_states(256*256, seed=3446621627)
         dim = self.dimensions
