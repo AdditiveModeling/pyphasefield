@@ -181,7 +181,7 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
             dphidt *= M_phi
             
             #noise in phi
-            #noise_phi = math.sqrt(2.*8.314*T[i][j]*M_phi/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
+            noise_phi = math.sqrt(2.*8.314*T[i][j]*M_phi/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
             #dphidt += noise_phi
             
             #dcidt
@@ -212,8 +212,8 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
             
             dfintdq1 = 16.*ebar2*T[i][j]*y_e/mag_grad_phi2 * (psix3*(q1[i][j]*dphidx - q4[i][j]*dphidy) + psiy3*(q4[i][j]*dphidx + q1[i][j]*dphidy))
             dfintdq4 = 16.*ebar2*T[i][j]*y_e/mag_grad_phi2 * (psix3*(-q4[i][j]*dphidx - q1[i][j]*dphidy) + psiy3*(q1[i][j]*dphidx - q4[i][j]*dphidy))
-            #dfintdq1 = 0. #use these blocks to zero out twisting in quaternion fields to lower interfacial energy
-            #dfintdq4 = 0.
+            dfintdq1 = 0. #use these blocks to zero out twisting in quaternion fields to lower interfacial energy
+            dfintdq4 = 0.
             
             lq1 = (q1[i][j+1]+q1[i][j-1]+q1[i+1][j]+q1[i-1][j]-4*q1[i][j])*idx*idx
             lq4 = (q4[i][j+1]+q4[i][j-1]+q4[i+1][j]+q4[i-1][j]-4*q4[i][j])*idx*idx

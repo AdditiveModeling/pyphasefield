@@ -19,5 +19,5 @@ for (_, module_name, _) in iter_modules([package_dir]):
                 # Add the class to this package's variables
                 globals()[attribute_name] = attribute
     except Exception as e:
-        #print(e)
+        print(e)
         pass

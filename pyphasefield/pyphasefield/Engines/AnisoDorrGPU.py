@@ -1,8 +1,6 @@
 import numpy as np
 import sympy as sp
 from scipy.sparse.linalg import gmres
-from ..field import Field
-from ..ppf_utils import COLORMAP_OTHER, COLORMAP_PHASE
 from numba import cuda
 import numba
 import matplotlib.pyplot as plt
@@ -10,8 +8,19 @@ np.set_printoptions(threshold=np.inf)
 import math
 from numba.cuda.random import create_xoroshiro128p_states, xoroshiro128p_uniform_float32
 
-ufunc_g_l = None
-ufunc_g_s = None
+try:
+    #import from within Engines folder
+    from ..field import Field
+    from ..simulation import Simulation
+    from ..ppf_utils import COLORMAP_OTHER, COLORMAP_PHASE
+except:
+    try:
+        #import classes from pyphasefield library
+        from pyphasefield.field import Field
+        from pyphasefield.simulation import Simulation
+        from pyphasefield.ppf_utils import COLORMAP_OTHER, COLORMAP_PHASE
+    except:
+        raise ImportError("Cannot import from pyphasefield library!")
 
 @cuda.jit(device=True)
 def divagradb(a, axp, axm, ayp, aym, b, bxp, bxm, byp, bym, idx):
@@ -43,7 +52,7 @@ def grad2(a, axp, axm, ayp, aym, idx):
     return (axp+axm+ayp+aym-4*a)*(idx*idx)
 
 @cuda.jit
-def AnisoDorr_kernel(fields, T, transfer, fields_out, rng_states, params, c_params):
+def AnisoDorr_kernel(fields, T, transfer, fields_out, rng_states):
     
     startx, starty = cuda.grid(2)
     stridex, stridey = cuda.gridsize(2)
@@ -251,7 +260,7 @@ def get_thermodynamics(ufunc, array):
     return G, dGdc
             
 @cuda.jit
-def AnisoDorr_helper_kernel(fields, T, transfer, rng_states, ufunc_array, params, c_params):
+def AnisoDorr_helper_kernel(fields, T, transfer, rng_states):
     #initializes certain arrays that are used in div-grad terms, to avoid recomputing terms many times
     #transfer[0] is pf_comp_x, defined at the vertex mm
     #transfer[1] is pf_comp_y, defined at the vertex mm
@@ -349,7 +358,7 @@ def AnisoDorr_helper_kernel(fields, T, transfer, rng_states, ufunc_array, params
 
             #change in c
             D_C[i][j] = D_S+m*(D_L-D_S)
-            temp[i][j] = D_C*v_m*c*(1-c)*(H_B-H_A)/R
+            temp[i][j] = D_C[i][j]*v_m*c[i][j]*(1-c[i][j])*(H_B-H_A)/R
 
             #change in phi
             psix3 = gpsi_xmm*gpsi_xmm*gpsi_xmm
@@ -377,125 +386,17 @@ def make_seed(phi, q1, q4, x, y, angle, seed_radius):
     for i in range((int)(y-qrad), (int)(y+qrad)):
         for j in range((int)(x-qrad), (int)(x+qrad)):
             if((i-y)*(i-y)+(j-x)*(j-x) < (qrad**2)):
-                q1[i%y_size][j%x_size] = np.cos(angle)
-                q4[i%y_size][j%x_size] = np.sin(angle)
+                #angle is halved because that is how quaternions do
+                q1[i%y_size][j%x_size] = np.cos(0.5*angle)
+                q4[i%y_size][j%x_size] = np.sin(0.5*angle)
     return phi, q1, q4
-
-def npvalue(var, string, tdb):
-    """
-    Returns a numpy float from the sympy expression gotten from pycalphad
-    Reason: some numpy functions (i.e. sqrt) are incompatible with sympy floats!
-    """
-    return sp.lambdify(var, tdb.symbols[string], 'numpy')(1000)
-
-def init_tdb_parameters(sim):
-    """
-    Modifies the global vars which are parameters for the engine. Called from the function utils.preinitialize
-    Returns True if variables are loaded successfully, False if certain variables dont exist in the TDB
-    If false, preinitialize will print an error saying the TDB doesn't have enough info to run the sim
-    """
-    global ufunc_g_s, ufunc_g_l
-    import pycalphad as pyc
-    from tinydb import where
-    tdb = sim._tdb
-    comps = sim._components
-    try:
-        sim.R = 8.314
-        sim.L = [] #latent heats, J/cm^3
-        sim.T_M = [] #melting temperatures, K
-        sim.S = [] #surface energies, J/cm^2
-        sim.B = [] #linear kinetic coefficients, cm/(K*s)
-        sim.W = [] #Well size
-        sim.M = [] #Order mobility coefficient
-        T = tdb.symbols[comps[0]+"_L"].free_symbols.pop()
-        for i in range(len(comps)):
-            sim.L.append(npvalue(T, comps[i]+"_L", tdb))
-            sim.T_M.append(npvalue(T, comps[i]+"_TM", tdb))
-            sim.S.append(npvalue(T, comps[i]+"_S", tdb))
-            sim.B.append(npvalue(T, comps[i]+"_B", tdb))
-            sim.W.append(3*sim.S[i]/(np.sqrt(2)*sim.T_M[i]*sim.d)) #TODO: figure out specific form of this term in particular
-            sim.M.append(sim.T_M[i]*sim.T_M[i]*sim.B[i]/(6*np.sqrt(2)*sim.L[i]*sim.d)/1574.)
-        sim.D_S = npvalue(T, "D_S", tdb)
-        sim.D_L = npvalue(T, "D_L", tdb)
-        sim.v_m = npvalue(T, "V_M", tdb)
-        sim.M_qmax = npvalue(T, "M_Q", tdb)
-        sim.H = npvalue(T, "H", tdb)
-        sim.y_e = npvalue(T, "Y_E", tdb)
-        sim.ebar = np.sqrt(6*np.sqrt(2)*sim.S[1]*sim.d/sim.T_M[1])
-        sim.eqbar = 0.5*sim.ebar
-        sim.set_time_step_length(sim.get_cell_spacing()**2/5./sim.D_L/8)
-        sim.beta = 1.5
-        
-        #initialize thermodynamic ufuncs
-        
-        param_search = sim._tdb.search
-        phase_solid = sim._tdb.phases["FCC_A1"]
-        g_param_query_solid = (
-            (where('phase_name') == phase_solid.name) & \
-            ((where('parameter_type') == 'G') | \
-            (where('parameter_type') == 'L'))
-        )
-
-        model_solid = pyc.Model(sim._tdb, list(sim._tdb.elements), "FCC_A1")
-        sympyexpr_solid = model_solid.redlich_kister_sum(phase_solid, param_search, g_param_query_solid)
-        ime_solid = model_solid.ideal_mixing_energy(sim._tdb)
-
-        sympysyms_list_solid = []
-        T = None
-        for i in list(sim._tdb.elements):
-            for j in sympyexpr_solid.free_symbols:
-                if j.name == "FCC_A10"+i:
-                    sympysyms_list_solid.append(j)
-                if j.name == "T":
-                    T = j
-        sympysyms_list_solid = sorted(sympysyms_list_solid, key=lambda t:t.name)
-        sympysyms_list_solid.append(T)
-
-        phase_liquid = sim._tdb.phases["LIQUID"]
-        g_param_query_liquid = (
-            (where('phase_name') == phase_liquid.name) & \
-            ((where('parameter_type') == 'G') | \
-            (where('parameter_type') == 'L'))
-        )
-
-        model_liquid = pyc.Model(sim._tdb, list(sim._tdb.elements), "LIQUID")
-        sympyexpr_liquid = model_liquid.redlich_kister_sum(phase_liquid, param_search, g_param_query_liquid)
-        ime_liquid = model_liquid.ideal_mixing_energy(sim._tdb) #these are effectively the same but use different sympy vars
-
-        sympysyms_list_liquid = []
-        T = None
-        for i in list(sim._tdb.elements):
-            for j in sympyexpr_liquid.free_symbols:
-                if j.name == "LIQUID0"+i:
-                    sympysyms_list_liquid.append(j)
-                if j.name == "T":
-                    T = j
-        sympysyms_list_liquid = sorted(sympysyms_list_liquid, key=lambda t:t.name)
-        sympysyms_list_liquid.append(T)
-        
-        for i in sim._tdb.symbols:
-            d = sim._tdb.symbols[i]
-            g = sp.Symbol(i)
-            sympyexpr_solid = sympyexpr_solid.subs(g, d)
-            sympyexpr_liquid = sympyexpr_liquid.subs(g, d)
-
-        #print(sympyexpr_solid+ime_solid)
-                    
-        ufunc_g_s = numba.jit(sp.lambdify(tuple(sympysyms_list_solid), sympyexpr_solid+ime_solid, 'math'))
-        ufunc_g_l = numba.jit(sp.lambdify(tuple(sympysyms_list_liquid), sympyexpr_liquid+ime_liquid, 'math'))
-            
-        return True
-    except Exception as e:
-        print("Could not load every parameter required from the TDB file!")
-        print(e)
-        return False
     
 def engine_AnisoDorrGPU(sim):
     
     cuda.synchronize()
     AnisoDorr_helper_kernel[sim.cuda_blocks, sim.cuda_threads_per_block](sim.fields_gpu_device, sim.temperature_gpu_device,
                                                                           sim.transfer_gpu_device, sim.rng_states, 
-                                                                          sim.ufunc_array, sim.params, sim.c_params)
+                                                                          sim.params, sim.c_params)
     cuda.synchronize()
     AnisoDorr_kernel[sim.cuda_blocks, sim.cuda_threads_per_block](sim.fields_gpu_device, sim.temperature_gpu_device, 
                                                                    sim.transfer_gpu_device, sim.fields_out_gpu_device,
@@ -533,73 +434,7 @@ def init_AnisoDorrGPU(sim, dim=[200,200], sim_type="seed", number_of_seeds=1, td
         #print("Temperature type of "+temperature_type+" is not recognized, defaulting to isothermal with a temperature of "+str(initial_temperature))
         #sim.set_temperature_isothermal(initial_temperature)
     sim._components = ["CU", "NI"]
-    if(sim_type=="seed"):
-        #initialize phi, q1, q4
-        phi = np.zeros(dim)
-        q1 = np.zeros(dim)
-        q4 = np.zeros(dim)
-        initial_angle = 0*np.pi/8
-        q1 += np.cos(initial_angle)
-        q4 += np.sin(initial_angle)
-        seed_angle = 1*np.pi/8
-        phi, q1, q4 = make_seed(phi, q1, q4, dim[1]/2, dim[0]/2, seed_angle, 5)
-        phi_field = Field(data=phi, name="phi", simulation=sim, colormap=COLORMAP_PHASE)
-        q1_field = Field(data=q1, name="q1", simulation=sim)
-        q4_field = Field(data=q4, name="q4", simulation=sim)
-        sim.add_field(phi_field)
-        sim.add_field(q1_field)
-        sim.add_field(q4_field)
-        
-        #initialize concentration array(s)
-        if(initial_concentration_array == None):
-            for i in range(len(sim._components)-1):
-                c_n = np.zeros(dim)
-                c_n += 1./len(sim._components)
-                c_n_field = Field(data=c_n, name="c_"+sim._components[i], simulation=sim, colormap=COLORMAP_OTHER)
-                sim.add_field(c_n_field)
-        else:
-            assert((len(initial_concentration_array)+1) == len(sim._components))
-            for i in range(len(initial_concentration_array)):
-                c_n = np.zeros(dim)
-                c_n += initial_concentration_array[i]
-                c_n_field = Field(data=c_n, name="c_"+sim._components[i], simulation=sim, colormap=COLORMAP_OTHER)
-                sim.add_field(c_n_field)
-    elif(sim_type=="seeds"):
-        #initialize phi, q1, q4
-        phi = np.zeros(dim)
-        q1 = np.zeros(dim)
-        q4 = np.zeros(dim)
-        initial_angle = 0*np.pi/8
-        q1 += np.cos(initial_angle)
-        q4 += np.sin(initial_angle)
-        
-        for j in range(number_of_seeds):
-            seed_angle = (np.random.rand()-0.5)*np.pi/4
-            x_pos = int(np.random.rand()*dim[1])
-            y_pos = int(np.random.rand()*dim[0])
-            phi, q1, q4 = make_seed(phi, q1, q4, x_pos, y_pos, seed_angle, 5)
-        
-        phi_field = Field(data=phi, name="phi", simulation=sim, colormap=COLORMAP_PHASE)
-        q1_field = Field(data=q1, name="q1", simulation=sim)
-        q4_field = Field(data=q4, name="q4", simulation=sim) 
-        sim.add_field(phi_field)
-        sim.add_field(q1_field)
-        sim.add_field(q4_field)
-        
-        #initialize concentration array(s)
-        if(initial_concentration_array == None):
-            for i in range(len(sim._components)-1):
-                c_n = np.zeros(dim)
-                c_n += 1./len(sim._components)
-                c_n_field = Field(data=c_n, name="c_"+sim._components[i], simulation=sim, colormap=COLORMAP_OTHER)
-                sim.add_field(c_n_field)
-        else:
-            assert((len(initial_concentration_array)+1) == len(sim._components))
-            for i in range(len(initial_concentration_array)):
-                c_n = np.zeros(dim)
-                c_n += initial_concentration_array[i]
-                c_n_field = Field(data=c_n, name="c_"+sim._components[i], simulation=sim, colormap=COLORMAP_OTHER)
-                sim.add_field(c_n_field)
+    
     params = []
     c_params = []
     #params.append(sim.get_cell_spacing())
@@ -632,3 +467,157 @@ def init_AnisoDorrGPU(sim, dim=[200,200], sim_type="seed", number_of_seeds=1, td
     ufunc_array_dim = dim.copy()
     ufunc_array_dim.append(len(sim._components)+1)
     sim.ufunc_array = cuda.device_array(ufunc_array_dim)
+    
+class AnisoDorrGPU(Simulation):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        #additional initialization code goes below
+        #runs *before* tdb, thermal, fields, and boundary conditions are loaded/initialized
+        self.uses_gpu = True
+        self._framework = "GPU_SERIAL" #must be this framework for this engine
+        self.user_data["d_ratio"] = 1./0.94 #default value
+        
+    def init_tdb_params(self):
+        super().init_tdb_params()
+        #additional tdb-related code goes below
+        #runs *after* tdb file is loaded, tdb_phases and tdb_components are initialized
+        #runs *before* thermal, fields, and boundary conditions are loaded/initialized
+            
+    def init_fields(self):
+        #initialization of fields code goes here
+        #runs *after* tdb and thermal data is loaded/initialized
+        #runs *before* boundary conditions are initialized
+        self._num_transfer_arrays = 6
+        self.user_data["rng_states"] = create_xoroshiro128p_states(256*256, seed=3446621627)
+        dim = self.dimensions
+        try:
+            sim_type = self.user_data["sim_type"]
+            if(sim_type == "seed"):
+                #initialize phi, q1, q4
+                
+                phi = np.zeros(dim)
+                q1 = np.zeros(dim)
+                q4 = np.zeros(dim)
+                try:
+                    melt_angle = self.user_data["melt_angle"]
+                except:
+                    print("self.user_data[\"melt_angle\"] not defined, defaulting to 0")
+                    melt_angle = 0*np.pi/8
+                q1 += np.cos(melt_angle)
+                q4 += np.sin(melt_angle)
+                try:
+                    seed_angle = self.user_data["seed_angle"]
+                except:
+                    print("self.user_data[\"melt_angle\"] not defined, defaulting to pi/4")
+                    seed_angle = 1*np.pi/4
+                phi, q1, q4 = make_seed(phi, q1, q4, dim[1]/2, dim[0]/2, seed_angle, 5)
+                self.add_field(phi, "phi", colormap=COLORMAP_PHASE)
+                self.add_field(q1, "q1")
+                self.add_field(q4, "q4")
+                #initialize concentration array(s)
+                try:
+                    initial_concentration_array = self.user_data["initial_concentration_array"]
+                    assert(len(initial_concentration_array) == 1)
+                    c_n = np.zeros(dim)
+                    c_n += initial_concentration_array[0]
+                    self.add_field(c_n, "c_CU", colormap=COLORMAP_OTHER)
+                        
+                except: #initial_concentration array isnt defined?
+                    c_n = np.zeros(dim)
+                    c_n += 0.5
+                    self.add_field(c_n, "c_CU", colormap=COLORMAP_OTHER)
+                        
+            elif(sim_type=="seeds"):
+                #initialize phi, q1, q4
+                phi = np.zeros(dim)
+                q1 = np.zeros(dim)
+                q4 = np.zeros(dim)
+                melt_angle = 0*np.pi/8
+                q1 += np.cos(melt_angle)
+                q4 += np.sin(melt_angle)
+
+                for j in range(number_of_seeds):
+                    seed_angle = (np.random.rand()-0.5)*np.pi/2
+                    x_pos = int(np.random.rand()*dim[1])
+                    y_pos = int(np.random.rand()*dim[0])
+                    phi, q1, q4 = make_seed(phi, q1, q4, x_pos, y_pos, seed_angle, 5)
+
+                self.add_field(phi, "phi", colormap=COLORMAP_PHASE)
+                self.add_field(q1, "q1")
+                self.add_field(q4, "q4")
+
+                #initialize concentration array(s)
+                try:
+                    initial_concentration_array = self.user_data["initial_concentration_array"]
+                    assert(len(initial_concentration_array) == 1)
+                    c_n = np.zeros(dim)
+                    c_n += initial_concentration_array[0]
+                    self.add_field(c_n, "c_CU", colormap=COLORMAP_OTHER)
+                        
+                except: #initial_concentration array isnt defined?
+                    c_n = np.zeros(dim)
+                    c_n += 0.5
+                    self.add_field(c_n, "c_CU", colormap=COLORMAP_OTHER)
+        
+        except:
+            phi = np.zeros(dim)
+            q1 = np.zeros(dim)
+            q4 = np.zeros(dim)
+            melt_angle = 0
+            q1 += np.cos(melt_angle)
+            q4 += np.sin(melt_angle)
+            self.add_field(phi, "phi", colormap=COLORMAP_PHASE)
+            self.add_field(q1, "q1")
+            self.add_field(q4, "q4")
+            #initialize concentration array(s)
+            try:
+                initial_concentration_array = self.user_data["initial_concentration_array"]
+                assert(len(initial_concentration_array) == 1)
+                c_n = np.zeros(dim)
+                c_n += initial_concentration_array[0]
+                self.add_field(c_n, "c_CU", colormap=COLORMAP_OTHER)
+
+            except: #initial_concentration array isnt defined?
+                c_n = np.zeros(dim)
+                c_n += 0.5
+                self.add_field(c_n, "c_CU", colormap=COLORMAP_OTHER)
+        
+    def initialize_fields_and_imported_data(self):
+        super().initialize_fields_and_imported_data()
+        #initialization of fields/imported data goes below
+        #runs *after* tdb, thermal, fields, and boundary conditions are loaded/initialized
+                        
+    def just_before_simulating(self):
+        super().just_before_simulating()
+        #additional code to run just before beginning the simulation goes below
+        #runs immediately before simulating, no manual changes permitted to changes implemented here
+        
+    def simulation_loop(self):
+        #code to run each simulation step goes here
+        cuda.synchronize()
+        if(len(self.dimensions) == 1):
+            AnisoDorr_helper_kernel[self._gpu_blocks_per_grid_1D, self._gpu_threads_per_block_1D](self._fields_gpu_device, 
+                                                                      self._temperature_gpu_device, self._fields_transfer_gpu_device, 
+                                                                      self.user_data["rng_states"])
+            cuda.synchronize()
+            AnisoDorr_kernel[self._gpu_blocks_per_grid_1D, self._gpu_threads_per_block_1D](self._fields_gpu_device, 
+                                                                      self._temperature_gpu_device, self._fields_transfer_gpu_device, 
+                                                                      self._fields_out_gpu_device, self.user_data["rng_states"])
+        elif(len(self.dimensions) == 2):
+            AnisoDorr_helper_kernel[self._gpu_blocks_per_grid_2D, self._gpu_threads_per_block_2D](self._fields_gpu_device, 
+                                                                      self._temperature_gpu_device, self._fields_transfer_gpu_device, 
+                                                                      self.user_data["rng_states"])
+            cuda.synchronize()
+            AnisoDorr_kernel[self._gpu_blocks_per_grid_2D, self._gpu_threads_per_block_2D](self._fields_gpu_device, 
+                                                                      self._temperature_gpu_device, self._fields_transfer_gpu_device, 
+                                                                      self._fields_out_gpu_device, self.user_data["rng_states"])
+        elif(len(self.dimensions) == 3):
+            AnisoDorr_helper_kernel[self._gpu_blocks_per_grid_3D, self._gpu_threads_per_block_3D](self._fields_gpu_device, 
+                                                                      self._temperature_gpu_device, self._fields_transfer_gpu_device, 
+                                                                      self.user_data["rng_states"])
+            cuda.synchronize()
+            AnisoDorr_kernel[self._gpu_blocks_per_grid_3D, self._gpu_threads_per_block_3D](self._fields_gpu_device, 
+                                                                      self._temperature_gpu_device, self._fields_transfer_gpu_device, 
+                                                                      self._fields_out_gpu_device, self.user_data["rng_states"])
+        cuda.synchronize()
+        self._fields_gpu_device, self._fields_out_gpu_device = self._fields_out_gpu_device, self._fields_gpu_device

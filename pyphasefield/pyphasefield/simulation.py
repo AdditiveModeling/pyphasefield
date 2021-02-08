@@ -241,13 +241,9 @@ class Simulation:
             self.just_before_simulating()
         for i in range(number_of_timesteps):
             self.time_step_counter += 1
-            print(self.time_step_counter)
-            self.plot_simulation(interpolation="nearest")
             self.simulation_loop()
-            self.plot_simulation(interpolation="nearest")
             self.update_temperature_field()
             self.apply_boundary_conditions()
-            self.plot_simulation(interpolation="nearest")
             if(self._autosave_flag):
                 if self.time_step_counter % self._autosave_rate == 0:
                     if(self._uses_gpu):
