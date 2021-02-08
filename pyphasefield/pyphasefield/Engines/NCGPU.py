@@ -225,7 +225,7 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
             
             dq1dt = M_q*((1-q1[i][j]**2)*(f_ori_1+lq1*eqbar2-dfintdq1+noise_q1) - q1[i][j]*q4[i][j]*(f_ori_4+lq4*eqbar2-dfintdq4+noise_q4))
             dq4dt = M_q*((1-q4[i][j]**2)*(f_ori_4+lq4*eqbar2-dfintdq4+noise_q4) - q1[i][j]*q4[i][j]*(f_ori_1+lq1*eqbar2-dfintdq1+noise_q1))
-            phi_out[i][j] = phi[i][j] #+ dt*dphidt
+            phi_out[i][j] = phi[i][j] + dt*dphidt
             if(phi_out[i][j] < 0.000001):
                 phi_out[i][j] = 0.000001
             if(phi_out[i][j] > 0.999999):
@@ -238,7 +238,7 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
             for l in range(3, len(fields)):
                 c_i = fields[l]
                 c_i_out = fields_out[l]
-                c_i_out[i][j] *= 0
+                c_i_out[i][j] *= dt
                 c_i_out[i][j] += c_i[i][j]
 
 @numba.jit
@@ -275,8 +275,8 @@ def NComponent_helper_kernel(fields, T, transfer, rng_states, ufunc_array, param
     #M_c is transfer 2 to len(fields)-2 (for 2 components, eg Ni and Cu, M_c is just 2
     #dFdc is transfer len(fields)-1 to 2*len(fields)-5 (for 2 components, eg Ni and Cu, dFdc is just 3
     
-    for i in range(startx, phi.shape[0], stridex):
-        for j in range(starty, phi.shape[1], stridey):
+    for i in range(starty, phi.shape[0], stridey):
+        for j in range(startx, phi.shape[1], stridex):
             c_N = 1.
             for l in range(3, len(fields)):
                 ufunc_array[i][j][l-3] = fields[l][i][j]
@@ -373,7 +373,7 @@ class NCGPU(Simulation):
     def init_fields(self):
         self._num_transfer_arrays = 2*len(self._tdb_components)
         self._tdb_ufunc_input_size = len(self._tdb_components)+1
-        self.user_data["rng_states"] = create_xoroshiro128p_states(256*256, seed=3)
+        self.user_data["rng_states"] = create_xoroshiro128p_states(256*256, seed=3446621627)
         dim = self.dimensions
         try:
             sim_type = self.user_data["sim_type"]

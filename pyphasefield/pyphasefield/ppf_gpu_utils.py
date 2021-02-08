@@ -407,10 +407,14 @@ def send_fields_to_GPU(sim):
     sim._fields_out_gpu_device = cuda.device_array_like(fields)
     if not (sim._num_transfer_arrays is None):
         dim = sim.dimensions.copy()
+        for i in range(len(dim)):
+            dim[i] += 2
         dim.insert(0, sim._num_transfer_arrays)
         sim._fields_transfer_gpu_device = cuda.device_array_like(np.zeros(dim))
     if not (sim._tdb_ufunc_input_size is None):
         dim = sim.dimensions.copy()
+        for i in range(len(dim)):
+            dim[i] += 2
         dim.append(sim._tdb_ufunc_input_size)
         sim._tdb_ufunc_gpu_device = cuda.device_array_like(np.zeros(dim))
     sim._boundary_conditions_gpu_device = cuda.to_device(sim._boundary_conditions_array)

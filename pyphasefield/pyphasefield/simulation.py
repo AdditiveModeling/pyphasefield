@@ -241,9 +241,13 @@ class Simulation:
             self.just_before_simulating()
         for i in range(number_of_timesteps):
             self.time_step_counter += 1
+            print(self.time_step_counter)
+            self.plot_simulation(interpolation="nearest")
             self.simulation_loop()
+            self.plot_simulation(interpolation="nearest")
             self.update_temperature_field()
             self.apply_boundary_conditions()
+            self.plot_simulation(interpolation="nearest")
             if(self._autosave_flag):
                 if self.time_step_counter % self._autosave_rate == 0:
                     if(self._uses_gpu):
@@ -398,7 +402,7 @@ class Simulation:
         np.savez(str(save_loc) + "/step_" + str(self.time_step_counter), **save_dict)
         return 0
     
-    def plot_simulation(self, fields=None, interpolation="bicubic", units="cells", save_images="False", size=None, norm=False):
+    def plot_simulation(self, fields=None, interpolation="bicubic", units="cells", save_images=False, size=None, norm=False):
         if(self._uses_gpu):
             ppf_gpu_utils.retrieve_fields_from_GPU(self)
         if fields is None:
