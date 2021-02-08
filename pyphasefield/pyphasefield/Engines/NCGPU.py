@@ -338,16 +338,7 @@ def init_tdb_parameters(sim):
         sympyexpr_solid = model_solid.redlich_kister_sum(phase_solid, param_search, g_param_query_solid)
         ime_solid = model_solid.ideal_mixing_energy(sim._tdb)
 
-        sympysyms_list_solid = []
-        T = None
-        for i in list(sim._tdb.elements):
-            for j in sympyexpr_solid.free_symbols:
-                if j.name == "FCC_A10"+i:
-                    sympysyms_list_solid.append(j)
-                if j.name == "T":
-                    T = j
-        sympysyms_list_solid = sorted(sympysyms_list_solid, key=lambda t:t.name)
-        sympysyms_list_solid.append(T)
+        
 
         phase_liquid = sim._tdb.phases["LIQUID"]
         g_param_query_liquid = (
@@ -359,6 +350,23 @@ def init_tdb_parameters(sim):
         model_liquid = pyc.Model(sim._tdb, list(sim._tdb.elements), "LIQUID")
         sympyexpr_liquid = model_liquid.redlich_kister_sum(phase_liquid, param_search, g_param_query_liquid)
         ime_liquid = model_liquid.ideal_mixing_energy(sim._tdb) #these are effectively the same but use different sympy vars
+        
+        for i in sim._tdb.symbols:
+            d = sim._tdb.symbols[i]
+            g = sp.Symbol(i)
+            sympyexpr_solid = sympyexpr_solid.subs(g, d)
+            sympyexpr_liquid = sympyexpr_liquid.subs(g, d)
+        
+        sympysyms_list_solid = []
+        T = None
+        for i in list(sim._tdb.elements):
+            for j in sympyexpr_solid.free_symbols:
+                if j.name == "FCC_A10"+i:
+                    sympysyms_list_solid.append(j)
+                if j.name == "T":
+                    T = j
+        sympysyms_list_solid = sorted(sympysyms_list_solid, key=lambda t:t.name)
+        sympysyms_list_solid.append(T)
 
         sympysyms_list_liquid = []
         T = None
@@ -370,12 +378,6 @@ def init_tdb_parameters(sim):
                     T = j
         sympysyms_list_liquid = sorted(sympysyms_list_liquid, key=lambda t:t.name)
         sympysyms_list_liquid.append(T)
-        
-        for i in sim._tdb.symbols:
-            d = sim._tdb.symbols[i]
-            g = sp.Symbol(i)
-            sympyexpr_solid = sympyexpr_solid.subs(g, d)
-            sympyexpr_liquid = sympyexpr_liquid.subs(g, d)
 
         #print(sympyexpr_solid+ime_solid)
                     
