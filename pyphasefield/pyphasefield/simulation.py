@@ -1,14 +1,18 @@
 import numpy as np
+import sympy as sp
 import meshio as mio
 from .field import Field
 from pathlib import Path
 import matplotlib.cm as cm
 from matplotlib import pyplot as plt
 from matplotlib.colors import PowerNorm
+from tinydb import where
 from . import ppf_utils
+
 try:
     import pycalphad as pyc
     from . import ppf_gpu_utils
+    import numba
 except:
     pass
 
@@ -46,6 +50,9 @@ class Simulation:
         #core variables: fields, length of space/time steps, dimensions of simulation region
         self.fields = []
         self._fields_gpu_device = None
+        self._fields_out_gpu_device = None
+        self._num_transfer_arrays = None
+        self._fields_transfer_gpu_device = None
         self.dimensions = dimensions
         self.dx = dx
         self.dt = dt
@@ -73,6 +80,8 @@ class Simulation:
         self._tdb_components = tdb_components
         self._tdb_phases = tdb_phases
         self._tdb_ufuncs = []
+        self._tdb_ufunc_input_size = None
+        self._tdb_ufunc_gpu_device = None
         
         #progress saving related variables
         self._save_path = save_path
@@ -110,8 +119,6 @@ class Simulation:
             dim[i] += 2
         dim.insert(0, len(self.fields)) #requires initialization of fields first
         self._boundary_conditions_array = np.zeros(dim)
-        self.apply_boundary_conditions() 
-        #note, this applies default boundary conditions to arrays, run this again after initialization to apply changes to bcs
         
         
     def init_temperature_field(self):
@@ -171,14 +178,14 @@ class Simulation:
         if not ppf_utils.successfully_imported_pycalphad():
             raise ImportError
         import pycalphad as pyc
-        self._tdb = pyc.Database(tdb_path)
+        self._tdb = pyc.Database(self._tdb_path)
         if self._tdb_phases is None:
             self._tdb_phases = list(self._tdb.phases)
         if self._tdb_components is None:
             self._tdb_components = list(self._tdb.elements)
         self._tdb_phases.sort()
         self._tdb_components.sort()
-        param_search = sim._tdb.search
+        param_search = self._tdb.search
         for k in range(len(self._tdb_phases)):
             phase_id = self._tdb_phases[k]
             phase = self._tdb.phases[phase_id]
@@ -189,24 +196,24 @@ class Simulation:
             )
             model = pyc.Model(self._tdb, self._tdb_components, phase_id)
             sympyexpr = model.redlich_kister_sum(phase, param_search, g_param_query)
-            ime = model.ideal_mixing_energy(sim._tdb)
-
-            sympysyms_list = []
-            T = None
-            for i in list(sim._tdb.elements):
-                for j in sympyexpr_solid.free_symbols:
-                    if j.name == phase_id+"0"+i: 
-                        #this may need additional work for phases with sublattices...
-                        sympysyms_list_solid.append(j)
-                    if j.name == "T":
-                        T = j
-            sympysyms_list = sorted(sympysyms_list, key=lambda t:t.name)
-            sympysyms_list.append(T)
-        
+            ime = model.ideal_mixing_energy(self._tdb)
+            
             for i in self._tdb.symbols:
                 d = self._tdb.symbols[i]
                 g = sp.Symbol(i)
                 sympyexpr = sympyexpr.subs(g, d)
+
+            sympysyms_list = []
+            T = None
+            for i in list(self._tdb.elements):
+                for j in sympyexpr.free_symbols:
+                    if j.name == phase_id+"0"+i: 
+                        #this may need additional work for phases with sublattices...
+                        sympysyms_list.append(j)
+                    if j.name == "T":
+                        T = j
+            sympysyms_list = sorted(sympysyms_list, key=lambda t:t.name)
+            sympysyms_list.append(T)
             
             if(self._framework == "CPU_SERIAL" or self._framework == "CPU_PARALLEL"):
                 #use numpy for CPUs
@@ -248,11 +255,17 @@ class Simulation:
         if(self._framework == "GPU_SERIAL" or self._framework == "GPU_PARALLEL"): 
             """parallel not yet implemented!"""
             self._uses_gpu = True
-        self.init_boundary_conditions()
-        self.init_temperature_field()
         self.init_tdb_params()
+        self.init_temperature_field()
+        self.init_fields()
+        self.init_boundary_conditions()
+        
+        
+            
+    def just_before_simulating(self): 
         if(self._uses_gpu):
             self.send_fields_to_GPU()
+        self.apply_boundary_conditions()
                 
     def simulation_loop(self):
         pass
@@ -359,8 +372,7 @@ class Simulation:
             self.temperature.data += self._time_step_counter*self._dTdt*self.dt
         if(self._temperature_type == "XDMF_FILE"):
             self.update_temperature_field()
-        if(self._uses_gpu):
-            self.send_fields_to_GPU()
+        self._begun_simulation = False
         return 0
     
     def save_simulation(self):
@@ -376,14 +388,14 @@ class Simulation:
 
         # Save array with path
         if not self._save_path:
-            engine_name = self._engine.__name__
-            print("Simulation.save_path not specified, saving to /data/"+engine_name)
-            save_loc = Path.cwd().joinpath("data/", engine_name)
+            #if save path is not defined, do not save, just return
+            print("self._save_path not defined, aborting save!")
+            return
         else:
             save_loc = Path(self._save_path)
         save_loc.mkdir(parents=True, exist_ok=True)
 
-        np.savez(str(save_loc) + "/step_" + str(self._time_step_counter), **save_dict)
+        np.savez(str(save_loc) + "/step_" + str(self.time_step_counter), **save_dict)
         return 0
     
     def plot_simulation(self, fields=None, interpolation="bicubic", units="cells", save_images="False", size=None, norm=False):
@@ -505,11 +517,14 @@ class Simulation:
         self._autosave_flag = autosave_flag
     def set_autosave_save_images_flag(self, autosave_save_images_flag):
         self._autosave_save_images_flag = autosave_save_images_flag
-    def set_autosave_rate(self, autosave_rate)
+    def set_autosave_rate(self, autosave_rate):
         self._autosave_rate = autosave_rate
         
     def set_boundary_conditions(self, boundary_conditions_type):
         self._boundary_conditions_type = boundary_conditions_type
+        
+    def set_user_data(self, data):
+        self.user_data = data
 
     def set_debug_mode_flag(self, debug_mode_flag):
         self._debug_mode_flag = debug_mode_flag

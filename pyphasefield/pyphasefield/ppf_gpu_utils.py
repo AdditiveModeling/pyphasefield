@@ -404,6 +404,15 @@ def send_fields_to_GPU(sim):
         fields.append(sim.fields[i].data)
     fields = np.array(fields)
     sim._fields_gpu_device = cuda.to_device(fields)
+    sim._fields_out_gpu_device = cuda.device_array_like(fields)
+    if not (sim._num_transfer_arrays is None):
+        dim = sim.dimensions.copy()
+        dim.insert(0, sim._num_transfer_arrays)
+        sim._fields_transfer_gpu_device = cuda.device_array_like(np.zeros(dim))
+    if not (sim._tdb_ufunc_input_size is None):
+        dim = sim.dimensions.copy()
+        dim.append(sim._tdb_ufunc_input_size)
+        sim._tdb_ufunc_gpu_device = cuda.device_array_like(np.zeros(dim))
     sim._boundary_conditions_gpu_device = cuda.to_device(sim._boundary_conditions_array)
         
         
@@ -418,10 +427,10 @@ def apply_boundary_conditions(sim):
     bc = sim._boundary_conditions_type
     if not isinstance(bc, list):
         l = []
-        for i in range(len(sim.dimensions.shape)):
+        for i in range(len(sim.dimensions)):
             l.append(bc)
         bc = l
-    if(len(sim.dimensions.shape) == 1):
+    if(len(sim.dimensions) == 1):
         if(bc[0] == "PERIODIC"):
             periodic_bc_1D_x_kernel[sim._gpu_blocks_per_grid_1D, sim._gpu_threads_per_block_1D](sim._fields_gpu_device)
             if not(sim._temperature_gpu_device is None):
@@ -435,7 +444,7 @@ def apply_boundary_conditions(sim):
             if not(sim._temperature_gpu_device is None):
                 neumann_bc_1D_x_single_kernel[sim._gpu_blocks_per_grid_1D, sim._gpu_threads_per_block_1D](sim._temperature_gpu_device)
     
-    elif(len(sim.dimensions.shape) == 2):
+    elif(len(sim.dimensions) == 2):
         if(bc[0] == "PERIODIC"):
             periodic_bc_2D_x_kernel[sim._gpu_blocks_per_grid_2D, sim._gpu_threads_per_block_2D](sim._fields_gpu_device)
             if not(sim._temperature_gpu_device is None):
@@ -461,7 +470,7 @@ def apply_boundary_conditions(sim):
             if not(sim._temperature_gpu_device is None):
                 neumann_bc_2D_y_single_kernel[sim._gpu_blocks_per_grid_2D, sim._gpu_threads_per_block_2D](sim._temperature_gpu_device)
     
-    elif(len(sim.dimensions.shape) == 3):
+    elif(len(sim.dimensions) == 3):
         if(bc[0] == "PERIODIC"):
             periodic_bc_3D_x_kernel[sim._gpu_blocks_per_grid_3D, sim._gpu_threads_per_block_3D](sim._fields_gpu_device)
             if not(sim._temperature_gpu_device is None):

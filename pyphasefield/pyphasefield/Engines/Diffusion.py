@@ -528,7 +528,7 @@ def init_Diffusion(sim, dim, solver="explicit", gmres=False, adi=False):
                     sim.set_engine(engine_CrankNicolsonDiffusion3D_ADI)
                 else:
                     sim.set_engine(engine_CrankNicolsonDiffusion3D)
-                    
+
 class Diffusion(Simulation):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -552,7 +552,7 @@ class Diffusion(Simulation):
         self.add_field(c, "c")
         
     def just_before_simulating(self):
-        
+        pass
         
     def simulation_loop(self):
         dt = self.dt
