@@ -78,8 +78,8 @@ def AnisoDorr_kernel(fields, T, transfer, fields_out, rng_states):
 
     #bcc = 0L = e, fcc = 1S = d
     #material parameters, J, cm, K, s (except for R and Q terms, which use joules)
-    M_qmax = 80000000. #maximum mobility of orientation, 1/(s*J)
-    H = 1e-11 #interfacial energy term for quaternions, J/(K*cm)
+    M_qmax = 240000000. #maximum mobility of orientation, 1/(s*J)
+    H = 3.33e-12 #interfacial energy term for quaternions, J/(K*cm)
 
     #material parameters, from Warren1995
     T_mA = 1728. #melting point of nickel
@@ -282,8 +282,8 @@ def AnisoDorr_helper_kernel(fields, T, transfer, rng_states):
 
     #bcc = 0L = e, fcc = 1S = d
     #material parameters, J, cm, K, s (except for R and Q terms, which use joules)
-    M_qmax = 80000000. #maximum mobility of orientation, 1/(s*J)
-    H = 1e-11 #interfacial energy term for quaternions, J/(K*cm)
+    M_qmax = 240000000. #maximum mobility of orientation, 1/(s*J)
+    H = 3.33e-12 #interfacial energy term for quaternions, J/(K*cm)
 
     #material parameters, from Warren1995
     T_mA = 1728. #melting point of nickel
@@ -468,7 +468,7 @@ def init_AnisoDorrGPU(sim, dim=[200,200], sim_type="seed", number_of_seeds=1, td
     ufunc_array_dim.append(len(sim._components)+1)
     sim.ufunc_array = cuda.device_array(ufunc_array_dim)
     
-class AnisoDorrGPU(Simulation):
+class Pathway_YNNNN(Simulation):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         #additional initialization code goes below

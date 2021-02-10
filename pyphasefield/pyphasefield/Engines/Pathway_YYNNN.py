@@ -78,8 +78,8 @@ def AnisoDorr_kernel(fields, T, transfer, fields_out, rng_states):
 
     #bcc = 0L = e, fcc = 1S = d
     #material parameters, J, cm, K, s (except for R and Q terms, which use joules)
-    M_qmax = 80000000. #maximum mobility of orientation, 1/(s*J)
-    H = 1e-11 #interfacial energy term for quaternions, J/(K*cm)
+    M_qmax = 800000. #maximum mobility of orientation, 1/(s*J)
+    H = 1e-9 #interfacial energy term for quaternions, J/(K*cm)
 
     #material parameters, from Warren1995
     T_mA = 1728. #melting point of nickel
@@ -107,8 +107,8 @@ def AnisoDorr_kernel(fields, T, transfer, fields_out, rng_states):
     eqbar = 0.5*ebar
     W_A = 3.*s_A/(math.sqrt(2.)*T_mA*d)
     W_B = 3.*s_B/(math.sqrt(2.)*T_mB*d)
-    M_A = T_mA*T_mA*B_A/(6.*math.sqrt(2.)*L_A*d)
-    M_B = T_mB*T_mB*B_B/(6.*math.sqrt(2.)*L_B*d)
+    M_A = T_mA*B_A/(6.*math.sqrt(2.)*L_A*d)
+    M_B = T_mB*B_B/(6.*math.sqrt(2.)*L_B*d)
     
     phi = fields[0]
     q1 = fields[1]
@@ -165,8 +165,8 @@ def AnisoDorr_kernel(fields, T, transfer, fields_out, rng_states):
                 gprime = _gprime(phi[i][j])
 
                 #bulk energy terms, using ideal solution model from Warren1995
-                H_A = W_A*gprime - 30*L_A*(1/T-1/T_mA)*g
-                H_B = W_B*gprime - 30*L_B*(1/T-1/T_mB)*g
+                H_A = W_A*gprime*T - 30*L_A*(1-T/T_mA)*g
+                H_B = W_B*gprime*T - 30*L_B*(1-T/T_mB)*g
                 
                 #quaternion gradient terms
                 gq1_xm = (q1[i][j]-q1[i][j-1])*idx
@@ -210,7 +210,7 @@ def AnisoDorr_kernel(fields, T, transfer, fields_out, rng_states):
                 pf_comp_x = 0.5*idx*(pf_comp_xmm[i][j+1] + pf_comp_xmm[i+1][j+1] - pf_comp_xmm[i][j] - pf_comp_xmm[i+1][j])
                 pf_comp_y = 0.5*idx*(pf_comp_ymm[i+1][j] + pf_comp_ymm[i+1][j+1] - pf_comp_ymm[i][j] - pf_comp_ymm[i][j+1])
                 M_phi = (1-c[i][j])*M_A + c[i][j]*M_B
-                deltaphi = M_phi*(ebar*ebar*((1-3*y_e)*lphi + pf_comp_x + pf_comp_y)-(1-c[i][j])*H_A-c[i][j]*H_B-2*H*T*pp*rgqs_0)
+                deltaphi = M_phi*(ebar*ebar*((1-3*y_e)*T*lphi + pf_comp_x + pf_comp_y)-(1-c[i][j])*H_A-c[i][j]*H_B-2*H*T*pp*rgqs_0)
                 rand = cuda.random.xoroshiro128p_uniform_float32(rng_states, threadId)
                 alpha = 0.3
                 deltaphi += M_phi*alpha*rand*(16*g)*((1-c[i][j])*H_A+c[i][j]*H_B)
@@ -233,8 +233,8 @@ def AnisoDorr_kernel(fields, T, transfer, fields_out, rng_states):
                 cc_t1_temp = 0.25*(t1_temp[i][j]+t1_temp[i+1][j]+t1_temp[i][j+1]+t1_temp[i+1][j+1])
                 cc_t4_temp = 0.25*(t4_temp[i][j]+t4_temp[i+1][j]+t4_temp[i][j+1]+t4_temp[i+1][j+1])
 
-                t1 = eqbar*eqbar*lq1+(gaq1) + cc_t1_temp
-                t4 = eqbar*eqbar*lq4+(gaq4) + cc_t4_temp
+                t1 = eqbar*eqbar*lq1+(gaq1) #+ cc_t1_temp
+                t4 = eqbar*eqbar*lq4+(gaq4) #+ cc_t4_temp
                 lmbda = (q1[i][j]*t1+q4[i][j]*t4)
                 deltaq1 = M_q*(t1-q1[i][j]*lmbda)
                 deltaq4 = M_q*(t4-q4[i][j]*lmbda)
@@ -282,8 +282,8 @@ def AnisoDorr_helper_kernel(fields, T, transfer, rng_states):
 
     #bcc = 0L = e, fcc = 1S = d
     #material parameters, J, cm, K, s (except for R and Q terms, which use joules)
-    M_qmax = 80000000. #maximum mobility of orientation, 1/(s*J)
-    H = 1e-11 #interfacial energy term for quaternions, J/(K*cm)
+    M_qmax = 800000. #maximum mobility of orientation, 1/(s*J)
+    H = 1e-9 #interfacial energy term for quaternions, J/(K*cm)
 
     #material parameters, from Warren1995
     T_mA = 1728. #melting point of nickel
@@ -332,8 +332,8 @@ def AnisoDorr_helper_kernel(fields, T, transfer, rng_states):
             gprime = _gprime(phi[i][j])
             h = _h(phi[i][j])
             m = 1-h;
-            H_A = W_A*gprime - 30*L_A*(1/T-1/T_mA)*g
-            H_B = W_B*gprime - 30*L_B*(1/T-1/T_mB)*g
+            H_A = W_A*gprime*T - 30.*L_A*(1.-T/T_mA)*g
+            H_B = W_B*gprime*T - 30.*L_B*(1.-T/T_mB)*g
             
             #vertex_averaged_gphi
             gphi_xmm = 0.5*(phi[i][j]-phi[i][j-1]+phi[i-1][j]-phi[i-1][j-1])*idx
@@ -358,21 +358,21 @@ def AnisoDorr_helper_kernel(fields, T, transfer, rng_states):
 
             #change in c
             D_C[i][j] = D_S+m*(D_L-D_S)
-            temp[i][j] = D_C[i][j]*v_m*c[i][j]*(1-c[i][j])*(H_B-H_A)/R
+            temp[i][j] = D_C[i][j]*v_m*c[i][j]*(1-c[i][j])*(H_B-H_A)/(R*T)
 
             #change in phi
             psix3 = gpsi_xmm*gpsi_xmm*gpsi_xmm
             psiy3 = gpsi_ymm*gpsi_ymm*gpsi_ymm
-            pf_comp_xmm[i][j] = 4*y_e*((2*a2_b2*psix3 + 2*ab2*psiy3)/mgphi2_mm - gphi_xmm*(psix3*gphi_xmm + psiy3*gphi_ymm)/(mgphi2_mm*mgphi2_mm))
-            pf_comp_ymm[i][j] = 4*y_e*((2*a2_b2*psiy3 - 2*ab2*psix3)/mgphi2_mm - gphi_ymm*(psix3*gphi_xmm + psiy3*gphi_ymm)/(mgphi2_mm*mgphi2_mm))
+            pf_comp_xmm[i][j] = 4*T*y_e*((2*a2_b2*psix3 + 2*ab2*psiy3)/mgphi2_mm - gphi_xmm*(psix3*gphi_xmm + psiy3*gphi_ymm)/(mgphi2_mm*mgphi2_mm))
+            pf_comp_ymm[i][j] = 4*T*y_e*((2*a2_b2*psiy3 - 2*ab2*psix3)/mgphi2_mm - gphi_ymm*(psix3*gphi_xmm + psiy3*gphi_ymm)/(mgphi2_mm*mgphi2_mm))
 
             q1px = q1_mm*gphi_xmm
             q1py = q1_mm*gphi_ymm
             q4px = q4_mm*gphi_xmm
             q4py = q4_mm*gphi_ymm
 
-            t1_temp[i][j] = (16*ebar*ebar*y_e/mgphi2_mm)*(psi_xyy*(q1px - q4py) + psi_xxy*(q1py + q4px))
-            t4_temp[i][j] = (16*ebar*ebar*y_e/mgphi2_mm)*(psi_xyy*(-q4px - q1py) + psi_xxy*(-q4py + q1px))
+            t1_temp[i][j] = (16*ebar*ebar*T*y_e/mgphi2_mm)*(psi_xyy*(q1px - q4py) + psi_xxy*(q1py + q4px))
+            t4_temp[i][j] = (16*ebar*ebar*T*y_e/mgphi2_mm)*(psi_xyy*(-q4px - q1py) + psi_xxy*(-q4py + q1px))
                 
 def make_seed(phi, q1, q4, x, y, angle, seed_radius):
     shape = phi.shape
@@ -468,7 +468,7 @@ def init_AnisoDorrGPU(sim, dim=[200,200], sim_type="seed", number_of_seeds=1, td
     ufunc_array_dim.append(len(sim._components)+1)
     sim.ufunc_array = cuda.device_array(ufunc_array_dim)
     
-class AnisoDorrGPU(Simulation):
+class Pathway_YYNNN(Simulation):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         #additional initialization code goes below

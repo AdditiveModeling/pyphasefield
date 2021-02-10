@@ -92,8 +92,8 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
             dphidy3 = dphidy2*dphidy
             dTdx = 0.5*idx*(T[i][j+1]-T[i][j-1])
             dTdy = 0.5*idx*(T[i+1][j]-T[i-1][j])
-            d2phidx2 = (phi[i][j+1]+phi[i][j-1]-2*phi[i][j])*idx*idx
-            d2phidy2 = (phi[i+1][j]+phi[i-1][j]-2*phi[i][j])*idx*idx
+            d2phidx2 = (phi[i][j+1]+phi[i][j-1]-2.*phi[i][j])*idx*idx
+            d2phidy2 = (phi[i+1][j]+phi[i-1][j]-2.*phi[i][j])*idx*idx
             lphi = d2phidx2 + d2phidy2
             d2phidxy = 0.25*(phi[i+1][j+1]-phi[i+1][j-1]-phi[i-1][j+1]+phi[i-1][j-1])*idx*idx
             mag_grad_phi2 = dphidx**2 + dphidy**2
@@ -122,7 +122,7 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
             
             #psi terms
             q2q2 = (q1[i][j]**2 - q4[i][j]**2)
-            qq2 = 2*q1[i][j]*q4[i][j]
+            qq2 = 2.*q1[i][j]*q4[i][j]
             psix = q2q2*dphidx - qq2*dphidy
             psiy = qq2*dphidx + q2q2*dphidy
             psix2 = psix**2
@@ -132,28 +132,28 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
             psiy3 = psiy2*psiy
             psiy4 = psiy2**2
             #eta = 1. - 3.*y_e + 4.*y_e*(psix**4 + psiy**4)/mag_grad_phi4
-            dq2q2dx = (2*q1[i][j]*dq1dx - 2*q4[i][j]*dq4dx)
-            dqq2dx = (2*q4[i][j]*dq1dx + 2*q1[i][j]*dq4dx)
-            dq2q2dy = (2*q1[i][j]*dq1dy - 2*q4[i][j]*dq4dy)
-            dqq2dy = (2*q4[i][j]*dq1dy + 2*q1[i][j]*dq4dy)
+            dq2q2dx = (2.*q1[i][j]*dq1dx - 2.*q4[i][j]*dq4dx)
+            dqq2dx = (2.*q4[i][j]*dq1dx + 2.*q1[i][j]*dq4dx)
+            dq2q2dy = (2*q1[i][j]*dq1dy - 2.*q4[i][j]*dq4dy)
+            dqq2dy = (2.*q4[i][j]*dq1dy + 2.*q1[i][j]*dq4dy)
             dpsixdx = dq2q2dx*dphidx + q2q2*d2phidx2 - dqq2dx*dphidy - qq2*d2phidxy
             dpsixdy = dq2q2dy*dphidx + q2q2*d2phidxy - dqq2dy*dphidy - qq2*d2phidy2
             dpsiydx = dq2q2dx*dphidy + q2q2*d2phidxy + dqq2dx*dphidx + qq2*d2phidx2
             dpsiydy = dq2q2dy*dphidy + q2q2*d2phidy2 + dqq2dy*dphidx + qq2*d2phidxy
             
-            d_term_dx = dTdx*((2*psix3*q2q2 + 2*psiy3*qq2)/mag_grad_phi2 - dphidx*(psix4+psiy4)/mag_grad_phi4)
-            d_term_dx += T[i][j]*(6*psix2*dpsixdx*q2q2 + 2*psix3*dq2q2dx + 6*psiy2*dpsiydx*qq2 + 2*psiy3*dqq2dx)/mag_grad_phi2
-            d_term_dx -= T[i][j]*(2*psix3*q2q2 + 2*psiy3*qq2)*(2*dphidx*d2phidx2 + 2*dphidy*d2phidxy)/mag_grad_phi4
-            d_term_dx -= T[i][j]*(d2phidx2*(psix4+psiy4) + dphidx*(4*psix3*dpsixdx + 4*psiy3*dpsiydx))/mag_grad_phi4
-            d_term_dx += T[i][j]*(dphidx*(psix4+psiy4)*(4*dphidx3*d2phidx2 + 4*dphidx*d2phidx2*dphidy2 + 4*dphidy*d2phidxy*dphidx2 + 4*dphidy3*d2phidxy))/mag_grad_phi8
-            d_term_dx *= (4*y_e*ebar2)
+            d_term_dx = dTdx*((2.*psix3*q2q2 + 2.*psiy3*qq2)/mag_grad_phi2 - dphidx*(psix4+psiy4)/mag_grad_phi4)
+            d_term_dx += T[i][j]*(6.*psix2*dpsixdx*q2q2 + 2.*psix3*dq2q2dx + 6.*psiy2*dpsiydx*qq2 + 2.*psiy3*dqq2dx)/mag_grad_phi2
+            d_term_dx -= T[i][j]*(2.*psix3*q2q2 + 2.*psiy3*qq2)*(2.*dphidx*d2phidx2 + 2.*dphidy*d2phidxy)/mag_grad_phi4
+            d_term_dx -= T[i][j]*(d2phidx2*(psix4+psiy4) + dphidx*(4.*psix3*dpsixdx + 4.*psiy3*dpsiydx))/mag_grad_phi4
+            d_term_dx += T[i][j]*(dphidx*(psix4+psiy4)*(4.*dphidx3*d2phidx2 + 4.*dphidx*d2phidx2*dphidy2 + 4.*dphidy*d2phidxy*dphidx2 + 4.*dphidy3*d2phidxy))/mag_grad_phi8
+            d_term_dx *= (4.*y_e*ebar2)
             
-            d_term_dy = dTdy*((-2*psix3*qq2 + 2*psiy3*q2q2)/mag_grad_phi2 - dphidy*(psix4+psiy4)/mag_grad_phi4)
-            d_term_dy += T[i][j]*(-6*psix2*dpsixdy*qq2 - 2*psix3*dqq2dy + 6*psiy2*dpsiydy*q2q2 + 2*psiy3*dq2q2dy)/mag_grad_phi2
-            d_term_dy -= T[i][j]*(-2*psix3*qq2 + 2*psiy3*q2q2)*(2*dphidx*d2phidxy + 2*dphidy*d2phidy2)/mag_grad_phi4
-            d_term_dy -= T[i][j]*(d2phidy2*(psix4+psiy4) + dphidy*(4*psix3*dpsixdy + 4*psiy3*dpsiydy))/mag_grad_phi4
-            d_term_dy += T[i][j]*(dphidy*(psix4+psiy4)*(4*dphidx3*d2phidxy + 4*dphidx*d2phidxy*dphidy2 + 4*dphidy*d2phidy2*dphidx2 + 4*dphidy3*d2phidy2))/mag_grad_phi8
-            d_term_dy *= (4*y_e*ebar2)
+            d_term_dy = dTdy*((-2.*psix3*qq2 + 2.*psiy3*q2q2)/mag_grad_phi2 - dphidy*(psix4+psiy4)/mag_grad_phi4)
+            d_term_dy += T[i][j]*(-6.*psix2*dpsixdy*qq2 - 2.*psix3*dqq2dy + 6.*psiy2*dpsiydy*q2q2 + 2.*psiy3*dq2q2dy)/mag_grad_phi2
+            d_term_dy -= T[i][j]*(-2.*psix3*qq2 + 2.*psiy3*q2q2)*(2.*dphidx*d2phidxy + 2.*dphidy*d2phidy2)/mag_grad_phi4
+            d_term_dy -= T[i][j]*(d2phidy2*(psix4+psiy4) + dphidy*(4.*psix3*dpsixdy + 4.*psiy3*dpsiydy))/mag_grad_phi4
+            d_term_dy += T[i][j]*(dphidy*(psix4+psiy4)*(4.*dphidx3*d2phidxy + 4.*dphidx*d2phidxy*dphidy2 + 4.*dphidy*d2phidy2*dphidx2 + 4.*dphidy3*d2phidy2))/mag_grad_phi8
+            d_term_dy *= (4.*y_e*ebar2)
             
             #c_N stuff
             cW = 0.
@@ -173,11 +173,11 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
             #M_phi *= eta
             
             #dphidt
-            dphidt = ebar2*(1-3*y_e)*(T[i][j]*lphi + dTdx*dphidx + dTdy*dphidy)
+            dphidt = ebar2*(1.-3.*y_e)*(T[i][j]*lphi + dTdx*dphidx + dTdy*dphidy)
             dphidt += d_term_dx + d_term_dy
             dphidt -= hprime*(G_S[i][j] - G_L[i][j])/v_m
             dphidt -= gprime*T[i][j]*cW
-            dphidt -= 4*H*T[i][j]*phi[i][j]*mag_grad_q
+            dphidt -= 4.*H*T[i][j]*phi[i][j]*mag_grad_q
             dphidt *= M_phi
             
             #noise in phi
@@ -210,18 +210,18 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
             f_ori_4 = f_ori_term(D_q, D_q_xp, D_q_xm, D_q_yp, D_q_ym, mgq_xp, mgq_xm, mgq_yp, mgq_ym,
                                  q4[i][j], q4[i][j+1], q4[i][j-1], q4[i+1][j], q4[i-1][j], idx)
             
-            dfintdq1 = 16.*ebar2*T[i][j]*y_e/mag_grad_phi2 * (psix3*(q1[i][j]*dphidx - q4[i][j]*dphidy) + psiy3*(q4[i][j]*dphidx + q1[i][j]*dphidy))
-            dfintdq4 = 16.*ebar2*T[i][j]*y_e/mag_grad_phi2 * (psix3*(-q4[i][j]*dphidx - q1[i][j]*dphidy) + psiy3*(q1[i][j]*dphidx - q4[i][j]*dphidy))
-            #dfintdq1 = 0. #use these blocks to zero out twisting in quaternion fields to lower interfacial energy
-            #dfintdq4 = 0.
+            #dfintdq1 = 16.*ebar2*T[i][j]*y_e/mag_grad_phi2 * (psix3*(q1[i][j]*dphidx - q4[i][j]*dphidy) + psiy3*(q4[i][j]*dphidx + q1[i][j]*dphidy))
+            #dfintdq4 = 16.*ebar2*T[i][j]*y_e/mag_grad_phi2 * (psix3*(-q4[i][j]*dphidx - q1[i][j]*dphidy) + psiy3*(q1[i][j]*dphidx - q4[i][j]*dphidy))
+            dfintdq1 = 0. #use these blocks to zero out twisting in quaternion fields to lower interfacial energy
+            dfintdq4 = 0.
             
             lq1 = (q1[i][j+1]+q1[i][j-1]+q1[i+1][j]+q1[i-1][j]-4*q1[i][j])*idx*idx
             lq4 = (q4[i][j+1]+q4[i][j-1]+q4[i+1][j]+q4[i-1][j]-4*q4[i][j])*idx*idx
             
             #noise_q1 = math.sqrt(8.314*T[i][j]/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
             #noise_q4 = math.sqrt(8.314*T[i][j]/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
-            noise_q1 = 0
-            noise_q4 = 0
+            noise_q1 = 0.
+            noise_q4 = 0.
             
             dq1dt = M_q*((1-q1[i][j]**2)*(f_ori_1+lq1*eqbar2-dfintdq1+noise_q1) - q1[i][j]*q4[i][j]*(f_ori_4+lq4*eqbar2-dfintdq4+noise_q4))
             dq4dt = M_q*((1-q4[i][j]**2)*(f_ori_4+lq4*eqbar2-dfintdq4+noise_q4) - q1[i][j]*q4[i][j]*(f_ori_1+lq1*eqbar2-dfintdq1+noise_q1))
@@ -388,12 +388,13 @@ class NCGPU(Simulation):
                 except:
                     print("self.user_data[\"melt_angle\"] not defined, defaulting to 0")
                     melt_angle = 0*np.pi/8
-                q1 += np.cos(melt_angle)
-                q4 += np.sin(melt_angle)
+                #angle is halved because that is how quaternions do
+                q1 += np.cos(0.5*melt_angle)
+                q4 += np.sin(0.5*melt_angle)
                 try:
                     seed_angle = self.user_data["seed_angle"]
                 except:
-                    print("self.user_data[\"melt_angle\"] not defined, defaulting to pi/4")
+                    print("self.user_data[\"seed_angle\"] not defined, defaulting to pi/4")
                     seed_angle = 1*np.pi/4
                 phi, q1, q4 = make_seed(phi, q1, q4, dim[1]/2, dim[0]/2, seed_angle, 5)
                 self.add_field(phi, "phi", colormap=COLORMAP_PHASE)
@@ -418,8 +419,9 @@ class NCGPU(Simulation):
                 q1 = np.zeros(dim)
                 q4 = np.zeros(dim)
                 melt_angle = 0*np.pi/8
-                q1 += np.cos(melt_angle)
-                q4 += np.sin(melt_angle)
+                #angle is halved because that is how quaternions do
+                q1 += np.cos(0.5*melt_angle)
+                q4 += np.sin(0.5*melt_angle)
 
                 for j in range(number_of_seeds):
                     seed_angle = (np.random.rand()-0.5)*np.pi/2
@@ -450,8 +452,9 @@ class NCGPU(Simulation):
             q1 = np.zeros(dim)
             q4 = np.zeros(dim)
             melt_angle = 0
-            q1 += np.cos(melt_angle)
-            q4 += np.sin(melt_angle)
+            #angle is halved because that is how quaternions do
+            q1 += np.cos(0.5*melt_angle)
+            q4 += np.sin(0.5*melt_angle)
             self.add_field(phi, "phi", colormap=COLORMAP_PHASE)
             self.add_field(q1, "q1")
             self.add_field(q4, "q4")

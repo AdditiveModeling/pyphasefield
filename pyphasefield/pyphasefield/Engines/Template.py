@@ -14,6 +14,7 @@ class Template(Simulation):
         #initialization of fields code goes here
         #runs *after* tdb and thermal data is loaded/initialized
         #runs *before* boundary conditions are initialized
+        pass
         
         
     def initialize_fields_and_imported_data(self):
@@ -28,3 +29,4 @@ class Template(Simulation):
         
     def simulation_loop(self):
         #code to run each simulation step goes here
+        pass

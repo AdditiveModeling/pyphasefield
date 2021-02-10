@@ -194,8 +194,8 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
             
             #dphidt
             dphidt = ebar2*(1-3*y_e)*(T[i][j]*lphi + dTdx*dphidx + dTdy*dphidy)
-            pf_comp_x = 0.5*idx*(pf_comp_xmm[i][j+1] + pf_comp_xmm[i+1][j+1] - pf_comp_xmm[i][j] - pf_comp_xmm[i+1][j])
-            pf_comp_y = 0.5*idx*(pf_comp_ymm[i+1][j] + pf_comp_ymm[i+1][j+1] - pf_comp_ymm[i][j] - pf_comp_ymm[i][j+1])
+            #pf_comp_x = 0.5*idx*(pf_comp_xmm[i][j+1] + pf_comp_xmm[i+1][j+1] - pf_comp_xmm[i][j] - pf_comp_xmm[i+1][j])
+            #pf_comp_y = 0.5*idx*(pf_comp_ymm[i+1][j] + pf_comp_ymm[i+1][j+1] - pf_comp_ymm[i][j] - pf_comp_ymm[i][j+1])
             #dphidt += pf_comp_x + pf_comp_y
             dphidt += d_term_dx + d_term_dy
             dphidt -= hprime*(G_S[i][j] - G_L[i][j])/v_m
@@ -464,12 +464,13 @@ class NCGPU_OLDQ(Simulation):
                 except:
                     print("self.user_data[\"melt_angle\"] not defined, defaulting to 0")
                     melt_angle = 0*np.pi/8
-                q1 += np.cos(melt_angle)
-                q4 += np.sin(melt_angle)
+                #angle is halved because that is how quaternions do
+                q1 += np.cos(0.5*melt_angle)
+                q4 += np.sin(0.5*melt_angle)
                 try:
                     seed_angle = self.user_data["seed_angle"]
                 except:
-                    print("self.user_data[\"melt_angle\"] not defined, defaulting to pi/4")
+                    print("self.user_data[\"seed_angle\"] not defined, defaulting to pi/4")
                     seed_angle = 1*np.pi/4
                 phi, q1, q4 = make_seed(phi, q1, q4, dim[1]/2, dim[0]/2, seed_angle, 5)
                 self.add_field(phi, "phi", colormap=COLORMAP_PHASE)
@@ -493,9 +494,10 @@ class NCGPU_OLDQ(Simulation):
                 phi = np.zeros(dim)
                 q1 = np.zeros(dim)
                 q4 = np.zeros(dim)
-                melt_angle = 0*np.pi/8
-                q1 += np.cos(melt_angle)
-                q4 += np.sin(melt_angle)
+                melt_angle = 0.*np.pi/8.
+                #angle is halved because that is how quaternions do
+                q1 += np.cos(0.5*melt_angle)
+                q4 += np.sin(0.5*melt_angle)
 
                 for j in range(number_of_seeds):
                     seed_angle = (np.random.rand()-0.5)*np.pi/2
@@ -525,9 +527,10 @@ class NCGPU_OLDQ(Simulation):
             phi = np.zeros(dim)
             q1 = np.zeros(dim)
             q4 = np.zeros(dim)
-            melt_angle = 0
-            q1 += np.cos(melt_angle)
-            q4 += np.sin(melt_angle)
+            melt_angle = 0.
+            #angle is halved because that is how quaternions do
+            q1 += np.cos(0.5*melt_angle)
+            q4 += np.sin(0.5*melt_angle)
             self.add_field(phi, "phi", colormap=COLORMAP_PHASE)
             self.add_field(q1, "q1")
             self.add_field(q4, "q4")
