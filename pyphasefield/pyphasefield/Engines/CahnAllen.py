@@ -211,7 +211,7 @@ def functional_CahnAllen():
     print("Explicit: $$ \\frac{\\phi^{t+1}_x-\\phi^{t}_x}{\\Delta t} = \\frac{\\epsilon^2M}{\\Delta x^2}(\\phi_{x+1}^{t} + \\phi_{x-1}^{t} - 2\\phi_{x}^{t}) - M(4(\\phi_{x}^{t})^3 -6(\\phi_{x}^{t})^2 + 2\\phi_{x}^{t}) $$")
     print("Semi-Implicit: $$ \\frac{\\phi^{t+1}_x-\\phi^{t}_x}{\\Delta t} = \\frac{\\epsilon^2M}{\\Delta x^2}(\\phi_{x+1}^{t+1} + \\phi_{x-1}^{t+1} - 2\\phi_{x}^{t+1}) - M\\phi_{x}^{t+1}(4\\phi_{x}^{t^2} -6\\phi_{x}^{t} + 2) $$")
     
-class Template(Simulation):
+class CahnAllen(Simulation):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         #additional initialization code goes below
@@ -249,6 +249,9 @@ class Template(Simulation):
         
     def simulation_loop(self):
         #code to run each simulation step goes here
+        solver = self.user_data["solver"]
+        gmres = self.user_data["gmres"]
+        adi = self.user_data["adi"]
         if (solver == "explicit"):
             engine_CahnAllenExplicit(self)
         elif (solver == "implicit"):

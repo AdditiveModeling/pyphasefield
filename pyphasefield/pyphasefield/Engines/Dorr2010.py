@@ -1,5 +1,7 @@
 import numpy as np
 
+#NOT updated, do not use yet!
+
 def __h(phi):
     return phi*phi*phi*(10-15*phi+6*phi*phi)
 

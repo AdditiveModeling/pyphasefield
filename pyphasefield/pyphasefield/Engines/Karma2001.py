@@ -2,6 +2,8 @@ import numpy as np
 from ..field import Field
 from ..utils import COLORMAP_OTHER, COLORMAP_PHASE
 
+#NOT updated, do not use yet!
+
 def _q(phi):
     return (1.-phi)/2.
 
