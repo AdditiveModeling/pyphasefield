@@ -1,3 +1,17 @@
+try:
+    #import from within Engines folder
+    from ..field import Field
+    from ..simulation import Simulation
+    from ..ppf_utils import COLORMAP_OTHER, COLORMAP_PHASE
+except:
+    try:
+        #import classes from pyphasefield library
+        from pyphasefield.field import Field
+        from pyphasefield.simulation import Simulation
+        from pyphasefield.ppf_utils import COLORMAP_OTHER, COLORMAP_PHASE
+    except:
+        raise ImportError("Cannot import from pyphasefield library!")
+
 class Template(Simulation):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
