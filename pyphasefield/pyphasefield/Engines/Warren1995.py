@@ -1,6 +1,18 @@
 import numpy as np
-from ..field import Field
-from ..ppf_utils import COLORMAP_OTHER, COLORMAP_PHASE_INV
+
+try:
+    #import from within Engines folder
+    from ..field import Field
+    from ..simulation import Simulation
+    from ..ppf_utils import COLORMAP_OTHER, COLORMAP_PHASE_INV
+except:
+    try:
+        #import classes from pyphasefield library
+        from pyphasefield.field import Field
+        from pyphasefield.simulation import Simulation
+        from pyphasefield.ppf_utils import COLORMAP_OTHER, COLORMAP_PHASE_INV
+    except:
+        raise ImportError("Cannot import from pyphasefield library!")
 
 def __p(phi):
     return phi*phi*phi*(10-15*phi+6*phi*phi)
