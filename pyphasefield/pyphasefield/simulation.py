@@ -153,7 +153,7 @@ class Simulation:
             if(self._temperature_path is None):
                 self._temperature_path = "T.xdmf"
             self._t_file_index = 1
-            with mio.xdmf.TimeSeriesReader(self._temperature_type) as reader:
+            with mio.xdmf.TimeSeriesReader(self._temperature_path) as reader:
                 dt = self.dt
                 step = self.time_step_counter
                 points, cells = reader.read_points_cells()
@@ -217,10 +217,10 @@ class Simulation:
             
             if(self._framework == "CPU_SERIAL" or self._framework == "CPU_PARALLEL"):
                 #use numpy for CPUs
-                self._tdb_ufuncs.append(sp.lambdify(tuple(sympysyms_list), sympyexpr+ime, 'numpy'))
+                self._tdb_ufuncs.append(sp.lambdify([sympysyms_list], sympyexpr+ime, 'numpy'))
             else: 
                 #use numba for GPUs
-                self._tdb_ufuncs.append(numba.jit(sp.lambdify(tuple(sympysyms_list), sympyexpr+ime, 'math')))
+                self._tdb_ufuncs.append(numba.jit(sp.lambdify([sympysyms_list], sympyexpr+ime, 'math')))
 
     def simulate(self, number_of_timesteps):
         """

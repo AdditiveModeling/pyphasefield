@@ -243,10 +243,7 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
 
 @numba.jit
 def get_thermodynamics(ufunc, array):
-    if(len(array) == 3):
-        G = ufunc(array[0], array[1], array[2])
-        dGdc = 10000000.*(ufunc(array[0]+0.0000001, array[1]-0.0000001, array[2])-G)
-    return G, dGdc
+    return ufunc(array[0], array[1], array[2])
             
 @cuda.jit
 def NComponent_helper_kernel(fields, T, transfer, rng_states, ufunc_array, params, c_params):
@@ -284,8 +281,13 @@ def NComponent_helper_kernel(fields, T, transfer, rng_states, ufunc_array, param
             ufunc_array[i][j][len(fields)-3] = c_N
             ufunc_array[i][j][len(fields)-2] = T[i][j]
             #dGdc = numba.cuda.local.array((2,1), numba.float64)
-            G_L[i][j], dGLdc = get_thermodynamics(ufunc_g_l, ufunc_array[i][j])
-            G_S[i][j], dGSdc = get_thermodynamics(ufunc_g_s, ufunc_array[i][j])
+            G_L[i][j] = get_thermodynamics(ufunc_g_l, ufunc_array[i][j])
+            G_S[i][j] = get_thermodynamics(ufunc_g_s, ufunc_array[i][j])
+            
+            ufunc_array[i][j][len(fields)-3] -= 0.0000001
+            ufunc_array[i][j][0] += 0.0000001
+            dGLdc = 10000000.*(get_thermodynamics(ufunc_g_l, ufunc_array[i][j]) - G_L[i][j])
+            dGSdc = 10000000.*(get_thermodynamics(ufunc_g_s, ufunc_array[i][j]) - G_S[i][j])
             
             g = (phi[i][j]**2)*(1-phi[i][j])**2
             h = (phi[i][j]**3)*(6.*phi[i][j]**2 - 15.*phi[i][j] + 10.)
@@ -372,7 +374,6 @@ class NCGPU(Simulation):
             
     def init_fields(self):
         self._num_transfer_arrays = 2*len(self._tdb_components)
-        self._tdb_ufunc_input_size = len(self._tdb_components)+1
         self.user_data["rng_states"] = create_xoroshiro128p_states(256*256, seed=3446621627)
         dim = self.dimensions
         try:
