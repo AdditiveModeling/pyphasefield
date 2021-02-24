@@ -1,0 +1,125 @@
+$ Nb-Ni-Si database, Santos et al 2015
+$ Nb-Ni : Chen & Du, Calphad 2006 30 308
+$ Nb-Si : Geng et al, Calphad 2010 34 363
+$ Ni-Si : Miettinen, Calphad 2005 29 212
+
+ ELEMENT NB   FCC_A1          92.906  5220.0  36.270 !
+ ELEMENT NI   FCC_A1          58.690  4787.0  29.796 !
+
+
+$ ************************ Phase Definitions ************************
+
+$ ************ Solution phases ************
+
+$ ************ Liquid ************
+
+ PHASE LIQUID %  1  1.0  !
+  CONSTITUENT LIQUID :NI,NB :  !
+
+$ ************ fcc ************
+
+ PHASE FCC_A1 % 1 1 !
+  CONSTITUENT FCC_A1  :NI,NB :  !
+
+$ ************************ Parameters ************************
+
+$ ***************** Reference states *****************
+
+ FUNCTION GHSERNB    298.15  -8519.353+142.045475*T-26.4711*T*LN(T)
+  +2.03475E-04*T**2-3.5012E-07*T**3+93399*T**(-1);  2750  Y
+  -37669.3+271.720843*T-41.77*T*LN(T)+1.528238E+32*T**(-9);  6000  N !
+
+ FUNCTION GHSERNI    298.15  -5179.159+117.854*T-22.096*T*LN(T)
+  -.0048407*T**2;  1728  Y
+  -27840.655+279.135*T-43.1*T*LN(T)+1.12754E+31*T**(-9);  6000  N   !
+
+$ ******************* Phase parameters *******************
+
+$ **************** Unary parameters ****************
+
+$ *** Liquid ***
+
+ PARAMETER G(LIQUID,NB;0)  298.15  +29781.555-10.816418*T
+  -3.06098E-23*T**7+GHSERNB#;  2750  Y
+  +30169.902-10.964695*T-1.528238E+32*T**(-9)+GHSERNB#;
+  6000 N  1991DIN !
+
+ PARAMETER G(LIQUID,NI;0)  298.15  +11235.527+108.457*T
+  -22.096*T*LN(T)-.0048407*T**2-3.82318E-21*T**7;  1728  Y
+   -9549.775+268.598*T-43.1*T*LN(T);  6000  N  1991DIN !
+
+$ *** fcc ***
+
+ PARAMETER G(FCC_A1,NB;0) 298.15 +13500+1.7*T+GHSERNB#;
+  6000 N 1991DIN !
+
+ PARAMETER G(FCC_A1,NI;0)  298.15  +GHSERNI#;  6000   N   1991DIN !
+
+$ **************** Binary parameters ****************
+
+$ ****** Nb-Ni: ~\citet{Chen2006}~ ******
+
+$ *** liq ***
+
+ PARAMETER L(LIQUID,NI,NB;0)  298.15  -74555-12.00495*T;
+  6000  N  2006CHE !
+ PARAMETER L(LIQUID,NI,NB;1)  298.15  +31039+19*T;
+  6000  N  2006CHE !
+ PARAMETER L(LIQUID,NI,NB;2)  298.15  42510-28.68081*T;
+  6000  N  2006CHE !
+
+$ *** fcc ***
+
+ PARAMETER L(FCC_A1,NI,NB;0)  298.15  -36499-15.24689*T;
+  6000  N  2006CHE !
+ PARAMETER L(FCC_A1,NI,NB;1)  298.15  +94812;
+  6000  N  2006CHE !
+
+
+$ ************************ List of references ************************
+
+ LIST_OF_REFERENCES
+   NUMBER SOURCE
+   1991DIN  'Dinsdale, Calphad 1991 15 137'
+   2006CHE  'Chen and Du, Calphad 2006 30 308'
+   2010GEN  'Geng et al, Calphad 2010 14 363'
+   2005MIE  'Miettinen, Calphad 2005 29 212'
+   2015ELE  'Santos et al (2015) (this work)'
+   !
+
+$ ************************ Information ************************
+
+ DATABASE_INFO Nb-Ni-Si database by Santos, Petrilli, Schon, Eleno (2015)
+ !
+
+$ Latent heat, J/cm^3 (could get this from pycalphad, but easier to just input for now!)
+FUNCTION NB_L 0 2435; 6000 N !
+FUNCTION NI_L 0 2350; 6000 N !	 
+
+$ Melting Point, K (could also get this from pycalphad)
+FUNCTION NB_TM 0 2750; 6000 N !
+FUNCTION NI_TM 0 1728; 6000 N !
+
+$ Surface energy, J/cm^2
+FUNCTION NB_S 0 0.000059; 6000 N !
+FUNCTION NI_S 0 0.000037; 6000 N !
+
+$ Linear kinetic coefficient, cm/(K*s)
+FUNCTION NB_B 0 40.0; 6000 N !
+FUNCTION NI_B 0 40.0; 6000 N !
+
+$ Molar Volume, cm^3/mol
+FUNCTION V_M 0 7.42; 6000 N !
+
+$ Diffusion of solute, cm^2/s
+FUNCTION D_L 0 0.00024; 6000 N !
+FUNCTION D_S 0 0.000000001; 6000 N !
+
+$ Orientational Mobility, 1/(s*J)
+FUNCTION M_Q 0 800000000; 6000 N !
+
+$ Orientational energy, J/(K*cm2)
+FUNCTION H 0 0.00000000001; 6000 N !
+
+$ Anisotropy
+FUNCTION Y_E 0 0.12; 6000 N !

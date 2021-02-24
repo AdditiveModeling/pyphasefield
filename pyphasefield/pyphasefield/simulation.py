@@ -205,13 +205,18 @@ class Simulation:
 
             sympysyms_list = []
             T = None
-            for i in list(self._tdb.elements):
-                for j in sympyexpr.free_symbols:
-                    if j.name == phase_id+"0"+i: 
-                        #this may need additional work for phases with sublattices...
-                        sympysyms_list.append(j)
-                    if j.name == "T":
-                        T = j
+            symbol_name_list = []
+            for i in list(self._tdb_components):
+                symbol_name_list.append(phase_id+"0"+i)
+                
+            for j in sympyexpr.free_symbols:
+                if j.name in symbol_name_list: 
+                    #this may need additional work for phases with sublattices...
+                    sympysyms_list.append(j)
+                elif j.name == "T":
+                    T = j
+                else:
+                    sympyexpr = sympyexpr.subs(j, 0)
             sympysyms_list = sorted(sympysyms_list, key=lambda t:t.name)
             sympysyms_list.append(T)
             

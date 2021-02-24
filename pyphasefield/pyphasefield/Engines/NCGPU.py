@@ -243,7 +243,7 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
 
 @numba.jit
 def get_thermodynamics(ufunc, array):
-    return ufunc(array[0], array[1], array[2])
+    return ufunc(array)
             
 @cuda.jit
 def NComponent_helper_kernel(fields, T, transfer, rng_states, ufunc_array, params, c_params):

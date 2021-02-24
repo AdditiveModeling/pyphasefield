@@ -240,6 +240,10 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
                 c_i_out = fields_out[l]
                 c_i_out[i][j] *= dt
                 c_i_out[i][j] += c_i[i][j]
+                
+@numba.jit
+def get_thermodynamics(ufunc, array):
+    return ufunc(array)
             
 @cuda.jit
 def NComponent_helper_kernel(fields, T, transfer, rng_states, ufunc_array, params, c_params):
@@ -279,27 +283,26 @@ def NComponent_helper_kernel(fields, T, transfer, rng_states, ufunc_array, param
             ufunc_array[i][j][len(fields)-2] = T[i][j]
             #dGdc = numba.cuda.local.array((2,1), numba.float64)
             #NEEDS FIXING vvvvvvvvvv
-            G_L[i][j] = ufunc_g_l(ufunc_array[i][j])
-            G_S[i][j] = ufunc_g_s(ufunc_array[i][j])
+            G_L[i][j] = get_thermodynamics(ufunc_g_l, ufunc_array[i][j])
+            G_S[i][j] = get_thermodynamics(ufunc_g_s, ufunc_array[i][j])
             
             g = (phi[i][j]**2)*(1-phi[i][j])**2
             h = (phi[i][j]**3)*(6.*phi[i][j]**2 - 15.*phi[i][j] + 10.)
             
-            #get Langevin noise, put in c_noise
-            noise_c = math.sqrt(2.*8.314*T[i][j]/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
-            #noise_c = 0.
-            
             ufunc_array[i][j][len(fields)-3] -= 0.0000001
             for l in range(3, len(fields)):
                 ufunc_array[i][j][l-3] += 0.0000001
-                dGLdc = 10000000.*(ufunc_g_l(ufunc_array[i][j])-G_L[i][j])
-                dGSdc = 10000000.*(ufunc_g_s(ufunc_array[i][j])-G_S[i][j])
+                dGLdc = 10000000.*(get_thermodynamics(ufunc_g_l, ufunc_array[i][j])-G_L[i][j])
+                dGSdc = 10000000.*(get_thermodynamics(ufunc_g_s, ufunc_array[i][j])-G_S[i][j])
                 M_c = transfer[l-1]
                 dFdc = transfer[l-1+len(fields)-3]
                 M_c[i][j] = v_m*fields[l][i][j]*(D_L + h*(D_S - D_L))/(8.314*T[i][j])
+                noise_c = math.sqrt(2.*8.314*T[i][j]/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
+                #noise_c = 0.
                 dFdc[i][j] = (dGLdc + h*(dGSdc-dGLdc))/v_m + (W[l-3]-W[len(fields)-3])*g*T[i][j]+noise_c
                 ufunc_array[i][j][l-3] -= 0.0000001
             ufunc_array[i][j][len(fields)-3] += 0.0000001
+                    
                 
 def make_seed(phi, q1, q4, x, y, angle, seed_radius):
     shape = phi.shape
@@ -375,6 +378,7 @@ class NCGPU_new(Simulation):
         self._num_transfer_arrays = 2*len(self._tdb_components)
         self._tdb_ufunc_input_size = len(self._tdb_components)+1
         self.user_data["rng_states"] = create_xoroshiro128p_states(256*256, seed=3446621627)
+        #init_xoroshiro128p_states(256*256, seed=3446621627)
         dim = self.dimensions
         try:
             sim_type = self.user_data["sim_type"]
