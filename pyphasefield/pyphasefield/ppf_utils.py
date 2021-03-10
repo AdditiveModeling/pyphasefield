@@ -2,6 +2,8 @@ from matplotlib.colors import LinearSegmentedColormap
 import matplotlib.pyplot as plt
 import meshio
 import numpy as np
+import sympy as sp
+from tinydb import where
 
 colors = [(0, 0, 1), (0, 1, 1), (0, 1, 0), (1, 1, 0), (1, 0, 0)]
 COLORMAP_OTHER = LinearSegmentedColormap.from_list('rgb', colors)
@@ -89,3 +91,67 @@ def CSVtoXDMF(csv_path, T_cutoffs=False, starting_T=None, ending_T=None, reflect
 
     finally:
         f.close()
+        
+class TDBContainer():
+    def __init__(self, tdb_path, phases=None, components=None):
+        if(successfully_imported_pycalphad):
+            import pycalphad as pyc
+        else:
+            raise Exception("Aborting, pycalphad must be installed for this class to be used")
+        self._tdb_path = tdb_path
+        self._tdb = pyc.Database(self._tdb_path)
+        self._tdb_phases = phases
+        if self._tdb_phases is None:
+            self._tdb_phases = list(self._tdb.phases)
+        self._tdb_components = components
+        if self._tdb_components is None:
+            self._tdb_components = list(self._tdb.elements)
+        self._tdb_phases.sort()
+        self._tdb_components.sort()
+        self._tdb_cpu_ufuncs = []
+        self._tdb_gpu_ufuncs = []
+        param_search = self._tdb.search
+        numba_enabled = False
+        try:
+            import numba
+            numba_enabled = True
+        except:
+            print("Cannot import numba, therefore cannot create TDB ufuncs built for GPUs")
+        for k in range(len(self._tdb_phases)):
+            phase_id = self._tdb_phases[k]
+            phase = self._tdb.phases[phase_id]
+            g_param_query = (
+                (where('phase_name') == phase.name) & \
+                ((where('parameter_type') == 'G') | \
+                (where('parameter_type') == 'L'))
+            )
+            model = pyc.Model(self._tdb, self._tdb_components, phase_id)
+            sympyexpr = model.redlich_kister_sum(phase, param_search, g_param_query)
+            ime = model.ideal_mixing_energy(self._tdb)
+            
+            for i in self._tdb.symbols:
+                d = self._tdb.symbols[i]
+                g = sp.Symbol(i)
+                sympyexpr = sympyexpr.subs(g, d)
+
+            sympysyms_list = []
+            T = None
+            symbol_name_list = []
+            for i in list(self._tdb_components):
+                symbol_name_list.append(phase_id+"0"+i)
+                
+            for j in sympyexpr.free_symbols:
+                if j.name in symbol_name_list: 
+                    #this may need additional work for phases with sublattices...
+                    sympysyms_list.append(j)
+                elif j.name == "T":
+                    T = j
+                else:
+                    sympyexpr = sympyexpr.subs(j, 0)
+            sympysyms_list = sorted(sympysyms_list, key=lambda t:t.name)
+            sympysyms_list.append(T)
+            
+            self._tdb_cpu_ufuncs.append(sp.lambdify([sympysyms_list], sympyexpr+ime, 'numpy'))
+            if(numba_enabled):
+                self._tdb_gpu_ufuncs.append(numba.jit(sp.lambdify([sympysyms_list], sympyexpr+ime, 'math')))
+        

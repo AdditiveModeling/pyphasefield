@@ -27,8 +27,8 @@ ufunc_g_s = None
 
 @cuda.jit(device=True)
 def divagradb(a, axp, axm, ayp, aym, b, bxp, bxm, byp, bym, idx):
-    return 0.5*idx*idx*((axp+a)*(bxp-b) - (a+axm)*(b-bxm) + (ayp+a)*(byp-b) - (a+aym)*(b-bym))
-    #return (idx*idx*a*(bxp+bxm+byp+bym-4*b) + 0.25*idx*idx*((axp - axm)*(bxp - bxm) + (ayp - aym)*(byp - bym)))
+    #return 0.5*idx*idx*((axp+a)*(bxp-b) - (a+axm)*(b-bxm) + (ayp+a)*(byp-b) - (a+aym)*(b-bym))
+    return (idx*idx*a*(bxp+bxm+byp+bym-4*b) + 0.25*idx*idx*((axp - axm)*(bxp - bxm) + (ayp - aym)*(byp - bym)))
 
 @cuda.jit(device=True)
 def f_ori_term(D_q, D_q_xp, D_q_xm, D_q_yp, D_q_ym, mgq_xp, mgq_xm, mgq_yp, mgq_ym, q, q_xp, q_xm, q_yp, q_ym, idx):
@@ -49,6 +49,8 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
     y_e = params[5]
     beta = params[6]
     dt = params[9]
+    ebar = params[10]
+    eqbar = params[11]
     L = c_params[0]
     T_M = c_params[1]
     S = c_params[2]
@@ -71,8 +73,8 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
     #M_c is transfer 2 to len(fields)-2 (for 2 components, eg Ni and Cu, M_c is just 2
     #dFdc is transfer len(fields)-1 to 2*len(fields)-5 (for 2 components, eg Ni and Cu, dFdc is just 3
         
-    ebar2 = 6.*math.sqrt(2.)*S[1]*d/T_M[1]
-    eqbar2 = 0.25*ebar2
+    ebar2 = ebar*ebar
+    eqbar2 = eqbar*eqbar
     
     for i in range(starty+1, phi.shape[0]-1, stridey):
         for j in range(startx+1, phi.shape[1]-1, stridex):
@@ -218,10 +220,11 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
             lq1 = (q1[i][j+1]+q1[i][j-1]+q1[i+1][j]+q1[i-1][j]-4*q1[i][j])*idx*idx
             lq4 = (q4[i][j+1]+q4[i][j-1]+q4[i+1][j]+q4[i-1][j]-4*q4[i][j])*idx*idx
             
-            #noise_q1 = math.sqrt(8.314*T[i][j]/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
-            #noise_q4 = math.sqrt(8.314*T[i][j]/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
-            noise_q1 = 0.
-            noise_q4 = 0.
+            q_noise_coeff = 0.0000000001
+            noise_q1 = math.sqrt(q_noise_coeff*8.314*T[i][j]/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
+            noise_q4 = math.sqrt(q_noise_coeff*8.314*T[i][j]/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
+            #noise_q1 = 0.
+            #noise_q4 = 0.
             
             dq1dt = M_q*((1-q1[i][j]**2)*(f_ori_1+lq1*eqbar2-dfintdq1+noise_q1) - q1[i][j]*q4[i][j]*(f_ori_4+lq4*eqbar2-dfintdq4+noise_q4))
             dq4dt = M_q*((1-q4[i][j]**2)*(f_ori_4+lq4*eqbar2-dfintdq4+noise_q4) - q1[i][j]*q4[i][j]*(f_ori_1+lq1*eqbar2-dfintdq1+noise_q1))
@@ -239,7 +242,10 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
                 c_i = fields[l]
                 c_i_out = fields_out[l]
                 c_i_out[i][j] *= dt
+                #c_i_out[i][j] = max(-0.1, c_i_out[i][j])
+                #c_i_out[i][j] = min(0.1, c_i_out[i][j])
                 c_i_out[i][j] += c_i[i][j]
+                #c_i_out[i][j] = max(0, c_i_out[i][j])
                 
 @numba.jit
 def get_thermodynamics(ufunc, array):
@@ -366,7 +372,7 @@ class NCGPU_new(Simulation):
             self.user_data["H"] = npvalue(T, "H", tdb)
             self.user_data["y_e"] = npvalue(T, "Y_E", tdb)
             self.user_data["ebar"] = np.sqrt(6*np.sqrt(2)*self.user_data["S"][1]*self.user_data["d"]/self.user_data["T_M"][1])
-            self.user_data["eqbar"] = 0.5*self.user_data["ebar"]
+            self.user_data["eqbar"] = 0.1*self.user_data["ebar"]
             self.set_time_step_length(self.get_cell_spacing()**2/5./self.user_data["D_L"]/8)
             self.user_data["beta"] = 1.5
         except Exception as e:
@@ -380,22 +386,23 @@ class NCGPU_new(Simulation):
         self.user_data["rng_states"] = create_xoroshiro128p_states(256*256, seed=3446621627)
         #init_xoroshiro128p_states(256*256, seed=3446621627)
         dim = self.dimensions
+        q1 = np.zeros(dim)
+        q4 = np.zeros(dim)
+        try:
+            melt_angle = self.user_data["melt_angle"]
+        except:
+            print("self.user_data[\"melt_angle\"] not defined, defaulting to 0")
+            melt_angle = 0.
+        #angle is halved because that is how quaternions do
+        q1 += np.cos(0.5*melt_angle)
+        q4 += np.sin(0.5*melt_angle)
+        
         try:
             sim_type = self.user_data["sim_type"]
             if(sim_type == "seed"):
                 #initialize phi, q1, q4
                 
                 phi = np.zeros(dim)
-                q1 = np.zeros(dim)
-                q4 = np.zeros(dim)
-                try:
-                    melt_angle = self.user_data["melt_angle"]
-                except:
-                    print("self.user_data[\"melt_angle\"] not defined, defaulting to 0")
-                    melt_angle = 0*np.pi/8
-                #angle is halved because that is how quaternions do
-                q1 += np.cos(0.5*melt_angle)
-                q4 += np.sin(0.5*melt_angle)
                 try:
                     seed_angle = self.user_data["seed_angle"]
                 except:
@@ -418,18 +425,16 @@ class NCGPU_new(Simulation):
                         c_n = np.zeros(dim)
                         c_n += 1./len(self._tdb_components)
                         self.add_field(c_n, "c_"+self._tdb_components[i], colormap=COLORMAP_OTHER)
-            elif(sim_type=="seeds"):
+            elif(sim_type == "seeds"):
                 #initialize phi, q1, q4
                 phi = np.zeros(dim)
-                q1 = np.zeros(dim)
-                q4 = np.zeros(dim)
-                melt_angle = 0*np.pi/8
-                #angle is halved because that is how quaternions do
-                q1 += np.cos(0.5*melt_angle)
-                q4 += np.sin(0.5*melt_angle)
-
+                try:
+                    number_of_seeds = self.user_data["number_of_seeds"]
+                except:
+                    print("self.user_data[\"number_of_seeds\"] not defined, defaulting to about 1 seed per 10000 cells")
+                    number_of_seeds = np.prod(dim)//10000
                 for j in range(number_of_seeds):
-                    seed_angle = (np.random.rand()-0.5)*np.pi/2
+                    seed_angle = (np.random.rand()-0.5)*np.pi/2 + melt_angle
                     x_pos = int(np.random.rand()*dim[1])
                     y_pos = int(np.random.rand()*dim[0])
                     phi, q1, q4 = make_seed(phi, q1, q4, x_pos, y_pos, seed_angle, 5)
@@ -454,12 +459,6 @@ class NCGPU_new(Simulation):
         
         except:
             phi = np.zeros(dim)
-            q1 = np.zeros(dim)
-            q4 = np.zeros(dim)
-            melt_angle = 0
-            #angle is halved because that is how quaternions do
-            q1 += np.cos(0.5*melt_angle)
-            q4 += np.sin(0.5*melt_angle)
             self.add_field(phi, "phi", colormap=COLORMAP_PHASE)
             self.add_field(q1, "q1")
             self.add_field(q4, "q4")
@@ -491,6 +490,8 @@ class NCGPU_new(Simulation):
         params.append(self.user_data["D_L"])
         params.append(self.user_data["D_S"])
         params.append(self.dt)
+        params.append(self.user_data["ebar"])
+        params.append(self.user_data["eqbar"])
         c_params.append(self.user_data["L"])
         c_params.append(self.user_data["T_M"])
         c_params.append(self.user_data["S"])

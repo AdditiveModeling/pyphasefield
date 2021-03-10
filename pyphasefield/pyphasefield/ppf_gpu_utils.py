@@ -396,7 +396,7 @@ def update_thermal_file_3D_kernel(T, T0, T1, start, end, current):
 def send_fields_to_GPU(sim):
     if not (sim.temperature is None):
         sim._temperature_gpu_device = cuda.to_device(sim.temperature.data)
-        if(sim._temperature_type == "FILE"):
+        if(sim._temperature_type == "XDMF_FILE"):
             sim._t_file_gpu_devices[0] = cuda.to_device(sim._t_file_arrays[0])
             sim._t_file_gpu_devices[1] = cuda.to_device(sim._t_file_arrays[1])
     fields = []
@@ -517,15 +517,15 @@ def update_temperature_field(sim):
     if(sim._temperature_type == "ISOTHERMAL"):
         return
     elif(sim._temperature_type == "LINEAR_GRADIENT"):
-        if(len(sim.dimensions.shape) == 1):
+        if(len(sim.dimensions) == 1):
             update_thermal_gradient_1D_kernel[sim._gpu_blocks_per_grid_1D, sim._gpu_threads_per_block_1D](sim._temperature_gpu_device, 
                                                                                     sim._dTdt,
                                                                                     sim.get_time_step_length())
-        elif(len(sim.dimensions.shape) == 2):
+        elif(len(sim.dimensions) == 2):
             update_thermal_gradient_2D_kernel[sim._gpu_blocks_per_grid_2D, sim._gpu_threads_per_block_2D](sim._temperature_gpu_device, 
                                                                                     sim._dTdt,
                                                                                     sim.get_time_step_length())
-        elif(len(sim.dimensions.shape) == 3):
+        elif(len(sim.dimensions) == 3):
             update_thermal_gradient_3D_kernel[sim._gpu_blocks_per_grid_3D, sim._gpu_threads_per_block_3D](sim._temperature_gpu_device, 
                                                                                     sim._dTdt,
                                                                                     sim.get_time_step_length())
@@ -538,19 +538,20 @@ def update_temperature_field(sim):
                 sim._t_file_arrays[0] = sim._t_file_arrays[1]
                 sim._t_file_index += 1
                 sim._t_file_bounds[1], point_data1, cell_data0 = reader.read_data(sim._t_file_index)
-                sim._t_file_gpu_devices[0], sim._t_file_gpu_devices[1] = sim._t_file_gpu_devices[1], _t_file_gpu_devices[0]
+                sim._t_file_arrays[1] = np.squeeze(point_data1['T'])
+                sim._t_file_gpu_devices[0], sim._t_file_gpu_devices[1] = sim._t_file_gpu_devices[1], sim._t_file_gpu_devices[0]
                 sim._t_file_gpu_devices[1] = cuda.to_device(sim._t_file_arrays[1])
-        if(len(sim.dimensions.shape) == 1):
+        if(len(sim.dimensions) == 1):
             update_thermal_file_1D_kernel[sim._gpu_blocks_per_grid_1D, sim._gpu_threads_per_block_1D](sim._temperature_gpu_device, 
                                                                                     sim._t_file_gpu_devices[0], sim._t_file_gpu_devices[1], 
                                                                                     sim._t_file_bounds[0], sim._t_file_bounds[1], 
                                                                                     current_time)
-        elif(len(sim.dimensions.shape) == 2):
+        elif(len(sim.dimensions) == 2):
             update_thermal_file_2D_kernel[sim._gpu_blocks_per_grid_2D, sim._gpu_threads_per_block_2D](sim._temperature_gpu_device, 
                                                                                     sim._t_file_gpu_devices[0], sim._t_file_gpu_devices[1], 
                                                                                     sim._t_file_bounds[0], sim._t_file_bounds[1], 
                                                                                     current_time)
-        elif(len(sim.dimensions.shape) == 3):
+        elif(len(sim.dimensions) == 3):
             update_thermal_file_3D_kernel[sim._gpu_blocks_per_grid_3D, sim._gpu_threads_per_block_3D](sim._temperature_gpu_device, 
                                                                                     sim._t_file_gpu_devices[0], sim._t_file_gpu_devices[1], 
                                                                                     sim._t_file_bounds[0], sim._t_file_bounds[1], 
