@@ -136,18 +136,18 @@ class Simulation:
             array += self._initial_T
             if not ((self._dTdx is None) or (self._dTdx == 0)):
                 x_length = self.dimensions[len(self.dimensions)-1]
-                x_t_array = np.arange(0, x_length*self.dx*self._dTdx, self._dTdx)
+                x_t_array = np.arange(0, x_length*self.dx*self._dTdx, self.dx*self._dTdx)
                 array += x_t_array
             if(len(self.dimensions) > 1):
                 if not ((self._dTdy is None) or (self._dTdy == 0)):
                     y_length = self.dimensions[len(self.dimensions)-2]
-                    y_t_array = np.arange(0, y_length*self.dx*self._dTdy, self._dTdy)
+                    y_t_array = np.arange(0, y_length*self.dx*self._dTdy, self.dx*self._dTdy)
                     y_t_array = np.expand_dims(y_t_array, axis=1)
                     array += y_t_array
             if(len(self.dimensions) > 2):
                 if not ((self._dTdz is None) or (self._dTdz == 0)):
                     z_length = self.dimensions[len(self.dimensions)-3]
-                    z_t_array = np.arange(0, z_length*self.dx*self._dTdz, self._dTdz)
+                    z_t_array = np.arange(0, z_length*self.dx*self._dTdz, self.dx*self._dTdz)
                     z_t_array = np.expand_dims(z_t_array, axis=1)
                     z_t_array = np.expand_dims(z_t_array, axis=2)
                     array += z_t_array
@@ -286,6 +286,7 @@ class Simulation:
         if(self._uses_gpu):
             self.send_fields_to_GPU()
         self.apply_boundary_conditions()
+        assert(t_field.data.shape == self.fields[0].shape)
                 
     def simulation_loop(self):
         pass
