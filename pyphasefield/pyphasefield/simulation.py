@@ -286,7 +286,7 @@ class Simulation:
         if(self._uses_gpu):
             self.send_fields_to_GPU()
         self.apply_boundary_conditions()
-        assert(t_field.data.shape == self.fields[0].shape)
+        assert(self.temperature.data.shape == self.fields[0].data.shape)
                 
     def simulation_loop(self):
         pass
@@ -424,16 +424,16 @@ class Simulation:
             ppf_gpu_utils.retrieve_fields_from_GPU(self)
         if fields is None:
             fields = range(len(self.fields))
-        if(len(self.fields[0].data.shape) == 1): #1d plot
-            x = np.arange(0, len(self.fields[0].data))
+        if(len(self.fields[0].get_cells().shape) == 1): #1d plot
+            x = np.arange(0, len(self.fields[0].get_cells()))
             for i in fields:
-                plt.plot(x, self.fields[i].data)
+                plt.plot(x, self.fields[i].get_cells())
             plt.show()
-        elif((len(self.fields[0].data) == 1) or (len(self.fields[0].data[0]) == 1)): #effective 1d plot, 2d but one dimension = 1
-            x = np.arange(0, len(self.fields[0].data.flatten()))
+        elif((len(self.fields[0].get_cells()) == 1) or (len(self.fields[0].get_cells()[0]) == 1)): #effective 1d plot, 2d but one dimension = 1
+            x = np.arange(0, len(self.fields[0].get_cells().flatten()))
             legend = []
             for i in fields:
-                plt.plot(x, self.fields[i].data.flatten())
+                plt.plot(x, self.fields[i].get_cells().flatten())
                 legend.append(self.fields[i].name)
             plt.legend(legend)
             plt.show()
