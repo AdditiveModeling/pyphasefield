@@ -39,7 +39,7 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
     
     startx, starty = cuda.grid(2)
     stridex, stridey = cuda.gridsize(2)
-    threadId = cuda.grid(1)
+    threadId = startx + starty*stridex
     
     dx = params[0]
     d = params[1]
@@ -75,9 +75,9 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
         
     ebar2 = ebar*ebar
     eqbar2 = eqbar*eqbar
-    
-    for i in range(starty+1, phi.shape[0]-1, stridey):
-        for j in range(startx+1, phi.shape[1]-1, stridex):
+    for j in range(startx+1, phi.shape[1]-1, stridex):
+        for i in range(starty+1, phi.shape[0]-1, stridey):
+        
             #interpolating functions
             g = (phi[i][j]**2)*(1-phi[i][j])**2
             h = (phi[i][j]**3)*(6.*phi[i][j]**2 - 15.*phi[i][j] + 10.)
@@ -383,7 +383,7 @@ class NCGPU_new(Simulation):
     def init_fields(self):
         self._num_transfer_arrays = 2*len(self._tdb_components)
         self._tdb_ufunc_input_size = len(self._tdb_components)+1
-        self.user_data["rng_states"] = create_xoroshiro128p_states(256*256, seed=3446621627)
+        self.user_data["rng_states"] = create_xoroshiro128p_states(256*256, seed=1)
         #init_xoroshiro128p_states(256*256, seed=3446621627)
         dim = self.dimensions
         q1 = np.zeros(dim)
