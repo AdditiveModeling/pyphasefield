@@ -223,8 +223,8 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
             q_noise_coeff = 0.0000000001
             noise_q1 = math.sqrt(q_noise_coeff*8.314*T[i][j]/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
             noise_q4 = math.sqrt(q_noise_coeff*8.314*T[i][j]/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
-            noise_q1 = 0.
-            noise_q4 = 0.
+            #noise_q1 = 0.
+            #noise_q4 = 0.
             
             dq1dt = M_q*((1-q1[i][j]**2)*(f_ori_1+lq1*eqbar2-dfintdq1+noise_q1) - q1[i][j]*q4[i][j]*(f_ori_4+lq4*eqbar2-dfintdq4+noise_q4))
             dq4dt = M_q*((1-q4[i][j]**2)*(f_ori_4+lq4*eqbar2-dfintdq4+noise_q4) - q1[i][j]*q4[i][j]*(f_ori_1+lq1*eqbar2-dfintdq1+noise_q1))
@@ -256,7 +256,7 @@ def NComponent_helper_kernel(fields, T, transfer, rng_states, ufunc_array, param
     #initializes certain arrays that are used in div-grad terms, to avoid recomputing terms 4 or 6 times
     startx, starty = cuda.grid(2)     
     stridex, stridey = cuda.gridsize(2) 
-    threadId = cuda.grid(1)
+    threadId = startx + starty*stridex
     
     v_m = params[2]
     D_L = params[7]
@@ -304,7 +304,7 @@ def NComponent_helper_kernel(fields, T, transfer, rng_states, ufunc_array, param
                 dFdc = transfer[l-1+len(fields)-3]
                 M_c[i][j] = v_m*fields[l][i][j]*(D_L + h*(D_S - D_L))/(8.314*T[i][j])
                 noise_c = math.sqrt(2.*8.314*T[i][j]/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
-                noise_c = 0.
+                #noise_c = 0.
                 dFdc[i][j] = (dGLdc + h*(dGSdc-dGLdc))/v_m + (W[l-3]-W[len(fields)-3])*g*T[i][j]+noise_c
                 ufunc_array[i][j][l-3] -= 0.0000001
             ufunc_array[i][j][len(fields)-3] += 0.0000001

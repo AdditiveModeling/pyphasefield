@@ -92,6 +92,19 @@ def CSVtoXDMF(csv_path, T_cutoffs=False, starting_T=None, ending_T=None, reflect
     finally:
         f.close()
         
+class XDMFLoader():
+    def __init__(self, t_file_path):
+        self.t_file_path = t_file_path
+        with meshio.xdmf.TimeSeriesReader(self.t_file_path) as reader:
+            self.num_steps = reader.num_steps
+            
+    def data(self, step):
+        with meshio.xdmf.TimeSeriesReader(self.t_file_path) as reader:
+            points, cells = reader.read_points_cells()
+            bound, point_data0, cell_data0 = reader.read_data(step)
+            array = np.squeeze(point_data0['T'])
+            return bound, array
+        
 class TDBContainer():
     def __init__(self, tdb_path, phases=None, components=None):
         if(successfully_imported_pycalphad):
