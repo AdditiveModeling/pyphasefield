@@ -20,9 +20,41 @@ except:
 def implicit_matrix_1d(xsize, centervalue, neighborvalue, farneighborvalue):
     """
     Creates a matrix for the solution of 1d implicit or crank nickolson discretizations
+    
     Because the exact format changes between implicit and C-N, and this method is reused 
-        in 2D and 3D cases, centervalue and neighbor value must be explicitly specified
+    in 2D and 3D cases, centervalue and neighbor value must be explicitly specified
+    
     Matrix shows periodic boundary conditions!
+    
+    Parameters
+    ----------
+    xsize : int
+        Size of one dimension of the square NxN implicit matrix, equal to the number of elements in the 1D phase field model
+    centervalue : float
+        Value inserted into the central diagonal of the implicit matrix. 
+    neighborvalue : float
+        Value inserted into the two just-off-center diagonals of the implicit matrix.
+        
+    Returns
+    -------
+    2D NumPy ndarray representation of implicit matrix, with shape [xsize, xsize]
+        
+    Notes
+    -----
+    Consider the implicit 1D diffusion matrix with generic discretization term equal to the following:
+    
+    $$(c_{x}^{t+1} - c_{x}^{t})/dt = (D/(\\Delta x^2))(c_{x+1}^{t+1} + c_{x-1}^{t+1} - 2c_{x}^{t+1})$$
+    
+    This can be rearranged as to express c_{x}^{t} as a function of c_{x}^{t+1}, c_{x-1}^{t+1}, and c_{x+1}^{t+1}
+    (Also, let a = D*dt/(\\Delta x^2) ):
+    
+    $$c_{x}^{t} = (-a)c_{x+1}^{t+1} + (-a)c_{x-1}^{t+1} + (1+2a)c_{x}^{t+1}$$
+    
+    The implicit matrix composed of these terms is defined as follows: 
+    The central diagonal (centervalue) equals the coefficient of c_{x}^{t+1}: 1+2a, or 1+2*D*\\Delta t/(\\Delta x^2)
+    The neighboring diagonals to the center (neighborvalue) equals the coefficient of c_{x-1}^{t+1} or c_{x+1}^{t+1}: 
+    -a, or -D*\\Delta t/(\\Delta x^2)
+    
     """
     matrix1d = np.zeros([xsize, xsize])
     np.fill_diagonal(matrix1d, centervalue)
@@ -40,10 +72,53 @@ def implicit_matrix_1d(xsize, centervalue, neighborvalue, farneighborvalue):
 def implicit_matrix_2d(ysize, xsize, centervalue, neighborvalue, farneighborvalue):
     """
     Creates a matrix for the solution of 2d implicit or crank nickolson discretizations
+    
     Because the exact format changes between implicit and C-N, and this method is reused 
-        in 3D cases, centervalue and neighbor value must be explicitly specified
+    in 3D cases, centervalue and neighbor value must be explicitly specified
+    
     Parameter order is specified as ysize then xsize, because the dimensional order of 2d arrays is [y, x]
+    
     Matrix shows periodic boundary conditions!
+    
+    Parameters
+    ----------
+    ysize : int
+        Equal to the number of elements along the y-axis in the 2D phase field model
+        xsize*ysize is equal to the length of one dimension of the square NxN implicit matrix
+    xsize : int
+        Equal to the number of elements along the x-axis in the 2D phase field model
+        xsize*ysize is equal to the length of one dimension of the square NxN implicit matrix
+    centervalue : float
+        Value inserted into the central diagonal of the implicit matrix. 
+    neighborvalue : float
+        Value inserted into the four just-off-center diagonals of the 2D implicit matrix.
+        
+    Returns
+    -------
+    2D NumPy ndarray representation of implicit matrix, with shape [xsize*ysize, xsize*ysize]
+        
+    Notes
+    -----
+    Consider the implicit 2D diffusion matrix with generic discretization term equal to the following:
+    
+    $$(c_{x, y}^{t+1} - c_{x, y}^{t})/dt = (D/(\\Delta x^2))(c_{x+1, y}^{t+1} + c_{x-1, y}^{t+1} 
+    + c_{x, y+1}^{t+1} + c_{x, y-1}^{t+1} - 4c_{x, y}^{t+1})$$
+    
+    This can be rearranged as to express c_{x, y}^{t} as a function of c_{x, y}^{t+1}, c_{x-1, y}^{t+1}, 
+    c_{x+1, y}^{t+1}, c_{x, y-1}^{t+1}, and c_{x, y+1}^{t+1}
+    (Also, let a = D*dt/(\\Delta x^2) ):
+    
+    $$c_{x, y}^{t} = (-a)c_{x+1, y}^{t+1} + (-a)c_{x-1, y}^{t+1} + (-a)c_{x, y+1}^{t+1} 
+    + (-a)c_{x, y-1}^{t+1} + (1+4a)c_{x, y}^{t+1}$$
+    
+    The implicit matrix composed of these terms is defined as follows: 
+    The central diagonal (centervalue) equals the coefficient of c_{x, y}^{t+1}: 1+4a, or 1+4*D*\\Delta t/(\\Delta x^2)
+    The neighboring diagonals to the center (neighborvalue) equals the coefficient of c_{x-1, y}^{t+1} (or other similar terms): 
+    -a, or -D*\\Delta t/(\\Delta x^2)
+    
+    Note that two of the "neighboring" diagonals are separated by a significant number of cells in the matrix, however 
+    they are still considered to be "neighbors" conceptually
+    
     """
     matrix2d = np.zeros([xsize*ysize, xsize*ysize])
     for i in range(ysize):

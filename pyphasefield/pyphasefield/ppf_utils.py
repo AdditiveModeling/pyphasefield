@@ -43,6 +43,23 @@ def successfully_imported_numba():
         return False
     return True
 
+def make_seed(phi, q1, q4, x, y, angle, seed_radius):
+    shape = phi.shape
+    qrad = seed_radius+5
+    x_size = shape[1]
+    y_size = shape[0]
+    for i in range((int)(y-seed_radius), (int)(y+seed_radius)):
+        for j in range((int)(x-seed_radius), (int)(x+seed_radius)):
+            if((i-y)*(i-y)+(j-x)*(j-x) < (seed_radius**2)):
+                phi[i%y_size][j%x_size] = 1
+    for i in range((int)(y-qrad), (int)(y+qrad)):
+        for j in range((int)(x-qrad), (int)(x+qrad)):
+            if((i-y)*(i-y)+(j-x)*(j-x) < (qrad**2)):
+                #angle is halved because that is how quaternions do
+                q1[i%y_size][j%x_size] = np.cos(0.5*angle)
+                q4[i%y_size][j%x_size] = np.sin(0.5*angle)
+    return phi, q1, q4
+
 def CSVtoXDMF(csv_path, T_cutoffs=False, starting_T=None, ending_T=None, reflect_X = False):
     try:
         f = open(csv_path)

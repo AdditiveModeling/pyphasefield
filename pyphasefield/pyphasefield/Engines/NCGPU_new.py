@@ -26,9 +26,9 @@ ufunc_g_l = None
 ufunc_g_s = None
 
 @cuda.jit(device=True)
-def divagradb(a, axp, axm, ayp, aym, b, bxp, bxm, byp, bym, idx):
-    #return 0.5*idx*idx*((axp+a)*(bxp-b) - (a+axm)*(b-bxm) + (ayp+a)*(byp-b) - (a+aym)*(b-bym))
-    return (idx*idx*a*(bxp+bxm+byp+bym-4*b) + 0.25*idx*idx*((axp - axm)*(bxp - bxm) + (ayp - aym)*(byp - bym)))
+def divagradb(a, axp, axm, ayp, aym, b, bxp, bxm, byp, bym, idx): 
+    return 0.5*idx*idx*((axp+a)*(bxp-b) - (a+axm)*(b-bxm) + (ayp+a)*(byp-b) - (a+aym)*(b-bym))
+    #return (idx*idx*a*(bxp+bxm+byp+bym-4*b) + 0.25*idx*idx*((axp - axm)*(bxp - bxm) + (ayp - aym)*(byp - bym)))
 
 @cuda.jit(device=True)
 def f_ori_term(D_q, D_q_xp, D_q_xm, D_q_yp, D_q_ym, mgq_xp, mgq_xm, mgq_yp, mgq_ym, q, q_xp, q_xm, q_yp, q_ym, idx):
@@ -184,7 +184,7 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
             
             #noise in phi
             noise_phi = math.sqrt(2.*8.314*T[i][j]*M_phi/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
-            #dphidt += noise_phi
+            dphidt += noise_phi
             
             #dcidt
             for l in range(3, len(fields)):

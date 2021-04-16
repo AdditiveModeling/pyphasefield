@@ -239,11 +239,17 @@ def quaternion_implicit_matrix(ac, ap, an, dc, dp, dn, adc, adp, adn):
 def quaternion_implicit_method(q1, q4, alpha, HTp2, epsilon2, dx, beta):
     """
     Makes a quaternion implicit matrix, then applies it to q1 and q4 using the Peaceman-Rachford method
+    
     q1 and q4 are a and d
+    
     alpha is one of the primary parameters of the matrix: M*dt/(2dx^2)
-    D is the pseudo-diffusivity of the quaternion field, 2HTp/|grad(q)|, recomputed after the half step. HTp2 is given numerator
+    
+    D is the pseudo-diffusivity of the quaternion field, ${2HTp/ | \\nabla q | }$, recomputed after the half step. HTp2 is given numerator
+    
     beta is the cutoff parameter for gradq, values below beta will be clipped to equal beta
+    
     returns q1 and q4
+    
     """
     #first, step 0.5, make common terms
     idx = 1/(dx)
