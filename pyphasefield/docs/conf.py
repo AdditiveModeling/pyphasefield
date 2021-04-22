@@ -19,8 +19,8 @@ sys.path.insert(0, os.path.abspath('../pyphasefield'))
 # -- Project information -----------------------------------------------------
 
 project = 'pyphasefield'
-copyright = '2021, Scott Peters'
-author = 'Scott Peters'
+copyright = '2021, pyphasefield Development Team'
+author = 'pyphasefield Developers'
 
 
 # -- General configuration ---------------------------------------------------
