@@ -51,6 +51,8 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
     dt = params[9]
     ebar = params[10]
     eqbar = params[11]
+    noise_amp_phi = params[12]
+    noise_amp_q = params[14]
     L = c_params[0]
     T_M = c_params[1]
     S = c_params[2]
@@ -184,7 +186,7 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
             
             #noise in phi
             noise_phi = math.sqrt(2.*8.314*T[i][j]*M_phi/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
-            dphidt += noise_phi
+            dphidt += noise_phi*noise_amp_phi
             
             #dcidt
             for l in range(3, len(fields)):
@@ -221,8 +223,8 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
             lq4 = (q4[i][j+1]+q4[i][j-1]+q4[i+1][j]+q4[i-1][j]-4*q4[i][j])*idx*idx
             
             q_noise_coeff = 0.0000000001
-            noise_q1 = math.sqrt(q_noise_coeff*8.314*T[i][j]/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
-            noise_q4 = math.sqrt(q_noise_coeff*8.314*T[i][j]/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
+            noise_q1 = noise_amp_q*math.sqrt(q_noise_coeff*8.314*T[i][j]/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
+            noise_q4 = noise_amp_q*math.sqrt(q_noise_coeff*8.314*T[i][j]/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
             #noise_q1 = 0.
             #noise_q4 = 0.
             
@@ -261,6 +263,7 @@ def NComponent_helper_kernel(fields, T, transfer, rng_states, ufunc_array, param
     v_m = params[2]
     D_L = params[7]
     D_S = params[8]
+    noise_amp_c = params[13]
     W = c_params[4]
     
     phi = fields[0]
@@ -303,7 +306,7 @@ def NComponent_helper_kernel(fields, T, transfer, rng_states, ufunc_array, param
                 M_c = transfer[l-1]
                 dFdc = transfer[l-1+len(fields)-3]
                 M_c[i][j] = v_m*fields[l][i][j]*(D_L + h*(D_S - D_L))/(8.314*T[i][j])
-                noise_c = math.sqrt(2.*8.314*T[i][j]/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
+                noise_c = noise_amp_c*math.sqrt(2.*8.314*T[i][j]/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
                 #noise_c = 0.
                 dFdc[i][j] = (dGLdc + h*(dGSdc-dGLdc))/v_m + (W[l-3]-W[len(fields)-3])*g*T[i][j]+noise_c
                 ufunc_array[i][j][l-3] -= 0.0000001
@@ -340,6 +343,9 @@ class NCGPU_new(Simulation):
         self.uses_gpu = True
         self._framework = "GPU_SERIAL" #must be this framework for this engine
         self.user_data["d_ratio"] = 4. #default value
+        self.user_data["noise_phi"] = 1. #default value
+        self.user_data["noise_c"] = 1. #default value
+        self.user_data["noise_q"] = 1. #default value
         
     def init_tdb_params(self):
         super().init_tdb_params()
@@ -478,6 +484,14 @@ class NCGPU_new(Simulation):
                         
     def just_before_simulating(self):
         super().just_before_simulating()
+        if not "d_ratio" in self.user_data:
+            self.user_data["d_ratio"] = 4.
+        if not "noise_phi" in self.user_data:
+            self.user_data["noise_phi"] = 1.
+        if not "noise_c" in self.user_data:
+            self.user_data["noise_c"] = 1.
+        if not "noise_q" in self.user_data:
+            self.user_data["noise_q"] = 1.
         params = []
         c_params = []
         params.append(self.dx)
@@ -492,6 +506,9 @@ class NCGPU_new(Simulation):
         params.append(self.dt)
         params.append(self.user_data["ebar"])
         params.append(self.user_data["eqbar"])
+        params.append(self.user_data["noise_phi"])
+        params.append(self.user_data["noise_c"])
+        params.append(self.user_data["noise_q"])
         c_params.append(self.user_data["L"])
         c_params.append(self.user_data["T_M"])
         c_params.append(self.user_data["S"])
