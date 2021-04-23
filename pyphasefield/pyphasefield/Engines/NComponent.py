@@ -239,11 +239,17 @@ def quaternion_implicit_matrix(ac, ap, an, dc, dp, dn, adc, adp, adn):
 def quaternion_implicit_method(q1, q4, alpha, HTp2, epsilon2, dx, beta):
     """
     Makes a quaternion implicit matrix, then applies it to q1 and q4 using the Peaceman-Rachford method
+    
     q1 and q4 are a and d
+    
     alpha is one of the primary parameters of the matrix: M*dt/(2dx^2)
-    D is the pseudo-diffusivity of the quaternion field, 2HTp/|grad(q)|, recomputed after the half step. HTp2 is given numerator
+    
+    D is the pseudo-diffusivity of the quaternion field, ${2HTp/ | \\nabla q | }$, recomputed after the half step. HTp2 is given numerator
+    
     beta is the cutoff parameter for gradq, values below beta will be clipped to equal beta
+    
     returns q1 and q4
+    
     """
     #first, step 0.5, make common terms
     idx = 1/(dx)
@@ -1338,7 +1344,8 @@ def engine_params_NComponent(sim):
     return rd
     
         
-def init_NComponent(sim, dim=[200,200], sim_type="seed", number_of_seeds=1, tdb_path="Ni-Cu_Ideal.tdb", temperature_type="isothermal", 
+def init_NComponent(sim, dim=[200,200], sim_type="seed", number_of_seeds=1, tdb_path="Ni-Cu_Ideal.tdb", 
+                           tdb_phases = ["FCC_A1", "LIQUID"], tdb_components = None, temperature_type="isothermal", 
                            initial_temperature=1574, temperature_gradient=0, cooling_rate=0, temperature_file_path="T.xdmf", 
                            initial_concentration_array=[0.40831], cell_spacing=0.0000046, d_ratio=1/0.94, solver="explicit", 
                            nbc=["periodic", "periodic"]):
@@ -1350,7 +1357,7 @@ def init_NComponent(sim, dim=[200,200], sim_type="seed", number_of_seeds=1, tdb_
     if(nbc[1] != "periodic"):
         dim[0] += 2
     sim.set_dimensions(dim)
-    sim.load_tdb(tdb_path)
+    sim.load_tdb(tdb_path, phases=tdb_phases, components=tdb_components)
     sim.set_cell_spacing(cell_spacing)
     sim.d = sim.get_cell_spacing()*d_ratio
     if(solver == "explicit"):

@@ -1,7 +1,23 @@
-from .Diffusion import init_Diffusion
-from .DiffusionGPU import init_DiffusionGPU
-from .CahnAllen import init_CahnAllen
-from .CahnHilliard import init_CahnHilliard
-from .Warren1995 import Warren1995, init_Warren1995
-from .NComponent import init_NComponent
-from .NCGPU import init_NCGPU
+from inspect import isclass
+from pkgutil import iter_modules
+from pathlib import Path
+from importlib import import_module
+
+from .Diffusion import Diffusion
+
+# iterate through the modules in the current package
+package_dir = Path(__file__).resolve().parent
+for (_, module_name, _) in iter_modules([package_dir]):
+
+    try:
+        # import the module and iterate through its attributes
+        module = import_module(f"{__name__}.{module_name}")
+        for attribute_name in dir(module):
+            attribute = getattr(module, attribute_name)
+    
+            if isclass(attribute):            
+                # Add the class to this package's variables
+                globals()[attribute_name] = attribute
+    except Exception as e:
+        print(e)
+        pass

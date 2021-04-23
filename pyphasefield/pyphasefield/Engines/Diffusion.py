@@ -1,13 +1,58 @@
 import numpy as np
 from scipy.sparse.linalg import gmres
-from ..field import Field
+
+try:
+    #import from within Engines folder
+    from ..field import Field
+    from ..simulation import Simulation
+    from ..ppf_utils import COLORMAP_OTHER, COLORMAP_PHASE
+except:
+    try:
+        #import classes from pyphasefield library
+        from pyphasefield.field import Field
+        from pyphasefield.simulation import Simulation
+        from pyphasefield.ppf_utils import COLORMAP_OTHER, COLORMAP_PHASE
+    except:
+        raise ImportError("Cannot import from pyphasefield library!")
 
 def diffusion_matrix_1d(xsize, centervalue, neighborvalue):
     """
     Creates a matrix for the solution of 1d implicit or crank nickolson discretizations
+    
     Because the exact format changes between implicit and C-N, and this method is reused 
-        in 2D and 3D cases, centervalue and neighbor value must be explicitly specified
+    in 2D and 3D cases, centervalue and neighbor value must be explicitly specified
+    
     Matrix shows periodic boundary conditions!
+    
+    Parameters
+    ----------
+    xsize : int
+        Size of one dimension of the square NxN implicit matrix, equal to the number of elements in the 1D phase field model
+    centervalue : float
+        Value inserted into the central diagonal of the implicit matrix. 
+    neighborvalue : float
+        Value inserted into the two just-off-center diagonals of the implicit matrix.
+        
+    Returns
+    -------
+    2D NumPy ndarray representation of implicit matrix, with shape [xsize, xsize]
+        
+    Notes
+    -----
+    Consider the implicit 1D diffusion matrix with generic discretization term equal to the following:
+    
+    $$(c_{x}^{t+1} - c_{x}^{t})/dt = (D/(\\Delta x^2))(c_{x+1}^{t+1} + c_{x-1}^{t+1} - 2c_{x}^{t+1})$$
+    
+    This can be rearranged as to express c_{x}^{t} as a function of c_{x}^{t+1}, c_{x-1}^{t+1}, and c_{x+1}^{t+1}
+    (Also, let a = D*dt/(\\Delta x^2) ):
+    
+    $$c_{x}^{t} = (-a)c_{x+1}^{t+1} + (-a)c_{x-1}^{t+1} + (1+2a)c_{x}^{t+1}$$
+    
+    The implicit matrix composed of these terms is defined as follows: 
+    The central diagonal (centervalue) equals the coefficient of c_{x}^{t+1}: 1+2a, or 1+2*D*\\Delta t/(\\Delta x^2)
+    The neighboring diagonals to the center (neighborvalue) equals the coefficient of c_{x-1}^{t+1} or c_{x+1}^{t+1}: 
+    -a, or -D*\\Delta t/(\\Delta x^2)
+    
     """
     matrix1d = np.zeros([xsize, xsize])
     np.fill_diagonal(matrix1d, centervalue)
@@ -21,10 +66,53 @@ def diffusion_matrix_1d(xsize, centervalue, neighborvalue):
 def diffusion_matrix_2d(ysize, xsize, centervalue, neighborvalue):
     """
     Creates a matrix for the solution of 2d implicit or crank nickolson discretizations
+    
     Because the exact format changes between implicit and C-N, and this method is reused 
-        in 3D cases, centervalue and neighbor value must be explicitly specified
+    in 3D cases, centervalue and neighbor value must be explicitly specified
+    
     Parameter order is specified as ysize then xsize, because the dimensional order of 2d arrays is [y, x]
+    
     Matrix shows periodic boundary conditions!
+    
+    Parameters
+    ----------
+    ysize : int
+        Equal to the number of elements along the y-axis in the 2D phase field model
+        xsize*ysize is equal to the length of one dimension of the square NxN implicit matrix
+    xsize : int
+        Equal to the number of elements along the x-axis in the 2D phase field model
+        xsize*ysize is equal to the length of one dimension of the square NxN implicit matrix
+    centervalue : float
+        Value inserted into the central diagonal of the implicit matrix. 
+    neighborvalue : float
+        Value inserted into the four just-off-center diagonals of the 2D implicit matrix.
+        
+    Returns
+    -------
+    2D NumPy ndarray representation of implicit matrix, with shape [xsize*ysize, xsize*ysize]
+        
+    Notes
+    -----
+    Consider the implicit 2D diffusion matrix with generic discretization term equal to the following:
+    
+    $$(c_{x, y}^{t+1} - c_{x, y}^{t})/dt = (D/(\\Delta x^2))(c_{x+1, y}^{t+1} + c_{x-1, y}^{t+1} 
+    + c_{x, y+1}^{t+1} + c_{x, y-1}^{t+1} - 4c_{x, y}^{t+1})$$
+    
+    This can be rearranged as to express c_{x, y}^{t} as a function of c_{x, y}^{t+1}, c_{x-1, y}^{t+1}, 
+    c_{x+1, y}^{t+1}, c_{x, y-1}^{t+1}, and c_{x, y+1}^{t+1}
+    (Also, let a = D*dt/(\\Delta x^2) ):
+    
+    $$c_{x, y}^{t} = (-a)c_{x+1, y}^{t+1} + (-a)c_{x-1, y}^{t+1} + (-a)c_{x, y+1}^{t+1} 
+    + (-a)c_{x, y-1}^{t+1} + (1+4a)c_{x, y}^{t+1}$$
+    
+    The implicit matrix composed of these terms is defined as follows: 
+    The central diagonal (centervalue) equals the coefficient of c_{x, y}^{t+1}: 1+4a, or 1+4*D*\\Delta t/(\\Delta x^2)
+    The neighboring diagonals to the center (neighborvalue) equals the coefficient of c_{x-1, y}^{t+1} (or other similar terms): 
+    -a, or -D*\\Delta t/(\\Delta x^2)
+    
+    Note that two of the "neighboring" diagonals are separated by a significant number of cells in the matrix, however 
+    they are still considered to be "neighbors" conceptually
+    
     """
     matrix2d = np.zeros([xsize*ysize, xsize*ysize])
     matrix1d = diffusion_matrix_1d(xsize, centervalue, neighborvalue)
@@ -40,11 +128,60 @@ def diffusion_matrix_2d(ysize, xsize, centervalue, neighborvalue):
 def diffusion_matrix_3d(zsize, ysize, xsize, centervalue, neighborvalue):
     """
     Creates a matrix for the solution of 3d implicit or crank nickolson discretizations
+    
     Because the exact format changes between implicit and C-N, centervalue and neighbor 
-        value must be explicitly specified
+    value must be explicitly specified
+    
     Parameter order is specified as zsize then ysize then xsize, because the dimensional order of 3d arrays is [z, y, x]
+    
     Matrix shows periodic boundary conditions!
-    Warning: non-adi, non-gmres 3d implicit or C-N solvers will be **extremely** slow unless they are *very* small!
+    
+    Parameters
+    ----------
+    zsize : int
+        Equal to the number of elements along the z-axis in the 3D phase field model
+        xsize*ysize*zsize is equal to the length of one dimension of the square NxN implicit matrix
+    ysize : int
+        Equal to the number of elements along the y-axis in the 3D phase field model
+        xsize*ysize*zsize is equal to the length of one dimension of the square NxN implicit matrix
+    xsize : int
+        Equal to the number of elements along the x-axis in the 3D phase field model
+        xsize*ysize*zsize is equal to the length of one dimension of the square NxN implicit matrix
+    centervalue : float
+        Value inserted into the central diagonal of the implicit matrix. 
+    neighborvalue : float
+        Value inserted into the six just-off-center diagonals of the 3D implicit matrix.
+        
+    Returns
+    -------
+    2D NumPy ndarray representation of implicit matrix, with shape [xsize*ysize*zsize, xsize*ysize*zsize]
+    
+    Warnings
+    -----
+    Non-ADI, non-GMRES 3d implicit or C-N solvers will be **extremely** slow unless they are *very* small!
+    
+    Notes
+    -----
+    Consider the implicit 3D diffusion matrix with generic discretization term equal to the following:
+    
+    $$(c_{x, y, z}^{t+1} - c_{x, y, z}^{t})/dt = (D/(\\Delta x^2))(c_{x+1, y, z}^{t+1} + c_{x-1, y, z}^{t+1} 
+    + c_{x, y+1, z}^{t+1} + c_{x, y-1, z}^{t+1} + c_{x, y, z+1}^{t+1} + c_{x, y, z-1}^{t+1} - 6c_{x, y, z}^{t+1})$$
+    
+    This can be rearranged as to express c_{x, y, z}^{t} as a function of c_{x, y, z}^{t+1}, c_{x-1, y, z}^{t+1}, 
+    c_{x+1, y, z}^{t+1}, c_{x, y-1, z}^{t+1}, and c_{x, y+1, z}^{t+1}
+    (Also, let a = D*dt/(\\Delta x^2) ):
+    
+    $$c_{x, y, z}^{t} = (-a)c_{x+1, y, z}^{t+1} + (-a)c_{x-1, y, z}^{t+1} + (-a)c_{x, y+1, z}^{t+1} + (-a)c_{x, y-1, z}^{t+1} 
+    + (-a)c_{x, y, z+1}^{t+1} + (-a)c_{x, y, z-1}^{t+1} + (1+6a)c_{x, y, z}^{t+1}$$
+    
+    The implicit matrix composed of these terms is defined as follows: 
+    The central diagonal (centervalue) equals the coefficient of c_{x, y, z}^{t+1}: 1+6a, or 1+6*D*\\Delta t/(\\Delta x^2)
+    The neighboring diagonals to the center (neighborvalue) equals the coefficient of c_{x-1, y, z}^{t+1} (or other similar terms): 
+    -a, or -D*\\Delta t/(\\Delta x^2)
+    
+    Note that four of the "neighboring" diagonals are separated by a significant number of cells in the matrix, however 
+    they are still considered to be "neighbors" conceptually
+    
     """
     matrix3d = np.zeros([xsize*ysize*zsize, xsize*ysize*zsize])
     matrix2d = diffusion_matrix_2d(ysize, xsize, centervalue, neighborvalue)
@@ -61,22 +198,26 @@ def diffusion_matrix_3d(zsize, ysize, xsize, centervalue, neighborvalue):
 def engine_ExplicitDiffusion(sim):
     """
     Computes the discretization of the diffusion equation using a purely explicit scheme
+    
     Valid for 1, 2, or 3D simulations
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     c = sim.fields[0]
-    dc = dt * (sim.D * c.laplacian())
+    D = self.user_data["D"]
+    dc = dt * (D * c.laplacian())
     sim.fields[0].data += dc
     
 def engine_ImplicitDiffusion1D(sim):
     """
     Computes the discretization of the diffusion equation using a purely implicit scheme in 1D
+    
     Uses the function np.linalg.solve(A, b) to solve the equation Ax=b for the matrix A and vectors x and b
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0]
-    alpha = sim.D*dt/dx**2
+    D = self.user_data["D"]
+    alpha = D*dt/dx**2
     dim = sim.get_dimensions()
     matrix1d = diffusion_matrix_1d(dim[0], 1+2*alpha, -alpha)
     c_final = np.linalg.solve(matrix1d, c.data)
@@ -85,13 +226,15 @@ def engine_ImplicitDiffusion1D(sim):
 def engine_ImplicitDiffusion1D_GMRES(sim):
     """
     Computes the discretization of the diffusion equation using a purely implicit scheme in 1D
+    
     Uses the function scipy.sparse.linalg.gmres(A, b) to **quickly but approximately** solve 
-        the equation Ax=b for the matrix A and vectors x and b
+    the equation Ax=b for the matrix A and vectors x and b
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0]
-    alpha = sim.D*dt/dx**2
+    D = self.user_data["D"]
+    alpha = D*dt/dx**2
     dim = sim.get_dimensions()
     matrix1d = diffusion_matrix_1d(dim[0], 1+2*alpha, -alpha)
     c_final, exitCode = gmres(matrix1d, c.data, atol='legacy')
@@ -100,12 +243,14 @@ def engine_ImplicitDiffusion1D_GMRES(sim):
 def engine_ImplicitDiffusion2D(sim):
     """
     Computes the discretization of the diffusion equation using a purely implicit scheme in 2D
+    
     Uses the function np.linalg.solve(A, b) to solve the equation Ax=b for the matrix A and vectors x and b
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0]
-    alpha = sim.D*dt/dx**2
+    D = self.user_data["D"]
+    alpha = D*dt/dx**2
     dim = sim.get_dimensions()
     matrix2d = diffusion_matrix_2d(dim[0], dim[1], 1+4*alpha, -alpha)
     c_final = np.linalg.solve(matrix2d, c.data.flatten())
@@ -114,13 +259,15 @@ def engine_ImplicitDiffusion2D(sim):
 def engine_ImplicitDiffusion2D_GMRES(sim):
     """
     Computes the discretization of the diffusion equation using a purely implicit scheme in 2D
+    
     Uses the function scipy.sparse.linalg.gmres(A, b) to **quickly but approximately** solve 
-        the equation Ax=b for the matrix A and vectors x and b
+    the equation Ax=b for the matrix A and vectors x and b
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0]
-    alpha = sim.D*dt/dx**2
+    D = self.user_data["D"]
+    alpha = D*dt/dx**2
     dim = sim.get_dimensions()
     matrix2d = diffusion_matrix_2d(dim[0], dim[1], 1+4*alpha, -alpha)
     c_final, exitCode = gmres(matrix2d, c.data.flatten(), atol='legacy')
@@ -129,12 +276,14 @@ def engine_ImplicitDiffusion2D_GMRES(sim):
 def engine_ImplicitDiffusion3D(sim):
     """
     Computes the discretization of the diffusion equation using a purely implicit scheme in 3D
+    
     Uses the function np.linalg.solve(A, b) to solve the equation Ax=b for the matrix A and vectors x and b
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0]
-    alpha = sim.D*dt/dx**2
+    D = self.user_data["D"]
+    alpha = D*dt/dx**2
     dim = sim.get_dimensions()
     matrix3d = diffusion_matrix_3d(dim[0], dim[1], dim[2], 1+6*alpha, -alpha)
     c_final = np.linalg.solve(matrix3d, c.data.flatten())
@@ -143,13 +292,15 @@ def engine_ImplicitDiffusion3D(sim):
 def engine_ImplicitDiffusion3D_GMRES(sim):
     """
     Computes the discretization of the diffusion equation using a purely implicit scheme in 3D
+    
     Uses the function scipy.sparse.linalg.gmres(A, b) to **quickly but approximately** solve 
-        the equation Ax=b for the matrix A and vectors x and b
+    the equation Ax=b for the matrix A and vectors x and b
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0]
-    alpha = sim.D*dt/dx**2
+    D = self.user_data["D"]
+    alpha = D*dt/dx**2
     dim = sim.get_dimensions()
     matrix3d = diffusion_matrix_3d(dim[0], dim[1], dim[2], 1+6*alpha, -alpha)
     c_final, exitCode = gmres(matrix3d, c.data.flatten(), atol='legacy')
@@ -158,12 +309,14 @@ def engine_ImplicitDiffusion3D_GMRES(sim):
 def engine_CrankNicolsonDiffusion1D(sim):
     """
     Computes the discretization of the diffusion equation using the Crank-Nicolson method in 1D
+    
     Uses the function np.linalg.solve(A, b) to solve the equation Ax=b for the matrix A and vectors x and b
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0]
-    alpha = 0.5*sim.D*dt/dx**2
+    D = self.user_data["D"]
+    alpha = 0.5*D*dt/dx**2
     dim = sim.get_dimensions()
     matrix1d = diffusion_matrix_1d(dim[0], 1+2*alpha, -alpha)
     explicit_c_half = (1-2*alpha)*c.data + alpha*(np.roll(c.data, 1, 0) + np.roll(c.data, -1, 0))
@@ -173,13 +326,15 @@ def engine_CrankNicolsonDiffusion1D(sim):
 def engine_CrankNicolsonDiffusion1D_GMRES(sim):
     """
     Computes the discretization of the diffusion equation using the Crank-Nicolson method in 1D
+    
     Uses the function scipy.sparse.linalg.gmres(A, b) to **quickly but approximately** solve 
-        the equation Ax=b for the matrix A and vectors x and b
+    the equation Ax=b for the matrix A and vectors x and b
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0]
-    alpha = 0.5*sim.D*dt/dx**2
+    D = self.user_data["D"]
+    alpha = 0.5*D*dt/dx**2
     dim = sim.get_dimensions()
     matrix1d = diffusion_matrix_1d(dim[0], 1+2*alpha, -alpha)
     explicit_c_half = (1-2*alpha)*c.data + alpha*(np.roll(c.data, 1, 0) + np.roll(c.data, -1, 0))
@@ -191,10 +346,11 @@ def engine_CrankNicolsonDiffusion2D(sim):
     Computes the discretization of the diffusion equation using the Crank-Nicolson method in 2D
     Uses the function np.linalg.solve(A, b) to solve the equation Ax=b for the matrix A and vectors x and b
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0]
-    alpha = 0.5*sim.D*dt/dx**2
+    D = self.user_data["D"]
+    alpha = 0.5*D*dt/dx**2
     dim = sim.get_dimensions()
     matrix2d = diffusion_matrix_2d(dim[0], dim[1], 1+4*alpha, -alpha)
     explicit_c_half = (1-4*alpha)*c.data + alpha*(np.roll(c.data, 1, 0) + np.roll(c.data, -1, 0) + np.roll(c.data, 1, 1) + np.roll(c.data, -1, 1))
@@ -204,13 +360,15 @@ def engine_CrankNicolsonDiffusion2D(sim):
 def engine_CrankNicolsonDiffusion2D_GMRES(sim):
     """
     Computes the discretization of the diffusion equation using the Crank-Nicolson method in 2D
+    
     Uses the function scipy.sparse.linalg.gmres(A, b) to **quickly but approximately** solve 
-        the equation Ax=b for the matrix A and vectors x and b
+    the equation Ax=b for the matrix A and vectors x and b
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0]
-    alpha = 0.5*sim.D*dt/dx**2
+    D = self.user_data["D"]
+    alpha = 0.5*D*dt/dx**2
     dim = sim.get_dimensions()
     matrix2d = diffusion_matrix_2d(dim[0], dim[1], 1+4*alpha, -alpha)
     explicit_c_half = (1-4*alpha)*c.data + alpha*(np.roll(c.data, 1, 0) + np.roll(c.data, -1, 0) + np.roll(c.data, 1, 1) + np.roll(c.data, -1, 1))
@@ -220,12 +378,14 @@ def engine_CrankNicolsonDiffusion2D_GMRES(sim):
 def engine_CrankNicolsonDiffusion3D(sim):
     """
     Computes the discretization of the diffusion equation using the Crank-Nicolson method in 3D
+    
     Uses the function np.linalg.solve(A, b) to solve the equation Ax=b for the matrix A and vectors x and b
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0]
-    alpha = 0.5*sim.D*dt/dx**2
+    D = self.user_data["D"]
+    alpha = 0.5*D*dt/dx**2
     dim = sim.get_dimensions()
     matrix3d = diffusion_matrix_3d(dim[0], dim[1], dim[2], 1+6*alpha, -alpha)
     explicit_c_half = (1-6*alpha)*c.data + alpha*(np.roll(c.data, 1, 0) + np.roll(c.data, -1, 0) + np.roll(c.data, 1, 1) + np.roll(c.data, -1, 1) +  + np.roll(c.data, 1, 2) + np.roll(c.data, -1, 2))
@@ -235,13 +395,15 @@ def engine_CrankNicolsonDiffusion3D(sim):
 def engine_CrankNicolsonDiffusion3D_GMRES(sim):
     """
     Computes the discretization of the diffusion equation using the Crank-Nicolson method in 3D
+    
     Uses the function scipy.sparse.linalg.gmres(A, b) to **quickly but approximately** solve 
-        the equation Ax=b for the matrix A and vectors x and b
+    the equation Ax=b for the matrix A and vectors x and b
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0]
-    alpha = 0.5*sim.D*dt/dx**2
+    D = self.user_data["D"]
+    alpha = 0.5*D*dt/dx**2
     dim = sim.get_dimensions()
     matrix3d = diffusion_matrix_3d(dim[0], dim[1], dim[2], 1+6*alpha, -alpha)
     explicit_c_half = (1-6*alpha)*c.data + alpha*(np.roll(c.data, 1, 0) + np.roll(c.data, -1, 0) + np.roll(c.data, 1, 1) + np.roll(c.data, -1, 1) +  + np.roll(c.data, 1, 2) + np.roll(c.data, -1, 2))
@@ -251,12 +413,14 @@ def engine_CrankNicolsonDiffusion3D_GMRES(sim):
 def engine_ImplicitDiffusion2D_ADI(sim):
     """
     Computes the discretization of the diffusion equation using the Alternating Direction Implicit method for 2D
+    
     Uses the function np.linalg.inv(A) to compute A^-1 directly, since it is reused several times
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0].data
-    alpha = sim.D*dt/dx**2
+    D = self.user_data["D"]
+    alpha = D*dt/dx**2
     dim = sim.get_dimensions()
     matrix1d_x = diffusion_matrix_1d(dim[1], 1+2*alpha, -alpha)
     matrix1d_y = diffusion_matrix_1d(dim[0], 1+2*alpha, -alpha)
@@ -271,13 +435,15 @@ def engine_ImplicitDiffusion2D_ADI(sim):
 def engine_ImplicitDiffusion2D_ADI_GMRES(sim):
     """
     Computes the discretization of the diffusion equation using the Alternating Direction Implicit method for 2D
+    
     Uses the function scipy.sparse.linalg.gmres(A, b) to **quickly but approximately** solve 
-        the equation Ax=b for the matrix A and vectors x and b
+    the equation Ax=b for the matrix A and vectors x and b
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0].data
-    alpha = sim.D*dt/dx**2
+    D = self.user_data["D"]
+    alpha = D*dt/dx**2
     dim = sim.get_dimensions()
     matrix1d_x = diffusion_matrix_1d(dim[1], 1+2*alpha, -alpha)
     matrix1d_y = diffusion_matrix_1d(dim[0], 1+2*alpha, -alpha)
@@ -290,12 +456,14 @@ def engine_ImplicitDiffusion2D_ADI_GMRES(sim):
 def engine_ImplicitDiffusion3D_ADI(sim):
     """
     Computes the discretization of the diffusion equation using the Alternating Direction Implicit method for 2D
+    
     Uses the function np.linalg.inv(A) to compute A^-1 directly, since it is reused several times
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0].data
-    alpha = sim.D*dt/dx**2
+    D = self.user_data["D"]
+    alpha = D*dt/dx**2
     dim = sim.get_dimensions()
     matrix1d_x = diffusion_matrix_1d(dim[2], 1+2*alpha, -alpha)
     matrix1d_y = diffusion_matrix_1d(dim[1], 1+2*alpha, -alpha)
@@ -317,13 +485,15 @@ def engine_ImplicitDiffusion3D_ADI(sim):
 def engine_ImplicitDiffusion3D_ADI_GMRES(sim):
     """
     Computes the discretization of the diffusion equation using the Alternating Direction Implicit method for 2D
+    
     Uses the function scipy.sparse.linalg.gmres(A, b) to **quickly but approximately** solve 
-        the equation Ax=b for the matrix A and vectors x and b
+    the equation Ax=b for the matrix A and vectors x and b
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0].data
-    alpha = sim.D*dt/dx**2
+    D = self.user_data["D"]
+    alpha = D*dt/dx**2
     dim = sim.get_dimensions()
     matrix1d_x = diffusion_matrix_1d(dim[2], 1+2*alpha, -alpha)
     matrix1d_y = diffusion_matrix_1d(dim[1], 1+2*alpha, -alpha)
@@ -342,14 +512,17 @@ def engine_ImplicitDiffusion3D_ADI_GMRES(sim):
 def engine_CrankNicolsonDiffusion2D_ADI(sim):
     """
     Computes the discretization of the diffusion equation using the Alternating Direction Implicit method for 2D, 
-        extended to use the Crank-Nicolson scheme
+    extended to use the Crank-Nicolson scheme
+    
     Uses the Peaceman-Rachford discretization (explicit x + implicit y, then explicit y + implicit x)
+    
     Uses the function np.linalg.inv(A) to compute A^-1 directly, since it is reused several times
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0].data
-    alpha = 0.5*sim.D*dt/dx**2
+    D = self.user_data["D"]
+    alpha = 0.5*D*dt/dx**2
     dim = sim.get_dimensions()
     matrix1d_x = diffusion_matrix_1d(dim[1], 1+2*alpha, -alpha)
     matrix1d_y = diffusion_matrix_1d(dim[0], 1+2*alpha, -alpha)
@@ -366,15 +539,18 @@ def engine_CrankNicolsonDiffusion2D_ADI(sim):
 def engine_CrankNicolsonDiffusion2D_ADI_GMRES(sim):
     """
     Computes the discretization of the diffusion equation using the Alternating Direction Implicit method for 2D, 
-        extended to use the Crank-Nicolson scheme
+    extended to use the Crank-Nicolson scheme
+    
     Uses the Peaceman-Rachford discretization (explicit x + implicit y, then explicit y + implicit x)
+    
     Uses the function scipy.sparse.linalg.gmres(A, b) to **quickly but approximately** solve 
-        the equation Ax=b for the matrix A and vectors x and b
+    the equation Ax=b for the matrix A and vectors x and b
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0].data
-    alpha = 0.5*sim.D*dt/dx**2
+    D = self.user_data["D"]
+    alpha = 0.5*D*dt/dx**2
     dim = sim.get_dimensions()
     matrix1d_x = diffusion_matrix_1d(dim[1], 1+2*alpha, -alpha)
     matrix1d_y = diffusion_matrix_1d(dim[0], 1+2*alpha, -alpha)
@@ -389,15 +565,18 @@ def engine_CrankNicolsonDiffusion2D_ADI_GMRES(sim):
 def engine_CrankNicolsonDiffusion3D_ADI(sim):
     """
     Computes the discretization of the diffusion equation using the Alternating Direction Implicit method for 3D, 
-        extended to use the Crank-Nicolson scheme
+    extended to use the Crank-Nicolson scheme
+    
     Uses an extended Peaceman-Rachford discretization (explicit x + implicit y, then explicit y + implicit z, 
-        then explicit z + implicit x)
+    then explicit z + implicit x)
+    
     Uses the function np.linalg.inv(A) to compute A^-1 directly, since it is reused several times
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0].data
-    alpha = 0.5*sim.D*dt/dx**2
+    D = self.user_data["D"]
+    alpha = 0.5*D*dt/dx**2
     dim = sim.get_dimensions()
     matrix1d_x = diffusion_matrix_1d(dim[2], 1+2*alpha, -alpha)
     matrix1d_y = diffusion_matrix_1d(dim[1], 1+2*alpha, -alpha)
@@ -422,16 +601,19 @@ def engine_CrankNicolsonDiffusion3D_ADI(sim):
 def engine_CrankNicolsonDiffusion3D_ADI_GMRES(sim):
     """
     Computes the discretization of the diffusion equation using the Alternating Direction Implicit method for 3D, 
-        extended to use the Crank-Nicolson scheme
+    extended to use the Crank-Nicolson scheme
+    
     Uses an extended Peaceman-Rachford discretization (explicit x + implicit y, then explicit y + implicit z, 
-        then explicit z + implicit x)
+    then explicit z + implicit x)
+    
     Uses the function scipy.sparse.linalg.gmres(A, b) to **quickly but approximately** solve 
-        the equation Ax=b for the matrix A and vectors x and b
+    the equation Ax=b for the matrix A and vectors x and b
     """
-    dt = sim._time_step_in_seconds
+    dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0].data
-    alpha = 0.5*sim.D*dt/dx**2
+    D = self.user_data["D"]
+    alpha = 0.5*D*dt/dx**2
     dim = sim.get_dimensions()
     matrix1d_x = diffusion_matrix_1d(dim[2], 1+2*alpha, -alpha)
     matrix1d_y = diffusion_matrix_1d(dim[1], 1+2*alpha, -alpha)
@@ -448,83 +630,105 @@ def engine_CrankNicolsonDiffusion3D_ADI_GMRES(sim):
     for i in range(dim[0]): #finally, iterate through ADI method in the x direction
         for j in range(dim[1]):
             c[i, j], exitCode = gmres(matrix1d_x, c[i, j], atol='legacy')
-    sim.fields[0].data = c
-        
+    sim.fields[0].data = c     
 
-def init_Diffusion(sim, dim, solver="explicit", gmres=False, adi=False):
-    sim.D = 0.1
-    sim.set_dimensions(dim)
-    sim.set_cell_spacing(1.)
-    c = np.zeros(dim)
-    if(len(dim) == 1):
-        length = dim[0]
-        c[length // 4:3 * length // 4] = 1
-    elif(len(dim) == 2):
-        length = dim[0]
-        width = dim[1]
-        c[length // 4:3 * length // 4][width // 4:3 * width // 4] = 1
-    elif(len(dim) == 3):
-        length = dim[0]
-        width = dim[1]
-        depth = dim[2]
-        c[length // 4:3 * length // 4][width // 4:3 * width // 4][depth // 4:3 * depth // 4] = 1
-    c_field = Field(data=c, name="c", simulation=sim)
-    sim.add_field(c_field)
-    if (solver == "explicit"):
-        sim.set_engine(engine_ExplicitDiffusion)
-    elif (solver == "implicit"):
+class Diffusion(Simulation):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        if not ("D" in self.user_data):
+            self.user_data["D"] = 0.1
+            
+    def init_fields(self):
+        #initialization of fields code goes here
+        #runs *after* tdb and thermal data is loaded/initialized
+        #runs *before* boundary conditions are initialized
+        dim = self.dimensions
+        c = np.zeros(dim)
         if(len(dim) == 1):
-            if(gmres):
-                sim.set_engine(engine_ImplicitDiffusion1D_GMRES)
-            else:
-                sim.set_engine(engine_ImplicitDiffusion1D)
+            length = dim[0]
+            c[length // 4:3 * length // 4] = 1
         elif(len(dim) == 2):
-            if(gmres):
-                if(adi):
-                    sim.set_engine(engine_ImplicitDiffusion2D_ADI_GMRES)
-                else:
-                    sim.set_engine(engine_ImplicitDiffusion2D_GMRES)
-            else:
-                if(adi):
-                    sim.set_engine(engine_ImplicitDiffusion2D_ADI)
-                else:
-                    sim.set_engine(engine_ImplicitDiffusion2D)
+            length = dim[0]
+            width = dim[1]
+            c[length // 4:3 * length // 4, width // 4:3 * width // 4] = 1
         elif(len(dim) == 3):
-            if(gmres):
-                if(adi):
-                    sim.set_engine(engine_ImplicitDiffusion3D_ADI_GMRES)
+            length = dim[0]
+            width = dim[1]
+            depth = dim[2]
+            c[length // 4:3 * length // 4, width // 4:3 * width // 4, depth // 4:3 * depth // 4] = 1
+        self.add_field(c, "c")
+        
+    def initialize_fields_and_imported_data(self):
+        super().initialize_fields_and_imported_data()
+        #initialization of fields/imported data goes below
+        #runs *after* tdb, thermal, fields, and boundary conditions are loaded/initialized
+                        
+    def just_before_simulating(self):
+        super().just_before_simulating()
+        #additional code to run just before beginning the simulation goes below
+        #runs immediately before simulating, no manual changes permitted to changes implemented here
+        
+    def simulation_loop(self):
+        solver = self.user_data["solver"]
+        gmres = self.user_data["gmres"]
+        adi = self.user_data["adi"]
+        if (solver == "explicit"):
+            engine_ExplicitDiffusion(self)
+        elif (solver == "implicit"):
+            if(len(dim) == 1):
+                if(gmres):
+                    engine_ImplicitDiffusion1D_GMRES(self)
                 else:
-                    sim.set_engine(engine_ImplicitDiffusion3D_GMRES)
-            else:
-                if(adi):
-                    sim.set_engine(engine_ImplicitDiffusion3D_ADI)
+                    engine_ImplicitDiffusion1D(self)
+            elif(len(dim) == 2):
+                if(gmres):
+                    if(adi):
+                        engine_ImplicitDiffusion2D_ADI_GMRES(self)
+                    else:
+                        engine_ImplicitDiffusion2D_GMRES(self)
                 else:
-                    sim.set_engine(engine_ImplicitDiffusion3D)
-    elif (solver == "crank-nicolson"):
-        if(len(dim) == 1):
-            if(gmres):
-                sim.set_engine(engine_CrankNicolsonDiffusion1D_GMRES)
-            else:
-                sim.set_engine(engine_CrankNicolsonDiffusion1D)
-        elif(len(dim) == 2):
-            if(gmres):
-                if(adi):
-                    sim.set_engine(engine_CrankNicolsonDiffusion2D_ADI_GMRES)
+                    if(adi):
+                        engine_ImplicitDiffusion2D_ADI(self)
+                    else:
+                        engine_ImplicitDiffusion2D(self)
+            elif(len(dim) == 3):
+                if(gmres):
+                    if(adi):
+                        engine_ImplicitDiffusion3D_ADI_GMRES(self)
+                    else:
+                        engine_ImplicitDiffusion3D_GMRES(self)
                 else:
-                    sim.set_engine(engine_CrankNicolsonDiffusion2D_GMRES)
-            else:
-                if(adi):
-                    sim.set_engine(engine_CrankNicolsonDiffusion2D_ADI)
+                    if(adi):
+                        engine_ImplicitDiffusion3D_ADI(self)
+                    else:
+                        engine_ImplicitDiffusion3D(self)
+        elif (solver == "crank-nicolson"):
+            if(len(dim) == 1):
+                if(gmres):
+                    engine_CrankNicolsonDiffusion1D_GMRES(self)
                 else:
-                    sim.set_engine(engine_CrankNicolsonDiffusion2D)
-        elif(len(dim) == 3):
-            if(gmres):
-                if(adi):
-                    sim.set_engine(engine_CrankNicolsonDiffusion3D_ADI_GMRES)
+                    engine_CrankNicolsonDiffusion1D(self)
+            elif(len(dim) == 2):
+                if(gmres):
+                    if(adi):
+                        engine_CrankNicolsonDiffusion2D_ADI_GMRES(self)
+                    else:
+                        engine_CrankNicolsonDiffusion2D_GMRES(self)
                 else:
-                    sim.set_engine(engine_CrankNicolsonDiffusion3D_GMRES)
-            else:
-                if(adi):
-                    sim.set_engine(engine_CrankNicolsonDiffusion3D_ADI)
+                    if(adi):
+                        engine_CrankNicolsonDiffusion2D_ADI(self)
+                    else:
+                        engine_CrankNicolsonDiffusion2D(self)
+            elif(len(dim) == 3):
+                if(gmres):
+                    if(adi):
+                        engine_CrankNicolsonDiffusion3D_ADI_GMRES(self)
+                    else:
+                        engine_CrankNicolsonDiffusion3D_GMRES(self)
                 else:
-                    sim.set_engine(engine_CrankNicolsonDiffusion3D)
+                    if(adi):
+                        engine_CrankNicolsonDiffusion3D_ADI(self)
+                    else:
+                        engine_CrankNicolsonDiffusion3D(self)
+        
+    
