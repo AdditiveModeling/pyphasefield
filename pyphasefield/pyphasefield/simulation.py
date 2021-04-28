@@ -269,6 +269,8 @@ class Simulation:
                     if(self._uses_gpu):
                         ppf_gpu_utils.retrieve_fields_from_GPU(self)
                     self.save_simulation()
+                    if(self._autosave_save_images_flag):
+                        self.plot_simulation(save_images=True, show_images=False)
                 
     def initialize_fields_and_imported_data(self):
         self._requires_initialization = False
@@ -286,7 +288,8 @@ class Simulation:
         if(self._uses_gpu):
             self.send_fields_to_GPU()
         self.apply_boundary_conditions()
-        assert(self.temperature.data.shape == self.fields[0].data.shape)
+        if not(self._temperature_type is None):
+            assert(self.temperature.data.shape == self.fields[0].data.shape)
                 
     def simulation_loop(self):
         pass
@@ -419,7 +422,9 @@ class Simulation:
         np.savez(str(save_loc) + "/step_" + str(self.time_step_counter), **save_dict)
         return 0
     
-    def plot_simulation(self, fields=None, interpolation="bicubic", units="cells", save_images=False, size=None, norm=False):
+    def plot_simulation(self, fields=None, interpolation="bicubic", units="cells", save_images=False, show_images=True, size=None, norm=False):
+        if(self._begun_simulation == False):
+            self.just_before_simulating()
         if(self._uses_gpu):
             ppf_gpu_utils.retrieve_fields_from_GPU(self)
         if fields is None:
@@ -428,7 +433,10 @@ class Simulation:
             x = np.arange(0, len(self.fields[0].get_cells()))
             for i in fields:
                 plt.plot(x, self.fields[i].get_cells())
-            plt.show()
+            if(show_images):
+                plt.show()
+            else:
+                plt.close()
         elif((len(self.fields[0].get_cells()) == 1) or (len(self.fields[0].get_cells()[0]) == 1)): #effective 1d plot, 2d but one dimension = 1
             x = np.arange(0, len(self.fields[0].get_cells().flatten()))
             legend = []
@@ -436,7 +444,10 @@ class Simulation:
                 plt.plot(x, self.fields[i].get_cells().flatten())
                 legend.append(self.fields[i].name)
             plt.legend(legend)
-            plt.show()
+            if(show_images):
+                plt.show()
+            else:
+                plt.close()
         else:
             for i in fields:
                 if(units == "cells"):
@@ -464,7 +475,10 @@ class Simulation:
                     plt.ylabel("m")
                 if(save_images):
                     plt.savefig(self._save_path+"/"+self.fields[i].name+"_"+str(self.get_time_step_counter())+".png")
-                plt.show()
+                if(show_images):
+                    plt.show()
+                else:
+                    plt.close()
                 
 
     def set_dimensions(self, dimensions):

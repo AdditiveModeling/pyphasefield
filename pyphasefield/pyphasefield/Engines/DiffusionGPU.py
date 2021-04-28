@@ -64,13 +64,13 @@ def engine_DiffusionGPU(sim):
     cuda.synchronize()
     if(len(sim.dimensions) == 1):
         diffusion_kernel_1D[sim._gpu_blocks_per_grid_1D, sim._gpu_threads_per_block_1D](sim.fields_gpu_device, sim.fields_out_gpu_device, 
-                                                                  self.user_data["D"], sim.get_cell_spacing())
+                                                                  sim.user_data["D"], sim.get_cell_spacing())
     elif(len(sim.dimensions) == 2):
         diffusion_kernel_2D[sim._gpu_blocks_per_grid_2D, sim._gpu_threads_per_block_2D](sim.fields_gpu_device, sim.fields_out_gpu_device, 
-                                                                  self.user_data["D"], sim.get_cell_spacing())
+                                                                  sim.user_data["D"], sim.get_cell_spacing())
     elif(len(sim.dimensions) == 3):
         diffusion_kernel_3D[sim._gpu_blocks_per_grid_3D, sim._gpu_threads_per_block_3D](sim.fields_gpu_device, sim.fields_out_gpu_device, 
-                                                                  self.user_data["D"], sim.get_cell_spacing())
+                                                                  sim.user_data["D"], sim.get_cell_spacing())
     cuda.synchronize()
     sim.fields_gpu_device, sim.fields_out_gpu_device = sim.fields_out_gpu_device, sim.fields_gpu_device
     
@@ -81,7 +81,7 @@ class DiffusionGPU(Simulation):
         #runs *before* tdb, thermal, fields, and boundary conditions are loaded/initialized
         if not ("D" in self.user_data):
             self.user_data["D"] = 0.1
-        self.uses_gpu = True
+        self._uses_gpu = True
             
     def init_fields(self):
         #initialization of fields code goes here

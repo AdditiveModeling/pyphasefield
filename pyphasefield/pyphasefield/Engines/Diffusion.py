@@ -14,6 +14,11 @@ except:
         from pyphasefield.ppf_utils import COLORMAP_OTHER, COLORMAP_PHASE
     except:
         raise ImportError("Cannot import from pyphasefield library!")
+        
+try:
+    from numba import cuda
+except:
+    pass
 
 def diffusion_matrix_1d(xsize, centervalue, neighborvalue):
     """
@@ -203,7 +208,7 @@ def engine_ExplicitDiffusion(sim):
     """
     dt = sim.dt
     c = sim.fields[0]
-    D = self.user_data["D"]
+    D = sim.user_data["D"]
     dc = dt * (D * c.laplacian())
     sim.fields[0].data += dc
     
@@ -216,7 +221,7 @@ def engine_ImplicitDiffusion1D(sim):
     dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0]
-    D = self.user_data["D"]
+    D = sim.user_data["D"]
     alpha = D*dt/dx**2
     dim = sim.get_dimensions()
     matrix1d = diffusion_matrix_1d(dim[0], 1+2*alpha, -alpha)
@@ -233,7 +238,7 @@ def engine_ImplicitDiffusion1D_GMRES(sim):
     dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0]
-    D = self.user_data["D"]
+    D = sim.user_data["D"]
     alpha = D*dt/dx**2
     dim = sim.get_dimensions()
     matrix1d = diffusion_matrix_1d(dim[0], 1+2*alpha, -alpha)
@@ -249,7 +254,7 @@ def engine_ImplicitDiffusion2D(sim):
     dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0]
-    D = self.user_data["D"]
+    D = sim.user_data["D"]
     alpha = D*dt/dx**2
     dim = sim.get_dimensions()
     matrix2d = diffusion_matrix_2d(dim[0], dim[1], 1+4*alpha, -alpha)
@@ -266,7 +271,7 @@ def engine_ImplicitDiffusion2D_GMRES(sim):
     dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0]
-    D = self.user_data["D"]
+    D = sim.user_data["D"]
     alpha = D*dt/dx**2
     dim = sim.get_dimensions()
     matrix2d = diffusion_matrix_2d(dim[0], dim[1], 1+4*alpha, -alpha)
@@ -282,7 +287,7 @@ def engine_ImplicitDiffusion3D(sim):
     dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0]
-    D = self.user_data["D"]
+    D = sim.user_data["D"]
     alpha = D*dt/dx**2
     dim = sim.get_dimensions()
     matrix3d = diffusion_matrix_3d(dim[0], dim[1], dim[2], 1+6*alpha, -alpha)
@@ -299,7 +304,7 @@ def engine_ImplicitDiffusion3D_GMRES(sim):
     dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0]
-    D = self.user_data["D"]
+    D = sim.user_data["D"]
     alpha = D*dt/dx**2
     dim = sim.get_dimensions()
     matrix3d = diffusion_matrix_3d(dim[0], dim[1], dim[2], 1+6*alpha, -alpha)
@@ -315,7 +320,7 @@ def engine_CrankNicolsonDiffusion1D(sim):
     dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0]
-    D = self.user_data["D"]
+    D = sim.user_data["D"]
     alpha = 0.5*D*dt/dx**2
     dim = sim.get_dimensions()
     matrix1d = diffusion_matrix_1d(dim[0], 1+2*alpha, -alpha)
@@ -333,7 +338,7 @@ def engine_CrankNicolsonDiffusion1D_GMRES(sim):
     dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0]
-    D = self.user_data["D"]
+    D = sim.user_data["D"]
     alpha = 0.5*D*dt/dx**2
     dim = sim.get_dimensions()
     matrix1d = diffusion_matrix_1d(dim[0], 1+2*alpha, -alpha)
@@ -344,12 +349,13 @@ def engine_CrankNicolsonDiffusion1D_GMRES(sim):
 def engine_CrankNicolsonDiffusion2D(sim):
     """
     Computes the discretization of the diffusion equation using the Crank-Nicolson method in 2D
+    
     Uses the function np.linalg.solve(A, b) to solve the equation Ax=b for the matrix A and vectors x and b
     """
     dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0]
-    D = self.user_data["D"]
+    D = sim.user_data["D"]
     alpha = 0.5*D*dt/dx**2
     dim = sim.get_dimensions()
     matrix2d = diffusion_matrix_2d(dim[0], dim[1], 1+4*alpha, -alpha)
@@ -367,7 +373,7 @@ def engine_CrankNicolsonDiffusion2D_GMRES(sim):
     dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0]
-    D = self.user_data["D"]
+    D = sim.user_data["D"]
     alpha = 0.5*D*dt/dx**2
     dim = sim.get_dimensions()
     matrix2d = diffusion_matrix_2d(dim[0], dim[1], 1+4*alpha, -alpha)
@@ -384,7 +390,7 @@ def engine_CrankNicolsonDiffusion3D(sim):
     dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0]
-    D = self.user_data["D"]
+    D = sim.user_data["D"]
     alpha = 0.5*D*dt/dx**2
     dim = sim.get_dimensions()
     matrix3d = diffusion_matrix_3d(dim[0], dim[1], dim[2], 1+6*alpha, -alpha)
@@ -402,7 +408,7 @@ def engine_CrankNicolsonDiffusion3D_GMRES(sim):
     dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0]
-    D = self.user_data["D"]
+    D = sim.user_data["D"]
     alpha = 0.5*D*dt/dx**2
     dim = sim.get_dimensions()
     matrix3d = diffusion_matrix_3d(dim[0], dim[1], dim[2], 1+6*alpha, -alpha)
@@ -419,7 +425,7 @@ def engine_ImplicitDiffusion2D_ADI(sim):
     dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0].data
-    D = self.user_data["D"]
+    D = sim.user_data["D"]
     alpha = D*dt/dx**2
     dim = sim.get_dimensions()
     matrix1d_x = diffusion_matrix_1d(dim[1], 1+2*alpha, -alpha)
@@ -442,7 +448,7 @@ def engine_ImplicitDiffusion2D_ADI_GMRES(sim):
     dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0].data
-    D = self.user_data["D"]
+    D = sim.user_data["D"]
     alpha = D*dt/dx**2
     dim = sim.get_dimensions()
     matrix1d_x = diffusion_matrix_1d(dim[1], 1+2*alpha, -alpha)
@@ -462,7 +468,7 @@ def engine_ImplicitDiffusion3D_ADI(sim):
     dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0].data
-    D = self.user_data["D"]
+    D = sim.user_data["D"]
     alpha = D*dt/dx**2
     dim = sim.get_dimensions()
     matrix1d_x = diffusion_matrix_1d(dim[2], 1+2*alpha, -alpha)
@@ -492,7 +498,7 @@ def engine_ImplicitDiffusion3D_ADI_GMRES(sim):
     dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0].data
-    D = self.user_data["D"]
+    D = sim.user_data["D"]
     alpha = D*dt/dx**2
     dim = sim.get_dimensions()
     matrix1d_x = diffusion_matrix_1d(dim[2], 1+2*alpha, -alpha)
@@ -521,7 +527,7 @@ def engine_CrankNicolsonDiffusion2D_ADI(sim):
     dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0].data
-    D = self.user_data["D"]
+    D = sim.user_data["D"]
     alpha = 0.5*D*dt/dx**2
     dim = sim.get_dimensions()
     matrix1d_x = diffusion_matrix_1d(dim[1], 1+2*alpha, -alpha)
@@ -549,7 +555,7 @@ def engine_CrankNicolsonDiffusion2D_ADI_GMRES(sim):
     dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0].data
-    D = self.user_data["D"]
+    D = sim.user_data["D"]
     alpha = 0.5*D*dt/dx**2
     dim = sim.get_dimensions()
     matrix1d_x = diffusion_matrix_1d(dim[1], 1+2*alpha, -alpha)
@@ -575,7 +581,7 @@ def engine_CrankNicolsonDiffusion3D_ADI(sim):
     dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0].data
-    D = self.user_data["D"]
+    D = sim.user_data["D"]
     alpha = 0.5*D*dt/dx**2
     dim = sim.get_dimensions()
     matrix1d_x = diffusion_matrix_1d(dim[2], 1+2*alpha, -alpha)
@@ -612,7 +618,7 @@ def engine_CrankNicolsonDiffusion3D_ADI_GMRES(sim):
     dt = sim.dt
     dx = sim.get_cell_spacing()
     c = sim.fields[0].data
-    D = self.user_data["D"]
+    D = sim.user_data["D"]
     alpha = 0.5*D*dt/dx**2
     dim = sim.get_dimensions()
     matrix1d_x = diffusion_matrix_1d(dim[2], 1+2*alpha, -alpha)
@@ -630,18 +636,83 @@ def engine_CrankNicolsonDiffusion3D_ADI_GMRES(sim):
     for i in range(dim[0]): #finally, iterate through ADI method in the x direction
         for j in range(dim[1]):
             c[i, j], exitCode = gmres(matrix1d_x, c[i, j], atol='legacy')
-    sim.fields[0].data = c     
+    sim.fields[0].data = c   
+    
+@cuda.jit
+def diffusion_kernel_1D(fields, fields_out, D, dx, dt):
+    startx = cuda.grid(1)      
+    stridex = cuda.gridsize(1) 
+    
+    alpha = D*dt/(dx*dx) #laplacian coefficient in diffusion discretization
+    
+    c = fields[0]
+    c_out = fields_out[0]
+
+    # assuming x and y inputs are same length
+    for i in range(startx, c.shape[1], stridex):
+        c_out[i] = c[i]+alpha*(-2*c[i]+c[i+1]+c[i-1])
+            
+@cuda.jit
+def diffusion_kernel_2D(fields, fields_out, D, dx, dt):
+    startx, starty = cuda.grid(2)      
+    stridex, stridey = cuda.gridsize(2) 
+    
+    alpha = D*dt/(dx*dx) #laplacian coefficient in diffusion discretization
+    
+    c = fields[0]
+    c_out = fields_out[0]
+
+    # assuming x and y inputs are same length
+    for i in range(starty, c.shape[0], stridey):
+        for j in range(startx, c.shape[1], stridex):
+            c_out[i][j] = c[i][j]+alpha*(-4*c[i][j]+c[i+1][j]+c[i-1][j]+c[i][j+1]+c[i][j-1])
+            
+@cuda.jit
+def diffusion_kernel_3D(fields, fields_out, D, dx, dt):
+    startx, starty, startz = cuda.grid(3)      
+    stridex, stridey, startz = cuda.gridsize(3) 
+    
+    alpha = D*dt/(dx*dx) #laplacian coefficient in diffusion discretization
+    
+    c = fields[0]
+    c_out = fields_out[0]
+
+    # assuming x and y inputs are same length
+    for i in range(startz, c.shape[0], stridez):
+        for j in range(starty, c.shape[1], stridey):
+            for k in range(startx, c.shape[2], stridex):
+                c_out[i][j][k] = c[i][j][k]+alpha*(-6*c[i][j][k]+c[i+1][j][k]+c[i-1][j][k]+c[i][j+1][k]+c[i][j-1][k]+c[i][j][k+1]+c[i][j][k-1])
+            
+def engine_DiffusionGPU(sim):
+    cuda.synchronize()
+    if(len(sim.dimensions) == 1):
+        diffusion_kernel_1D[sim._gpu_blocks_per_grid_1D, sim._gpu_threads_per_block_1D](sim._fields_gpu_device, sim._fields_out_gpu_device, 
+                                                                  sim.user_data["D"], sim.dx, sim.dt)
+    elif(len(sim.dimensions) == 2):
+        diffusion_kernel_2D[sim._gpu_blocks_per_grid_2D, sim._gpu_threads_per_block_2D](sim._fields_gpu_device, sim._fields_out_gpu_device, 
+                                                                  sim.user_data["D"], sim.dx, sim.dt)
+    elif(len(sim.dimensions) == 3):
+        diffusion_kernel_3D[sim._gpu_blocks_per_grid_3D, sim._gpu_threads_per_block_3D](sim._fields_gpu_device, sim._fields_out_gpu_device, 
+                                                                  sim.user_data["D"], sim.dx, sim.dt)
+    cuda.synchronize()
+    sim._fields_gpu_device, sim._fields_out_gpu_device = sim._fields_out_gpu_device, sim._fields_gpu_device
 
 class Diffusion(Simulation):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        if not ("D" in self.user_data):
-            self.user_data["D"] = 0.1
             
     def init_fields(self):
         #initialization of fields code goes here
         #runs *after* tdb and thermal data is loaded/initialized
         #runs *before* boundary conditions are initialized
+        if not ("D" in self.user_data):
+            self.user_data["D"] = 0.1
+        if not ("solver" in self.user_data):
+            self.user_data["solver"] = "explicit"
+        if not ("adi" in self.user_data):
+            self.user_data["adi"] = False
+        if not ("gmres" in self.user_data):
+            self.user_data["gmres"] = False
         dim = self.dimensions
         c = np.zeros(dim)
         if(len(dim) == 1):
@@ -672,63 +743,65 @@ class Diffusion(Simulation):
         solver = self.user_data["solver"]
         gmres = self.user_data["gmres"]
         adi = self.user_data["adi"]
-        if (solver == "explicit"):
-            engine_ExplicitDiffusion(self)
-        elif (solver == "implicit"):
-            if(len(dim) == 1):
-                if(gmres):
-                    engine_ImplicitDiffusion1D_GMRES(self)
-                else:
-                    engine_ImplicitDiffusion1D(self)
-            elif(len(dim) == 2):
-                if(gmres):
-                    if(adi):
-                        engine_ImplicitDiffusion2D_ADI_GMRES(self)
+        if(self._framework == "GPU_SERIAL"):
+            engine_DiffusionGPU(self)
+        else: #"CPU_SERIAL"
+            if (solver == "explicit"):
+                engine_ExplicitDiffusion(self)
+            elif (solver == "implicit"):
+                if(len(dim) == 1):
+                    if(gmres):
+                        engine_ImplicitDiffusion1D_GMRES(self)
                     else:
-                        engine_ImplicitDiffusion2D_GMRES(self)
-                else:
-                    if(adi):
-                        engine_ImplicitDiffusion2D_ADI(self)
+                        engine_ImplicitDiffusion1D(self)
+                elif(len(dim) == 2):
+                    if(gmres):
+                        if(adi):
+                            engine_ImplicitDiffusion2D_ADI_GMRES(self)
+                        else:
+                            engine_ImplicitDiffusion2D_GMRES(self)
                     else:
-                        engine_ImplicitDiffusion2D(self)
-            elif(len(dim) == 3):
-                if(gmres):
-                    if(adi):
-                        engine_ImplicitDiffusion3D_ADI_GMRES(self)
+                        if(adi):
+                            engine_ImplicitDiffusion2D_ADI(self)
+                        else:
+                            engine_ImplicitDiffusion2D(self)
+                elif(len(dim) == 3):
+                    if(gmres):
+                        if(adi):
+                            engine_ImplicitDiffusion3D_ADI_GMRES(self)
+                        else:
+                            engine_ImplicitDiffusion3D_GMRES(self)
                     else:
-                        engine_ImplicitDiffusion3D_GMRES(self)
-                else:
-                    if(adi):
-                        engine_ImplicitDiffusion3D_ADI(self)
+                        if(adi):
+                            engine_ImplicitDiffusion3D_ADI(self)
+                        else:
+                            engine_ImplicitDiffusion3D(self)
+            elif (solver == "crank-nicolson"):
+                if(len(dim) == 1):
+                    if(gmres):
+                        engine_CrankNicolsonDiffusion1D_GMRES(self)
                     else:
-                        engine_ImplicitDiffusion3D(self)
-        elif (solver == "crank-nicolson"):
-            if(len(dim) == 1):
-                if(gmres):
-                    engine_CrankNicolsonDiffusion1D_GMRES(self)
-                else:
-                    engine_CrankNicolsonDiffusion1D(self)
-            elif(len(dim) == 2):
-                if(gmres):
-                    if(adi):
-                        engine_CrankNicolsonDiffusion2D_ADI_GMRES(self)
+                        engine_CrankNicolsonDiffusion1D(self)
+                elif(len(dim) == 2):
+                    if(gmres):
+                        if(adi):
+                            engine_CrankNicolsonDiffusion2D_ADI_GMRES(self)
+                        else:
+                            engine_CrankNicolsonDiffusion2D_GMRES(self)
                     else:
-                        engine_CrankNicolsonDiffusion2D_GMRES(self)
-                else:
-                    if(adi):
-                        engine_CrankNicolsonDiffusion2D_ADI(self)
+                        if(adi):
+                            engine_CrankNicolsonDiffusion2D_ADI(self)
+                        else:
+                            engine_CrankNicolsonDiffusion2D(self)
+                elif(len(dim) == 3):
+                    if(gmres):
+                        if(adi):
+                            engine_CrankNicolsonDiffusion3D_ADI_GMRES(self)
+                        else:
+                            engine_CrankNicolsonDiffusion3D_GMRES(self)
                     else:
-                        engine_CrankNicolsonDiffusion2D(self)
-            elif(len(dim) == 3):
-                if(gmres):
-                    if(adi):
-                        engine_CrankNicolsonDiffusion3D_ADI_GMRES(self)
-                    else:
-                        engine_CrankNicolsonDiffusion3D_GMRES(self)
-                else:
-                    if(adi):
-                        engine_CrankNicolsonDiffusion3D_ADI(self)
-                    else:
-                        engine_CrankNicolsonDiffusion3D(self)
-        
-    
+                        if(adi):
+                            engine_CrankNicolsonDiffusion3D_ADI(self)
+                        else:
+                            engine_CrankNicolsonDiffusion3D(self)
+

@@ -56,7 +56,7 @@ def AnisoDorr_kernel(fields, T, transfer, fields_out, rng_states):
     
     startx, starty = cuda.grid(2)
     stridex, stridey = cuda.gridsize(2)
-    threadId = cuda.grid(1)
+    threadId = startx + starty*stridex
     
     #dx = params[0]
     #d = params[1]
@@ -270,7 +270,7 @@ def AnisoDorr_helper_kernel(fields, T, transfer, rng_states):
     #transfer[5] is "D_C", the term used in the dcdt term for grad c
     startx, starty = cuda.grid(2)     
     stridex, stridey = cuda.gridsize(2) 
-    threadId = cuda.grid(1)
+    threadId = startx + starty*stridex
     
     #v_m = params[2]
     #D_L = params[7]
