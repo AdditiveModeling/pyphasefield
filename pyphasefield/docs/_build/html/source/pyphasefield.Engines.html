@@ -1,72 +1,33 @@
-
-
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
-  
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
   <title>pyphasefield.Engines package &mdash; pyphasefield  documentation</title>
-  
-
-  
-  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-
-  
-  
-
-  
-  
-
-  
-
-  
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
         <script src="../_static/doctools.js"></script>
-        <script src="../_static/language_data.js"></script>
-    
-    <script type="text/javascript" src="../_static/js/theme.js"></script>
-
-    
+    <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
-
-   
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-          
-
-          
             <a href="../index.html" class="icon icon-home"> pyphasefield
-          
-
-          
-            
             <img src="../_static/logo2.png" class="logo" alt="Logo"/>
-          
           </a>
-
-          
-            
-            
-          
-
-          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -74,242 +35,179 @@
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-
-          
-        </div>
-
-        
-        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-            
-            
-              
-            
-            
-              <!-- Local TOC -->
-              <div class="local-toc"><ul>
-<li><a class="reference internal" href="#">pyphasefield.Engines package</a><ul>
-<li><a class="reference internal" href="#submodules">Submodules</a></li>
-<li><a class="reference internal" href="#module-pyphasefield.Engines.AnisoDorrGPU">pyphasefield.Engines.AnisoDorrGPU module</a></li>
-<li><a class="reference internal" href="#module-pyphasefield.Engines.CahnAllen">pyphasefield.Engines.CahnAllen module</a></li>
-<li><a class="reference internal" href="#module-pyphasefield.Engines.CahnHilliard">pyphasefield.Engines.CahnHilliard module</a></li>
-<li><a class="reference internal" href="#module-pyphasefield.Engines.Diffusion">pyphasefield.Engines.Diffusion module</a></li>
-<li><a class="reference internal" href="#module-pyphasefield.Engines.DiffusionGPU">pyphasefield.Engines.DiffusionGPU module</a></li>
-<li><a class="reference internal" href="#module-pyphasefield.Engines.NCGPU">pyphasefield.Engines.NCGPU module</a></li>
-<li><a class="reference internal" href="#module-pyphasefield.Engines.NCGPU_new">pyphasefield.Engines.NCGPU_new module</a></li>
-<li><a class="reference internal" href="#module-pyphasefield.Engines.NComponent">pyphasefield.Engines.NComponent module</a></li>
-<li><a class="reference internal" href="#module-pyphasefield.Engines.Template">pyphasefield.Engines.Template module</a></li>
-<li><a class="reference internal" href="#module-pyphasefield.Engines.Warren1995">pyphasefield.Engines.Warren1995 module</a></li>
-<li><a class="reference internal" href="#module-pyphasefield.Engines">Module contents</a></li>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation Instructions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage/script_template.html">How to use pyphasefield: Script Template</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage/diffusion.html">How to use pyphasefield: Diffusion Engine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage/engine_template.html">How to use pyphasefield: Creating your own Engine</a></li>
 </ul>
-</li>
-</ul>
-</div>
-            
-          
+
         </div>
-        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" aria-label="top navigation">
-        
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="../index.html">pyphasefield</a>
-        
       </nav>
 
-
       <div class="wy-nav-content">
-        
         <div class="rst-content">
-        
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div role="navigation" aria-label="breadcrumbs navigation">
-
+          <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-    
       <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-        
       <li>pyphasefield.Engines package</li>
-    
-    
       <li class="wy-breadcrumbs-aside">
-        
-          
             <a href="../_sources/source/pyphasefield.Engines.rst.txt" rel="nofollow"> View page source</a>
-          
-        
       </li>
-    
   </ul>
-
-  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-            
-  <div class="section" id="pyphasefield-engines-package">
-<h1>pyphasefield.Engines package<a class="headerlink" href="#pyphasefield-engines-package" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="submodules">
-<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
-</div>
-<div class="section" id="module-pyphasefield.Engines.AnisoDorrGPU">
-<span id="pyphasefield-engines-anisodorrgpu-module"></span><h2>pyphasefield.Engines.AnisoDorrGPU module<a class="headerlink" href="#module-pyphasefield.Engines.AnisoDorrGPU" title="Permalink to this headline">¶</a></h2>
+             
+  <section id="pyphasefield-engines-package">
+<h1>pyphasefield.Engines package<a class="headerlink" href="#pyphasefield-engines-package" title="Permalink to this headline"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline"></a></h2>
+</section>
+<section id="module-pyphasefield.Engines.AnisoDorrGPU">
+<span id="pyphasefield-engines-anisodorrgpu-module"></span><h2>pyphasefield.Engines.AnisoDorrGPU module<a class="headerlink" href="#module-pyphasefield.Engines.AnisoDorrGPU" title="Permalink to this headline"></a></h2>
 <dl class="py class">
-<dt id="pyphasefield.Engines.AnisoDorrGPU.AnisoDorrGPU">
-<em class="property">class </em><code class="sig-prename descclassname">pyphasefield.Engines.AnisoDorrGPU.</code><code class="sig-name descname">AnisoDorrGPU</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.AnisoDorrGPU.AnisoDorrGPU" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.AnisoDorrGPU.AnisoDorrGPU">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.AnisoDorrGPU.</span></span><span class="sig-name descname"><span class="pre">AnisoDorrGPU</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.AnisoDorrGPU.AnisoDorrGPU" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="pyphasefield.html#pyphasefield.simulation.Simulation" title="pyphasefield.simulation.Simulation"><code class="xref py py-class docutils literal notranslate"><span class="pre">pyphasefield.simulation.Simulation</span></code></a></p>
 <dl class="py method">
-<dt id="pyphasefield.Engines.AnisoDorrGPU.AnisoDorrGPU.init_fields">
-<code class="sig-name descname">init_fields</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.AnisoDorrGPU.AnisoDorrGPU.init_fields" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.AnisoDorrGPU.AnisoDorrGPU.init_fields">
+<span class="sig-name descname"><span class="pre">init_fields</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.AnisoDorrGPU.AnisoDorrGPU.init_fields" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="pyphasefield.Engines.AnisoDorrGPU.AnisoDorrGPU.init_tdb_params">
-<code class="sig-name descname">init_tdb_params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.AnisoDorrGPU.AnisoDorrGPU.init_tdb_params" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.AnisoDorrGPU.AnisoDorrGPU.init_tdb_params">
+<span class="sig-name descname"><span class="pre">init_tdb_params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.AnisoDorrGPU.AnisoDorrGPU.init_tdb_params" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="pyphasefield.Engines.AnisoDorrGPU.AnisoDorrGPU.initialize_fields_and_imported_data">
-<code class="sig-name descname">initialize_fields_and_imported_data</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.AnisoDorrGPU.AnisoDorrGPU.initialize_fields_and_imported_data" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.AnisoDorrGPU.AnisoDorrGPU.initialize_fields_and_imported_data">
+<span class="sig-name descname"><span class="pre">initialize_fields_and_imported_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.AnisoDorrGPU.AnisoDorrGPU.initialize_fields_and_imported_data" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="pyphasefield.Engines.AnisoDorrGPU.AnisoDorrGPU.just_before_simulating">
-<code class="sig-name descname">just_before_simulating</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.AnisoDorrGPU.AnisoDorrGPU.just_before_simulating" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.AnisoDorrGPU.AnisoDorrGPU.just_before_simulating">
+<span class="sig-name descname"><span class="pre">just_before_simulating</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.AnisoDorrGPU.AnisoDorrGPU.just_before_simulating" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="pyphasefield.Engines.AnisoDorrGPU.AnisoDorrGPU.simulation_loop">
-<code class="sig-name descname">simulation_loop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.AnisoDorrGPU.AnisoDorrGPU.simulation_loop" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.AnisoDorrGPU.AnisoDorrGPU.simulation_loop">
+<span class="sig-name descname"><span class="pre">simulation_loop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.AnisoDorrGPU.AnisoDorrGPU.simulation_loop" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.AnisoDorrGPU.engine_AnisoDorrGPU">
-<code class="sig-prename descclassname">pyphasefield.Engines.AnisoDorrGPU.</code><code class="sig-name descname">engine_AnisoDorrGPU</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.AnisoDorrGPU.engine_AnisoDorrGPU" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.AnisoDorrGPU.engine_AnisoDorrGPU">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.AnisoDorrGPU.</span></span><span class="sig-name descname"><span class="pre">engine_AnisoDorrGPU</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.AnisoDorrGPU.engine_AnisoDorrGPU" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.AnisoDorrGPU.get_thermodynamics">
-<code class="sig-prename descclassname">pyphasefield.Engines.AnisoDorrGPU.</code><code class="sig-name descname">get_thermodynamics</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ufunc</span></em>, <em class="sig-param"><span class="n">array</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.AnisoDorrGPU.get_thermodynamics" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.AnisoDorrGPU.get_thermodynamics">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.AnisoDorrGPU.</span></span><span class="sig-name descname"><span class="pre">get_thermodynamics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ufunc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">array</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.AnisoDorrGPU.get_thermodynamics" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.AnisoDorrGPU.init_AnisoDorrGPU">
-<code class="sig-prename descclassname">pyphasefield.Engines.AnisoDorrGPU.</code><code class="sig-name descname">init_AnisoDorrGPU</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em>, <em class="sig-param"><span class="n">dim</span><span class="o">=</span><span class="default_value">[200, 200]</span></em>, <em class="sig-param"><span class="n">sim_type</span><span class="o">=</span><span class="default_value">'seed'</span></em>, <em class="sig-param"><span class="n">number_of_seeds</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">tdb_path</span><span class="o">=</span><span class="default_value">'Ni-Cu_Ideal.tdb'</span></em>, <em class="sig-param"><span class="n">temperature_type</span><span class="o">=</span><span class="default_value">'isothermal'</span></em>, <em class="sig-param"><span class="n">initial_temperature</span><span class="o">=</span><span class="default_value">1574</span></em>, <em class="sig-param"><span class="n">temperature_gradient</span><span class="o">=</span><span class="default_value">0</span></em>, <em class="sig-param"><span class="n">cooling_rate</span><span class="o">=</span><span class="default_value">0</span></em>, <em class="sig-param"><span class="n">temperature_file_path</span><span class="o">=</span><span class="default_value">'T.xdmf'</span></em>, <em class="sig-param"><span class="n">initial_concentration_array</span><span class="o">=</span><span class="default_value">[0.40831]</span></em>, <em class="sig-param"><span class="n">cell_spacing</span><span class="o">=</span><span class="default_value">4.6e-06</span></em>, <em class="sig-param"><span class="n">d_ratio</span><span class="o">=</span><span class="default_value">1.0638297872340425</span></em>, <em class="sig-param"><span class="n">solver</span><span class="o">=</span><span class="default_value">'explicit'</span></em>, <em class="sig-param"><span class="n">nbc</span><span class="o">=</span><span class="default_value">['periodic', 'periodic']</span></em>, <em class="sig-param"><span class="n">cuda_blocks</span><span class="o">=</span><span class="default_value">16, 16</span></em>, <em class="sig-param"><span class="n">cuda_threads_per_block</span><span class="o">=</span><span class="default_value">256, 1</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.AnisoDorrGPU.init_AnisoDorrGPU" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.AnisoDorrGPU.init_AnisoDorrGPU">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.AnisoDorrGPU.</span></span><span class="sig-name descname"><span class="pre">init_AnisoDorrGPU</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[200,</span> <span class="pre">200]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sim_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'seed'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">number_of_seeds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tdb_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Ni-Cu_Ideal.tdb'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'isothermal'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_temperature</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1574</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature_gradient</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cooling_rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature_file_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'T.xdmf'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_concentration_array</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[0.40831]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cell_spacing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4.6e-06</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d_ratio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0638297872340425</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solver</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'explicit'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nbc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['periodic',</span> <span class="pre">'periodic']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cuda_blocks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(16,</span> <span class="pre">16)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cuda_threads_per_block</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(256,</span> <span class="pre">1)</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.AnisoDorrGPU.init_AnisoDorrGPU" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.AnisoDorrGPU.make_seed">
-<code class="sig-prename descclassname">pyphasefield.Engines.AnisoDorrGPU.</code><code class="sig-name descname">make_seed</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">phi</span></em>, <em class="sig-param"><span class="n">q1</span></em>, <em class="sig-param"><span class="n">q4</span></em>, <em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">y</span></em>, <em class="sig-param"><span class="n">angle</span></em>, <em class="sig-param"><span class="n">seed_radius</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.AnisoDorrGPU.make_seed" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.AnisoDorrGPU.make_seed">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.AnisoDorrGPU.</span></span><span class="sig-name descname"><span class="pre">make_seed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">phi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed_radius</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.AnisoDorrGPU.make_seed" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
-</div>
-<div class="section" id="module-pyphasefield.Engines.CahnAllen">
-<span id="pyphasefield-engines-cahnallen-module"></span><h2>pyphasefield.Engines.CahnAllen module<a class="headerlink" href="#module-pyphasefield.Engines.CahnAllen" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="module-pyphasefield.Engines.CahnAllen">
+<span id="pyphasefield-engines-cahnallen-module"></span><h2>pyphasefield.Engines.CahnAllen module<a class="headerlink" href="#module-pyphasefield.Engines.CahnAllen" title="Permalink to this headline"></a></h2>
 <dl class="py class">
-<dt id="pyphasefield.Engines.CahnAllen.CahnAllen">
-<em class="property">class </em><code class="sig-prename descclassname">pyphasefield.Engines.CahnAllen.</code><code class="sig-name descname">CahnAllen</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnAllen.CahnAllen" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.CahnAllen.CahnAllen">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.CahnAllen.</span></span><span class="sig-name descname"><span class="pre">CahnAllen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnAllen.CahnAllen" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="pyphasefield.html#pyphasefield.simulation.Simulation" title="pyphasefield.simulation.Simulation"><code class="xref py py-class docutils literal notranslate"><span class="pre">pyphasefield.simulation.Simulation</span></code></a></p>
 <dl class="py method">
-<dt id="pyphasefield.Engines.CahnAllen.CahnAllen.init_fields">
-<code class="sig-name descname">init_fields</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnAllen.CahnAllen.init_fields" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.CahnAllen.CahnAllen.init_fields">
+<span class="sig-name descname"><span class="pre">init_fields</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnAllen.CahnAllen.init_fields" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="pyphasefield.Engines.CahnAllen.CahnAllen.initialize_fields_and_imported_data">
-<code class="sig-name descname">initialize_fields_and_imported_data</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnAllen.CahnAllen.initialize_fields_and_imported_data" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.CahnAllen.CahnAllen.initialize_fields_and_imported_data">
+<span class="sig-name descname"><span class="pre">initialize_fields_and_imported_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnAllen.CahnAllen.initialize_fields_and_imported_data" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="pyphasefield.Engines.CahnAllen.CahnAllen.just_before_simulating">
-<code class="sig-name descname">just_before_simulating</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnAllen.CahnAllen.just_before_simulating" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.CahnAllen.CahnAllen.just_before_simulating">
+<span class="sig-name descname"><span class="pre">just_before_simulating</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnAllen.CahnAllen.just_before_simulating" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="pyphasefield.Engines.CahnAllen.CahnAllen.simulation_loop">
-<code class="sig-name descname">simulation_loop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnAllen.CahnAllen.simulation_loop" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.CahnAllen.CahnAllen.simulation_loop">
+<span class="sig-name descname"><span class="pre">simulation_loop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnAllen.CahnAllen.simulation_loop" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.CahnAllen.engine_CahnAllenCrankNicolson2D_ADI">
-<code class="sig-prename descclassname">pyphasefield.Engines.CahnAllen.</code><code class="sig-name descname">engine_CahnAllenCrankNicolson2D_ADI</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnAllen.engine_CahnAllenCrankNicolson2D_ADI" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.CahnAllen.engine_CahnAllenCrankNicolson2D_ADI">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.CahnAllen.</span></span><span class="sig-name descname"><span class="pre">engine_CahnAllenCrankNicolson2D_ADI</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnAllen.engine_CahnAllenCrankNicolson2D_ADI" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.CahnAllen.engine_CahnAllenExplicit">
-<code class="sig-prename descclassname">pyphasefield.Engines.CahnAllen.</code><code class="sig-name descname">engine_CahnAllenExplicit</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnAllen.engine_CahnAllenExplicit" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.CahnAllen.engine_CahnAllenExplicit">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.CahnAllen.</span></span><span class="sig-name descname"><span class="pre">engine_CahnAllenExplicit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnAllen.engine_CahnAllenExplicit" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.CahnAllen.engine_CahnAllenIMEX1D">
-<code class="sig-prename descclassname">pyphasefield.Engines.CahnAllen.</code><code class="sig-name descname">engine_CahnAllenIMEX1D</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnAllen.engine_CahnAllenIMEX1D" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.CahnAllen.engine_CahnAllenIMEX1D">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.CahnAllen.</span></span><span class="sig-name descname"><span class="pre">engine_CahnAllenIMEX1D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnAllen.engine_CahnAllenIMEX1D" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.CahnAllen.engine_CahnAllenImplicit1D">
-<code class="sig-prename descclassname">pyphasefield.Engines.CahnAllen.</code><code class="sig-name descname">engine_CahnAllenImplicit1D</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnAllen.engine_CahnAllenImplicit1D" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.CahnAllen.engine_CahnAllenImplicit1D">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.CahnAllen.</span></span><span class="sig-name descname"><span class="pre">engine_CahnAllenImplicit1D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnAllen.engine_CahnAllenImplicit1D" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.CahnAllen.engine_CahnAllenImplicit1D_GMRES">
-<code class="sig-prename descclassname">pyphasefield.Engines.CahnAllen.</code><code class="sig-name descname">engine_CahnAllenImplicit1D_GMRES</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnAllen.engine_CahnAllenImplicit1D_GMRES" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.CahnAllen.engine_CahnAllenImplicit1D_GMRES">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.CahnAllen.</span></span><span class="sig-name descname"><span class="pre">engine_CahnAllenImplicit1D_GMRES</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnAllen.engine_CahnAllenImplicit1D_GMRES" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.CahnAllen.engine_CahnAllenImplicit2D_ADI">
-<code class="sig-prename descclassname">pyphasefield.Engines.CahnAllen.</code><code class="sig-name descname">engine_CahnAllenImplicit2D_ADI</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnAllen.engine_CahnAllenImplicit2D_ADI" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.CahnAllen.engine_CahnAllenImplicit2D_ADI">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.CahnAllen.</span></span><span class="sig-name descname"><span class="pre">engine_CahnAllenImplicit2D_ADI</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnAllen.engine_CahnAllenImplicit2D_ADI" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.CahnAllen.engine_CahnAllenImplicit2D_ADI_GMRES">
-<code class="sig-prename descclassname">pyphasefield.Engines.CahnAllen.</code><code class="sig-name descname">engine_CahnAllenImplicit2D_ADI_GMRES</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnAllen.engine_CahnAllenImplicit2D_ADI_GMRES" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.CahnAllen.engine_CahnAllenImplicit2D_ADI_GMRES">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.CahnAllen.</span></span><span class="sig-name descname"><span class="pre">engine_CahnAllenImplicit2D_ADI_GMRES</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnAllen.engine_CahnAllenImplicit2D_ADI_GMRES" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.CahnAllen.engine_CahnAllenImplicit2D_GMRES">
-<code class="sig-prename descclassname">pyphasefield.Engines.CahnAllen.</code><code class="sig-name descname">engine_CahnAllenImplicit2D_GMRES</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnAllen.engine_CahnAllenImplicit2D_GMRES" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.CahnAllen.engine_CahnAllenImplicit2D_GMRES">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.CahnAllen.</span></span><span class="sig-name descname"><span class="pre">engine_CahnAllenImplicit2D_GMRES</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnAllen.engine_CahnAllenImplicit2D_GMRES" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.CahnAllen.engine_CahnAllenImplicit3D_ADI">
-<code class="sig-prename descclassname">pyphasefield.Engines.CahnAllen.</code><code class="sig-name descname">engine_CahnAllenImplicit3D_ADI</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnAllen.engine_CahnAllenImplicit3D_ADI" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.CahnAllen.engine_CahnAllenImplicit3D_ADI">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.CahnAllen.</span></span><span class="sig-name descname"><span class="pre">engine_CahnAllenImplicit3D_ADI</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnAllen.engine_CahnAllenImplicit3D_ADI" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.CahnAllen.functional_CahnAllen">
-<code class="sig-prename descclassname">pyphasefield.Engines.CahnAllen.</code><code class="sig-name descname">functional_CahnAllen</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnAllen.functional_CahnAllen" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.CahnAllen.functional_CahnAllen">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.CahnAllen.</span></span><span class="sig-name descname"><span class="pre">functional_CahnAllen</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnAllen.functional_CahnAllen" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.CahnAllen.implicit_matrix_1d">
-<code class="sig-prename descclassname">pyphasefield.Engines.CahnAllen.</code><code class="sig-name descname">implicit_matrix_1d</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">xsize</span></em>, <em class="sig-param"><span class="n">centervalue</span></em>, <em class="sig-param"><span class="n">neighborvalue</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnAllen.implicit_matrix_1d" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.CahnAllen.implicit_matrix_1d">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.CahnAllen.</span></span><span class="sig-name descname"><span class="pre">implicit_matrix_1d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xsize</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centervalue</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neighborvalue</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnAllen.implicit_matrix_1d" title="Permalink to this definition"></a></dt>
 <dd><p>Creates a matrix for the solution of 1d implicit or crank nickolson discretizations</p>
 <p>Because the exact format changes between implicit and C-N, and this method is reused
 in 2D and 3D cases, centervalue and neighbor value must be explicitly specified</p>
@@ -342,8 +240,8 @@ The neighboring diagonals to the center (neighborvalue) equals the coefficient o
 </dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.CahnAllen.implicit_matrix_2d">
-<code class="sig-prename descclassname">pyphasefield.Engines.CahnAllen.</code><code class="sig-name descname">implicit_matrix_2d</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ysize</span></em>, <em class="sig-param"><span class="n">xsize</span></em>, <em class="sig-param"><span class="n">centervalue</span></em>, <em class="sig-param"><span class="n">neighborvalue</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnAllen.implicit_matrix_2d" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.CahnAllen.implicit_matrix_2d">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.CahnAllen.</span></span><span class="sig-name descname"><span class="pre">implicit_matrix_2d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ysize</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xsize</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centervalue</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neighborvalue</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnAllen.implicit_matrix_2d" title="Permalink to this definition"></a></dt>
 <dd><p>Creates a matrix for the solution of 2d implicit or crank nickolson discretizations</p>
 <p>Because the exact format changes between implicit and C-N, and this method is reused
 in 3D cases, centervalue and neighbor value must be explicitly specified</p>
@@ -384,204 +282,98 @@ The neighboring diagonals to the center (neighborvalue) equals the coefficient o
 they are still considered to be “neighbors” conceptually</p>
 </dd></dl>
 
-</div>
-<div class="section" id="module-pyphasefield.Engines.CahnHilliard">
-<span id="pyphasefield-engines-cahnhilliard-module"></span><h2>pyphasefield.Engines.CahnHilliard module<a class="headerlink" href="#module-pyphasefield.Engines.CahnHilliard" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="module-pyphasefield.Engines.CahnHilliard">
+<span id="pyphasefield-engines-cahnhilliard-module"></span><h2>pyphasefield.Engines.CahnHilliard module<a class="headerlink" href="#module-pyphasefield.Engines.CahnHilliard" title="Permalink to this headline"></a></h2>
 <dl class="py class">
-<dt id="pyphasefield.Engines.CahnHilliard.CahnHilliard">
-<em class="property">class </em><code class="sig-prename descclassname">pyphasefield.Engines.CahnHilliard.</code><code class="sig-name descname">CahnHilliard</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnHilliard.CahnHilliard" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.CahnHilliard.CahnHilliard">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.CahnHilliard.</span></span><span class="sig-name descname"><span class="pre">CahnHilliard</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnHilliard.CahnHilliard" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="pyphasefield.html#pyphasefield.simulation.Simulation" title="pyphasefield.simulation.Simulation"><code class="xref py py-class docutils literal notranslate"><span class="pre">pyphasefield.simulation.Simulation</span></code></a></p>
 <dl class="py method">
-<dt id="pyphasefield.Engines.CahnHilliard.CahnHilliard.init_fields">
-<code class="sig-name descname">init_fields</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnHilliard.CahnHilliard.init_fields" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.CahnHilliard.CahnHilliard.init_fields">
+<span class="sig-name descname"><span class="pre">init_fields</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnHilliard.CahnHilliard.init_fields" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="pyphasefield.Engines.CahnHilliard.CahnHilliard.initialize_fields_and_imported_data">
-<code class="sig-name descname">initialize_fields_and_imported_data</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnHilliard.CahnHilliard.initialize_fields_and_imported_data" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.CahnHilliard.CahnHilliard.initialize_fields_and_imported_data">
+<span class="sig-name descname"><span class="pre">initialize_fields_and_imported_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnHilliard.CahnHilliard.initialize_fields_and_imported_data" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="pyphasefield.Engines.CahnHilliard.CahnHilliard.just_before_simulating">
-<code class="sig-name descname">just_before_simulating</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnHilliard.CahnHilliard.just_before_simulating" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.CahnHilliard.CahnHilliard.just_before_simulating">
+<span class="sig-name descname"><span class="pre">just_before_simulating</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnHilliard.CahnHilliard.just_before_simulating" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="pyphasefield.Engines.CahnHilliard.CahnHilliard.simulation_loop">
-<code class="sig-name descname">simulation_loop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnHilliard.CahnHilliard.simulation_loop" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.CahnHilliard.CahnHilliard.simulation_loop">
+<span class="sig-name descname"><span class="pre">simulation_loop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnHilliard.CahnHilliard.simulation_loop" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.CahnHilliard.engine_CahnHilliardCrankNicolson1D">
-<code class="sig-prename descclassname">pyphasefield.Engines.CahnHilliard.</code><code class="sig-name descname">engine_CahnHilliardCrankNicolson1D</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnHilliard.engine_CahnHilliardCrankNicolson1D" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.CahnHilliard.engine_CahnHilliardCrankNicolson1D">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.CahnHilliard.</span></span><span class="sig-name descname"><span class="pre">engine_CahnHilliardCrankNicolson1D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnHilliard.engine_CahnHilliardCrankNicolson1D" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.CahnHilliard.engine_CahnHilliardCrankNicolson1D_GMRES">
-<code class="sig-prename descclassname">pyphasefield.Engines.CahnHilliard.</code><code class="sig-name descname">engine_CahnHilliardCrankNicolson1D_GMRES</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnHilliard.engine_CahnHilliardCrankNicolson1D_GMRES" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.CahnHilliard.engine_CahnHilliardCrankNicolson1D_GMRES">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.CahnHilliard.</span></span><span class="sig-name descname"><span class="pre">engine_CahnHilliardCrankNicolson1D_GMRES</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnHilliard.engine_CahnHilliardCrankNicolson1D_GMRES" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.CahnHilliard.engine_CahnHilliardCrankNicolson2D_ADI">
-<code class="sig-prename descclassname">pyphasefield.Engines.CahnHilliard.</code><code class="sig-name descname">engine_CahnHilliardCrankNicolson2D_ADI</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnHilliard.engine_CahnHilliardCrankNicolson2D_ADI" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.CahnHilliard.engine_CahnHilliardCrankNicolson2D_ADI">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.CahnHilliard.</span></span><span class="sig-name descname"><span class="pre">engine_CahnHilliardCrankNicolson2D_ADI</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnHilliard.engine_CahnHilliardCrankNicolson2D_ADI" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.CahnHilliard.engine_CahnHilliardExplicit">
-<code class="sig-prename descclassname">pyphasefield.Engines.CahnHilliard.</code><code class="sig-name descname">engine_CahnHilliardExplicit</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnHilliard.engine_CahnHilliardExplicit" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.CahnHilliard.engine_CahnHilliardExplicit">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.CahnHilliard.</span></span><span class="sig-name descname"><span class="pre">engine_CahnHilliardExplicit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnHilliard.engine_CahnHilliardExplicit" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.CahnHilliard.engine_CahnHilliardIMEX1D">
-<code class="sig-prename descclassname">pyphasefield.Engines.CahnHilliard.</code><code class="sig-name descname">engine_CahnHilliardIMEX1D</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnHilliard.engine_CahnHilliardIMEX1D" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.CahnHilliard.engine_CahnHilliardIMEX1D">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.CahnHilliard.</span></span><span class="sig-name descname"><span class="pre">engine_CahnHilliardIMEX1D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnHilliard.engine_CahnHilliardIMEX1D" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.CahnHilliard.engine_CahnHilliardImplicit1D">
-<code class="sig-prename descclassname">pyphasefield.Engines.CahnHilliard.</code><code class="sig-name descname">engine_CahnHilliardImplicit1D</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnHilliard.engine_CahnHilliardImplicit1D" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.CahnHilliard.engine_CahnHilliardImplicit1D">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.CahnHilliard.</span></span><span class="sig-name descname"><span class="pre">engine_CahnHilliardImplicit1D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnHilliard.engine_CahnHilliardImplicit1D" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.CahnHilliard.engine_CahnHilliardImplicit1D_GMRES">
-<code class="sig-prename descclassname">pyphasefield.Engines.CahnHilliard.</code><code class="sig-name descname">engine_CahnHilliardImplicit1D_GMRES</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnHilliard.engine_CahnHilliardImplicit1D_GMRES" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.CahnHilliard.engine_CahnHilliardImplicit1D_GMRES">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.CahnHilliard.</span></span><span class="sig-name descname"><span class="pre">engine_CahnHilliardImplicit1D_GMRES</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnHilliard.engine_CahnHilliardImplicit1D_GMRES" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.CahnHilliard.engine_CahnHilliardImplicit2D_ADI">
-<code class="sig-prename descclassname">pyphasefield.Engines.CahnHilliard.</code><code class="sig-name descname">engine_CahnHilliardImplicit2D_ADI</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnHilliard.engine_CahnHilliardImplicit2D_ADI" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.CahnHilliard.engine_CahnHilliardImplicit2D_ADI">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.CahnHilliard.</span></span><span class="sig-name descname"><span class="pre">engine_CahnHilliardImplicit2D_ADI</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnHilliard.engine_CahnHilliardImplicit2D_ADI" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.CahnHilliard.engine_CahnHilliardImplicit2D_ADI_GMRES">
-<code class="sig-prename descclassname">pyphasefield.Engines.CahnHilliard.</code><code class="sig-name descname">engine_CahnHilliardImplicit2D_ADI_GMRES</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnHilliard.engine_CahnHilliardImplicit2D_ADI_GMRES" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.CahnHilliard.engine_CahnHilliardImplicit2D_ADI_GMRES">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.CahnHilliard.</span></span><span class="sig-name descname"><span class="pre">engine_CahnHilliardImplicit2D_ADI_GMRES</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnHilliard.engine_CahnHilliardImplicit2D_ADI_GMRES" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.CahnHilliard.engine_CahnHilliardImplicit2D_GMRES">
-<code class="sig-prename descclassname">pyphasefield.Engines.CahnHilliard.</code><code class="sig-name descname">engine_CahnHilliardImplicit2D_GMRES</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnHilliard.engine_CahnHilliardImplicit2D_GMRES" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.CahnHilliard.engine_CahnHilliardImplicit2D_GMRES">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.CahnHilliard.</span></span><span class="sig-name descname"><span class="pre">engine_CahnHilliardImplicit2D_GMRES</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnHilliard.engine_CahnHilliardImplicit2D_GMRES" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.CahnHilliard.engine_CahnHilliardImplicit3D_ADI">
-<code class="sig-prename descclassname">pyphasefield.Engines.CahnHilliard.</code><code class="sig-name descname">engine_CahnHilliardImplicit3D_ADI</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnHilliard.engine_CahnHilliardImplicit3D_ADI" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.CahnHilliard.engine_CahnHilliardImplicit3D_ADI">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.CahnHilliard.</span></span><span class="sig-name descname"><span class="pre">engine_CahnHilliardImplicit3D_ADI</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnHilliard.engine_CahnHilliardImplicit3D_ADI" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.CahnHilliard.functional_CahnHilliard">
-<code class="sig-prename descclassname">pyphasefield.Engines.CahnHilliard.</code><code class="sig-name descname">functional_CahnHilliard</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnHilliard.functional_CahnHilliard" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.CahnHilliard.functional_CahnHilliard">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.CahnHilliard.</span></span><span class="sig-name descname"><span class="pre">functional_CahnHilliard</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnHilliard.functional_CahnHilliard" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.CahnHilliard.implicit_matrix_1d">
-<code class="sig-prename descclassname">pyphasefield.Engines.CahnHilliard.</code><code class="sig-name descname">implicit_matrix_1d</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">xsize</span></em>, <em class="sig-param"><span class="n">centervalue</span></em>, <em class="sig-param"><span class="n">neighborvalue</span></em>, <em class="sig-param"><span class="n">farneighborvalue</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnHilliard.implicit_matrix_1d" title="Permalink to this definition">¶</a></dt>
-<dd><p>Creates a matrix for the solution of 1d implicit or crank nickolson discretizations</p>
-<p>Because the exact format changes between implicit and C-N, and this method is reused
-in 2D and 3D cases, centervalue and neighbor value must be explicitly specified</p>
-<p>Matrix shows periodic boundary conditions!</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>xsize</strong> (<em>int</em>) – Size of one dimension of the square NxN implicit matrix, equal to the number of elements in the 1D phase field model</p></li>
-<li><p><strong>centervalue</strong> (<em>float</em>) – Value inserted into the central diagonal of the implicit matrix.</p></li>
-<li><p><strong>neighborvalue</strong> (<em>float</em>) – Value inserted into the two just-off-center diagonals of the implicit matrix.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p></p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>2D NumPy ndarray representation of implicit matrix, with shape [xsize, xsize]</p>
-</dd>
-</dl>
-<p class="rubric">Notes</p>
-<p>Consider the implicit 1D diffusion matrix with generic discretization term equal to the following:</p>
-<p>$$(c_{x}^{t+1} - c_{x}^{t})/dt = (D/(Delta x^2))(c_{x+1}^{t+1} + c_{x-1}^{t+1} - 2c_{x}^{t+1})$$</p>
-<p>This can be rearranged as to express c_{x}^{t} as a function of c_{x}^{t+1}, c_{x-1}^{t+1}, and c_{x+1}^{t+1}
-(Also, let a = D*dt/(Delta x^2) ):</p>
-<p>$$c_{x}^{t} = (-a)c_{x+1}^{t+1} + (-a)c_{x-1}^{t+1} + (1+2a)c_{x}^{t+1}$$</p>
-<p>The implicit matrix composed of these terms is defined as follows:
-The central diagonal (centervalue) equals the coefficient of c_{x}^{t+1}: 1+2a, or 1+2*D*Delta t/(Delta x^2)
-The neighboring diagonals to the center (neighborvalue) equals the coefficient of c_{x-1}^{t+1} or c_{x+1}^{t+1}:
--a, or -D*Delta t/(Delta x^2)</p>
-</dd></dl>
-
-<dl class="py function">
-<dt id="pyphasefield.Engines.CahnHilliard.implicit_matrix_2d">
-<code class="sig-prename descclassname">pyphasefield.Engines.CahnHilliard.</code><code class="sig-name descname">implicit_matrix_2d</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ysize</span></em>, <em class="sig-param"><span class="n">xsize</span></em>, <em class="sig-param"><span class="n">centervalue</span></em>, <em class="sig-param"><span class="n">neighborvalue</span></em>, <em class="sig-param"><span class="n">farneighborvalue</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnHilliard.implicit_matrix_2d" title="Permalink to this definition">¶</a></dt>
-<dd><p>Creates a matrix for the solution of 2d implicit or crank nickolson discretizations</p>
-<p>Because the exact format changes between implicit and C-N, and this method is reused
-in 3D cases, centervalue and neighbor value must be explicitly specified</p>
-<p>Parameter order is specified as ysize then xsize, because the dimensional order of 2d arrays is [y, x]</p>
-<p>Matrix shows periodic boundary conditions!</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>ysize</strong> (<em>int</em>) – Equal to the number of elements along the y-axis in the 2D phase field model
-xsize*ysize is equal to the length of one dimension of the square NxN implicit matrix</p></li>
-<li><p><strong>xsize</strong> (<em>int</em>) – Equal to the number of elements along the x-axis in the 2D phase field model
-xsize*ysize is equal to the length of one dimension of the square NxN implicit matrix</p></li>
-<li><p><strong>centervalue</strong> (<em>float</em>) – Value inserted into the central diagonal of the implicit matrix.</p></li>
-<li><p><strong>neighborvalue</strong> (<em>float</em>) – Value inserted into the four just-off-center diagonals of the 2D implicit matrix.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p></p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>2D NumPy ndarray representation of implicit matrix, with shape [xsize*ysize, xsize*ysize]</p>
-</dd>
-</dl>
-<p class="rubric">Notes</p>
-<p>Consider the implicit 2D diffusion matrix with generic discretization term equal to the following:</p>
-<p>$$(c_{x, y}^{t+1} - c_{x, y}^{t})/dt = (D/(Delta x^2))(c_{x+1, y}^{t+1} + c_{x-1, y}^{t+1}
-+ c_{x, y+1}^{t+1} + c_{x, y-1}^{t+1} - 4c_{x, y}^{t+1})$$</p>
-<p>This can be rearranged as to express c_{x, y}^{t} as a function of c_{x, y}^{t+1}, c_{x-1, y}^{t+1},
-c_{x+1, y}^{t+1}, c_{x, y-1}^{t+1}, and c_{x, y+1}^{t+1}
-(Also, let a = D*dt/(Delta x^2) ):</p>
-<p>$$c_{x, y}^{t} = (-a)c_{x+1, y}^{t+1} + (-a)c_{x-1, y}^{t+1} + (-a)c_{x, y+1}^{t+1}
-+ (-a)c_{x, y-1}^{t+1} + (1+4a)c_{x, y}^{t+1}$$</p>
-<p>The implicit matrix composed of these terms is defined as follows:
-The central diagonal (centervalue) equals the coefficient of c_{x, y}^{t+1}: 1+4a, or 1+4*D*Delta t/(Delta x^2)
-The neighboring diagonals to the center (neighborvalue) equals the coefficient of c_{x-1, y}^{t+1} (or other similar terms):
--a, or -D*Delta t/(Delta x^2)</p>
-<p>Note that two of the “neighboring” diagonals are separated by a significant number of cells in the matrix, however
-they are still considered to be “neighbors” conceptually</p>
-</dd></dl>
-
-</div>
-<div class="section" id="module-pyphasefield.Engines.Diffusion">
-<span id="pyphasefield-engines-diffusion-module"></span><h2>pyphasefield.Engines.Diffusion module<a class="headerlink" href="#module-pyphasefield.Engines.Diffusion" title="Permalink to this headline">¶</a></h2>
-<dl class="py class">
-<dt id="pyphasefield.Engines.Diffusion.Diffusion">
-<em class="property">class </em><code class="sig-prename descclassname">pyphasefield.Engines.Diffusion.</code><code class="sig-name descname">Diffusion</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.Diffusion" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="pyphasefield.html#pyphasefield.simulation.Simulation" title="pyphasefield.simulation.Simulation"><code class="xref py py-class docutils literal notranslate"><span class="pre">pyphasefield.simulation.Simulation</span></code></a></p>
-<dl class="py method">
-<dt id="pyphasefield.Engines.Diffusion.Diffusion.init_fields">
-<code class="sig-name descname">init_fields</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.Diffusion.init_fields" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="pyphasefield.Engines.Diffusion.Diffusion.initialize_fields_and_imported_data">
-<code class="sig-name descname">initialize_fields_and_imported_data</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.Diffusion.initialize_fields_and_imported_data" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="pyphasefield.Engines.Diffusion.Diffusion.just_before_simulating">
-<code class="sig-name descname">just_before_simulating</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.Diffusion.just_before_simulating" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="pyphasefield.Engines.Diffusion.Diffusion.simulation_loop">
-<code class="sig-name descname">simulation_loop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.Diffusion.simulation_loop" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="py function">
-<dt id="pyphasefield.Engines.Diffusion.diffusion_matrix_1d">
-<code class="sig-prename descclassname">pyphasefield.Engines.Diffusion.</code><code class="sig-name descname">diffusion_matrix_1d</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">xsize</span></em>, <em class="sig-param"><span class="n">centervalue</span></em>, <em class="sig-param"><span class="n">neighborvalue</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.diffusion_matrix_1d" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.CahnHilliard.implicit_matrix_1d">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.CahnHilliard.</span></span><span class="sig-name descname"><span class="pre">implicit_matrix_1d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xsize</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centervalue</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neighborvalue</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">farneighborvalue</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnHilliard.implicit_matrix_1d" title="Permalink to this definition"></a></dt>
 <dd><p>Creates a matrix for the solution of 1d implicit or crank nickolson discretizations</p>
 <p>Because the exact format changes between implicit and C-N, and this method is reused
 in 2D and 3D cases, centervalue and neighbor value must be explicitly specified</p>
@@ -614,8 +406,114 @@ The neighboring diagonals to the center (neighborvalue) equals the coefficient o
 </dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.Diffusion.diffusion_matrix_2d">
-<code class="sig-prename descclassname">pyphasefield.Engines.Diffusion.</code><code class="sig-name descname">diffusion_matrix_2d</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ysize</span></em>, <em class="sig-param"><span class="n">xsize</span></em>, <em class="sig-param"><span class="n">centervalue</span></em>, <em class="sig-param"><span class="n">neighborvalue</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.diffusion_matrix_2d" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.CahnHilliard.implicit_matrix_2d">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.CahnHilliard.</span></span><span class="sig-name descname"><span class="pre">implicit_matrix_2d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ysize</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xsize</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centervalue</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neighborvalue</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">farneighborvalue</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.CahnHilliard.implicit_matrix_2d" title="Permalink to this definition"></a></dt>
+<dd><p>Creates a matrix for the solution of 2d implicit or crank nickolson discretizations</p>
+<p>Because the exact format changes between implicit and C-N, and this method is reused
+in 3D cases, centervalue and neighbor value must be explicitly specified</p>
+<p>Parameter order is specified as ysize then xsize, because the dimensional order of 2d arrays is [y, x]</p>
+<p>Matrix shows periodic boundary conditions!</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ysize</strong> (<em>int</em>) – Equal to the number of elements along the y-axis in the 2D phase field model
+xsize*ysize is equal to the length of one dimension of the square NxN implicit matrix</p></li>
+<li><p><strong>xsize</strong> (<em>int</em>) – Equal to the number of elements along the x-axis in the 2D phase field model
+xsize*ysize is equal to the length of one dimension of the square NxN implicit matrix</p></li>
+<li><p><strong>centervalue</strong> (<em>float</em>) – Value inserted into the central diagonal of the implicit matrix.</p></li>
+<li><p><strong>neighborvalue</strong> (<em>float</em>) – Value inserted into the four just-off-center diagonals of the 2D implicit matrix.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>2D NumPy ndarray representation of implicit matrix, with shape [xsize*ysize, xsize*ysize]</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Consider the implicit 2D diffusion matrix with generic discretization term equal to the following:</p>
+<p>$$(c_{x, y}^{t+1} - c_{x, y}^{t})/dt = (D/(Delta x^2))(c_{x+1, y}^{t+1} + c_{x-1, y}^{t+1}
++ c_{x, y+1}^{t+1} + c_{x, y-1}^{t+1} - 4c_{x, y}^{t+1})$$</p>
+<p>This can be rearranged as to express c_{x, y}^{t} as a function of c_{x, y}^{t+1}, c_{x-1, y}^{t+1},
+c_{x+1, y}^{t+1}, c_{x, y-1}^{t+1}, and c_{x, y+1}^{t+1}
+(Also, let a = D*dt/(Delta x^2) ):</p>
+<p>$$c_{x, y}^{t} = (-a)c_{x+1, y}^{t+1} + (-a)c_{x-1, y}^{t+1} + (-a)c_{x, y+1}^{t+1}
++ (-a)c_{x, y-1}^{t+1} + (1+4a)c_{x, y}^{t+1}$$</p>
+<p>The implicit matrix composed of these terms is defined as follows:
+The central diagonal (centervalue) equals the coefficient of c_{x, y}^{t+1}: 1+4a, or 1+4*D*Delta t/(Delta x^2)
+The neighboring diagonals to the center (neighborvalue) equals the coefficient of c_{x-1, y}^{t+1} (or other similar terms):
+-a, or -D*Delta t/(Delta x^2)</p>
+<p>Note that two of the “neighboring” diagonals are separated by a significant number of cells in the matrix, however
+they are still considered to be “neighbors” conceptually</p>
+</dd></dl>
+
+</section>
+<section id="module-pyphasefield.Engines.Diffusion">
+<span id="pyphasefield-engines-diffusion-module"></span><h2>pyphasefield.Engines.Diffusion module<a class="headerlink" href="#module-pyphasefield.Engines.Diffusion" title="Permalink to this headline"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyphasefield.Engines.Diffusion.Diffusion">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.Diffusion.</span></span><span class="sig-name descname"><span class="pre">Diffusion</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.Diffusion" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="pyphasefield.html#pyphasefield.simulation.Simulation" title="pyphasefield.simulation.Simulation"><code class="xref py py-class docutils literal notranslate"><span class="pre">pyphasefield.simulation.Simulation</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyphasefield.Engines.Diffusion.Diffusion.init_fields">
+<span class="sig-name descname"><span class="pre">init_fields</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.Diffusion.init_fields" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyphasefield.Engines.Diffusion.Diffusion.initialize_fields_and_imported_data">
+<span class="sig-name descname"><span class="pre">initialize_fields_and_imported_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.Diffusion.initialize_fields_and_imported_data" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyphasefield.Engines.Diffusion.Diffusion.just_before_simulating">
+<span class="sig-name descname"><span class="pre">just_before_simulating</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.Diffusion.just_before_simulating" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyphasefield.Engines.Diffusion.Diffusion.simulation_loop">
+<span class="sig-name descname"><span class="pre">simulation_loop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.Diffusion.simulation_loop" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyphasefield.Engines.Diffusion.diffusion_matrix_1d">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.Diffusion.</span></span><span class="sig-name descname"><span class="pre">diffusion_matrix_1d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xsize</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centervalue</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neighborvalue</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.diffusion_matrix_1d" title="Permalink to this definition"></a></dt>
+<dd><p>Creates a matrix for the solution of 1d implicit or crank nickolson discretizations</p>
+<p>Because the exact format changes between implicit and C-N, and this method is reused
+in 2D and 3D cases, centervalue and neighbor value must be explicitly specified</p>
+<p>Matrix shows periodic boundary conditions!</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xsize</strong> (<em>int</em>) – Size of one dimension of the square NxN implicit matrix, equal to the number of elements in the 1D phase field model</p></li>
+<li><p><strong>centervalue</strong> (<em>float</em>) – Value inserted into the central diagonal of the implicit matrix.</p></li>
+<li><p><strong>neighborvalue</strong> (<em>float</em>) – Value inserted into the two just-off-center diagonals of the implicit matrix.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>2D NumPy ndarray representation of implicit matrix, with shape [xsize, xsize]</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Consider the implicit 1D diffusion matrix with generic discretization term equal to the following:</p>
+<p>$$(c_{x}^{t+1} - c_{x}^{t})/dt = (D/(Delta x^2))(c_{x+1}^{t+1} + c_{x-1}^{t+1} - 2c_{x}^{t+1})$$</p>
+<p>This can be rearranged as to express c_{x}^{t} as a function of c_{x}^{t+1}, c_{x-1}^{t+1}, and c_{x+1}^{t+1}
+(Also, let a = D*dt/(Delta x^2) ):</p>
+<p>$$c_{x}^{t} = (-a)c_{x+1}^{t+1} + (-a)c_{x-1}^{t+1} + (1+2a)c_{x}^{t+1}$$</p>
+<p>The implicit matrix composed of these terms is defined as follows:
+The central diagonal (centervalue) equals the coefficient of c_{x}^{t+1}: 1+2a, or 1+2*D*Delta t/(Delta x^2)
+The neighboring diagonals to the center (neighborvalue) equals the coefficient of c_{x-1}^{t+1} or c_{x+1}^{t+1}:
+-a, or -D*Delta t/(Delta x^2)</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyphasefield.Engines.Diffusion.diffusion_matrix_2d">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.Diffusion.</span></span><span class="sig-name descname"><span class="pre">diffusion_matrix_2d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ysize</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xsize</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centervalue</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neighborvalue</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.diffusion_matrix_2d" title="Permalink to this definition"></a></dt>
 <dd><p>Creates a matrix for the solution of 2d implicit or crank nickolson discretizations</p>
 <p>Because the exact format changes between implicit and C-N, and this method is reused
 in 3D cases, centervalue and neighbor value must be explicitly specified</p>
@@ -657,8 +555,8 @@ they are still considered to be “neighbors” conceptually</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.Diffusion.diffusion_matrix_3d">
-<code class="sig-prename descclassname">pyphasefield.Engines.Diffusion.</code><code class="sig-name descname">diffusion_matrix_3d</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">zsize</span></em>, <em class="sig-param"><span class="n">ysize</span></em>, <em class="sig-param"><span class="n">xsize</span></em>, <em class="sig-param"><span class="n">centervalue</span></em>, <em class="sig-param"><span class="n">neighborvalue</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.diffusion_matrix_3d" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.Diffusion.diffusion_matrix_3d">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.Diffusion.</span></span><span class="sig-name descname"><span class="pre">diffusion_matrix_3d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">zsize</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ysize</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xsize</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centervalue</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neighborvalue</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.diffusion_matrix_3d" title="Permalink to this definition"></a></dt>
 <dd><p>Creates a matrix for the solution of 3d implicit or crank nickolson discretizations</p>
 <p>Because the exact format changes between implicit and C-N, centervalue and neighbor
 value must be explicitly specified</p>
@@ -706,30 +604,30 @@ they are still considered to be “neighbors” conceptually</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion1D">
-<code class="sig-prename descclassname">pyphasefield.Engines.Diffusion.</code><code class="sig-name descname">engine_CrankNicolsonDiffusion1D</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion1D" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion1D">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.Diffusion.</span></span><span class="sig-name descname"><span class="pre">engine_CrankNicolsonDiffusion1D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion1D" title="Permalink to this definition"></a></dt>
 <dd><p>Computes the discretization of the diffusion equation using the Crank-Nicolson method in 1D</p>
 <p>Uses the function np.linalg.solve(A, b) to solve the equation Ax=b for the matrix A and vectors x and b</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion1D_GMRES">
-<code class="sig-prename descclassname">pyphasefield.Engines.Diffusion.</code><code class="sig-name descname">engine_CrankNicolsonDiffusion1D_GMRES</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion1D_GMRES" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion1D_GMRES">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.Diffusion.</span></span><span class="sig-name descname"><span class="pre">engine_CrankNicolsonDiffusion1D_GMRES</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion1D_GMRES" title="Permalink to this definition"></a></dt>
 <dd><p>Computes the discretization of the diffusion equation using the Crank-Nicolson method in 1D</p>
 <p>Uses the function scipy.sparse.linalg.gmres(A, b) to <strong>quickly but approximately</strong> solve
 the equation Ax=b for the matrix A and vectors x and b</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion2D">
-<code class="sig-prename descclassname">pyphasefield.Engines.Diffusion.</code><code class="sig-name descname">engine_CrankNicolsonDiffusion2D</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion2D" title="Permalink to this definition">¶</a></dt>
-<dd><p>Computes the discretization of the diffusion equation using the Crank-Nicolson method in 2D
-Uses the function np.linalg.solve(A, b) to solve the equation Ax=b for the matrix A and vectors x and b</p>
+<dt class="sig sig-object py" id="pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion2D">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.Diffusion.</span></span><span class="sig-name descname"><span class="pre">engine_CrankNicolsonDiffusion2D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion2D" title="Permalink to this definition"></a></dt>
+<dd><p>Computes the discretization of the diffusion equation using the Crank-Nicolson method in 2D</p>
+<p>Uses the function np.linalg.solve(A, b) to solve the equation Ax=b for the matrix A and vectors x and b</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion2D_ADI">
-<code class="sig-prename descclassname">pyphasefield.Engines.Diffusion.</code><code class="sig-name descname">engine_CrankNicolsonDiffusion2D_ADI</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion2D_ADI" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion2D_ADI">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.Diffusion.</span></span><span class="sig-name descname"><span class="pre">engine_CrankNicolsonDiffusion2D_ADI</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion2D_ADI" title="Permalink to this definition"></a></dt>
 <dd><p>Computes the discretization of the diffusion equation using the Alternating Direction Implicit method for 2D,
 extended to use the Crank-Nicolson scheme</p>
 <p>Uses the Peaceman-Rachford discretization (explicit x + implicit y, then explicit y + implicit x)</p>
@@ -737,8 +635,8 @@ extended to use the Crank-Nicolson scheme</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion2D_ADI_GMRES">
-<code class="sig-prename descclassname">pyphasefield.Engines.Diffusion.</code><code class="sig-name descname">engine_CrankNicolsonDiffusion2D_ADI_GMRES</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion2D_ADI_GMRES" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion2D_ADI_GMRES">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.Diffusion.</span></span><span class="sig-name descname"><span class="pre">engine_CrankNicolsonDiffusion2D_ADI_GMRES</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion2D_ADI_GMRES" title="Permalink to this definition"></a></dt>
 <dd><p>Computes the discretization of the diffusion equation using the Alternating Direction Implicit method for 2D,
 extended to use the Crank-Nicolson scheme</p>
 <p>Uses the Peaceman-Rachford discretization (explicit x + implicit y, then explicit y + implicit x)</p>
@@ -747,23 +645,23 @@ the equation Ax=b for the matrix A and vectors x and b</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion2D_GMRES">
-<code class="sig-prename descclassname">pyphasefield.Engines.Diffusion.</code><code class="sig-name descname">engine_CrankNicolsonDiffusion2D_GMRES</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion2D_GMRES" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion2D_GMRES">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.Diffusion.</span></span><span class="sig-name descname"><span class="pre">engine_CrankNicolsonDiffusion2D_GMRES</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion2D_GMRES" title="Permalink to this definition"></a></dt>
 <dd><p>Computes the discretization of the diffusion equation using the Crank-Nicolson method in 2D</p>
 <p>Uses the function scipy.sparse.linalg.gmres(A, b) to <strong>quickly but approximately</strong> solve
 the equation Ax=b for the matrix A and vectors x and b</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion3D">
-<code class="sig-prename descclassname">pyphasefield.Engines.Diffusion.</code><code class="sig-name descname">engine_CrankNicolsonDiffusion3D</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion3D" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion3D">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.Diffusion.</span></span><span class="sig-name descname"><span class="pre">engine_CrankNicolsonDiffusion3D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion3D" title="Permalink to this definition"></a></dt>
 <dd><p>Computes the discretization of the diffusion equation using the Crank-Nicolson method in 3D</p>
 <p>Uses the function np.linalg.solve(A, b) to solve the equation Ax=b for the matrix A and vectors x and b</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion3D_ADI">
-<code class="sig-prename descclassname">pyphasefield.Engines.Diffusion.</code><code class="sig-name descname">engine_CrankNicolsonDiffusion3D_ADI</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion3D_ADI" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion3D_ADI">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.Diffusion.</span></span><span class="sig-name descname"><span class="pre">engine_CrankNicolsonDiffusion3D_ADI</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion3D_ADI" title="Permalink to this definition"></a></dt>
 <dd><p>Computes the discretization of the diffusion equation using the Alternating Direction Implicit method for 3D,
 extended to use the Crank-Nicolson scheme</p>
 <p>Uses an extended Peaceman-Rachford discretization (explicit x + implicit y, then explicit y + implicit z,
@@ -772,8 +670,8 @@ then explicit z + implicit x)</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion3D_ADI_GMRES">
-<code class="sig-prename descclassname">pyphasefield.Engines.Diffusion.</code><code class="sig-name descname">engine_CrankNicolsonDiffusion3D_ADI_GMRES</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion3D_ADI_GMRES" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion3D_ADI_GMRES">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.Diffusion.</span></span><span class="sig-name descname"><span class="pre">engine_CrankNicolsonDiffusion3D_ADI_GMRES</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion3D_ADI_GMRES" title="Permalink to this definition"></a></dt>
 <dd><p>Computes the discretization of the diffusion equation using the Alternating Direction Implicit method for 3D,
 extended to use the Crank-Nicolson scheme</p>
 <p>Uses an extended Peaceman-Rachford discretization (explicit x + implicit y, then explicit y + implicit z,
@@ -783,232 +681,245 @@ the equation Ax=b for the matrix A and vectors x and b</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion3D_GMRES">
-<code class="sig-prename descclassname">pyphasefield.Engines.Diffusion.</code><code class="sig-name descname">engine_CrankNicolsonDiffusion3D_GMRES</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion3D_GMRES" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion3D_GMRES">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.Diffusion.</span></span><span class="sig-name descname"><span class="pre">engine_CrankNicolsonDiffusion3D_GMRES</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_CrankNicolsonDiffusion3D_GMRES" title="Permalink to this definition"></a></dt>
 <dd><p>Computes the discretization of the diffusion equation using the Crank-Nicolson method in 3D</p>
 <p>Uses the function scipy.sparse.linalg.gmres(A, b) to <strong>quickly but approximately</strong> solve
 the equation Ax=b for the matrix A and vectors x and b</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.Diffusion.engine_ExplicitDiffusion">
-<code class="sig-prename descclassname">pyphasefield.Engines.Diffusion.</code><code class="sig-name descname">engine_ExplicitDiffusion</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_ExplicitDiffusion" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.Diffusion.engine_DiffusionGPU">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.Diffusion.</span></span><span class="sig-name descname"><span class="pre">engine_DiffusionGPU</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_DiffusionGPU" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyphasefield.Engines.Diffusion.engine_ExplicitDiffusion">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.Diffusion.</span></span><span class="sig-name descname"><span class="pre">engine_ExplicitDiffusion</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_ExplicitDiffusion" title="Permalink to this definition"></a></dt>
 <dd><p>Computes the discretization of the diffusion equation using a purely explicit scheme</p>
 <p>Valid for 1, 2, or 3D simulations</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion1D">
-<code class="sig-prename descclassname">pyphasefield.Engines.Diffusion.</code><code class="sig-name descname">engine_ImplicitDiffusion1D</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion1D" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion1D">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.Diffusion.</span></span><span class="sig-name descname"><span class="pre">engine_ImplicitDiffusion1D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion1D" title="Permalink to this definition"></a></dt>
 <dd><p>Computes the discretization of the diffusion equation using a purely implicit scheme in 1D</p>
 <p>Uses the function np.linalg.solve(A, b) to solve the equation Ax=b for the matrix A and vectors x and b</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion1D_GMRES">
-<code class="sig-prename descclassname">pyphasefield.Engines.Diffusion.</code><code class="sig-name descname">engine_ImplicitDiffusion1D_GMRES</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion1D_GMRES" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion1D_GMRES">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.Diffusion.</span></span><span class="sig-name descname"><span class="pre">engine_ImplicitDiffusion1D_GMRES</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion1D_GMRES" title="Permalink to this definition"></a></dt>
 <dd><p>Computes the discretization of the diffusion equation using a purely implicit scheme in 1D</p>
 <p>Uses the function scipy.sparse.linalg.gmres(A, b) to <strong>quickly but approximately</strong> solve
 the equation Ax=b for the matrix A and vectors x and b</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion2D">
-<code class="sig-prename descclassname">pyphasefield.Engines.Diffusion.</code><code class="sig-name descname">engine_ImplicitDiffusion2D</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion2D" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion2D">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.Diffusion.</span></span><span class="sig-name descname"><span class="pre">engine_ImplicitDiffusion2D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion2D" title="Permalink to this definition"></a></dt>
 <dd><p>Computes the discretization of the diffusion equation using a purely implicit scheme in 2D</p>
 <p>Uses the function np.linalg.solve(A, b) to solve the equation Ax=b for the matrix A and vectors x and b</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion2D_ADI">
-<code class="sig-prename descclassname">pyphasefield.Engines.Diffusion.</code><code class="sig-name descname">engine_ImplicitDiffusion2D_ADI</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion2D_ADI" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion2D_ADI">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.Diffusion.</span></span><span class="sig-name descname"><span class="pre">engine_ImplicitDiffusion2D_ADI</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion2D_ADI" title="Permalink to this definition"></a></dt>
 <dd><p>Computes the discretization of the diffusion equation using the Alternating Direction Implicit method for 2D</p>
 <p>Uses the function np.linalg.inv(A) to compute A^-1 directly, since it is reused several times</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion2D_ADI_GMRES">
-<code class="sig-prename descclassname">pyphasefield.Engines.Diffusion.</code><code class="sig-name descname">engine_ImplicitDiffusion2D_ADI_GMRES</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion2D_ADI_GMRES" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion2D_ADI_GMRES">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.Diffusion.</span></span><span class="sig-name descname"><span class="pre">engine_ImplicitDiffusion2D_ADI_GMRES</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion2D_ADI_GMRES" title="Permalink to this definition"></a></dt>
 <dd><p>Computes the discretization of the diffusion equation using the Alternating Direction Implicit method for 2D</p>
 <p>Uses the function scipy.sparse.linalg.gmres(A, b) to <strong>quickly but approximately</strong> solve
 the equation Ax=b for the matrix A and vectors x and b</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion2D_GMRES">
-<code class="sig-prename descclassname">pyphasefield.Engines.Diffusion.</code><code class="sig-name descname">engine_ImplicitDiffusion2D_GMRES</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion2D_GMRES" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion2D_GMRES">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.Diffusion.</span></span><span class="sig-name descname"><span class="pre">engine_ImplicitDiffusion2D_GMRES</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion2D_GMRES" title="Permalink to this definition"></a></dt>
 <dd><p>Computes the discretization of the diffusion equation using a purely implicit scheme in 2D</p>
 <p>Uses the function scipy.sparse.linalg.gmres(A, b) to <strong>quickly but approximately</strong> solve
 the equation Ax=b for the matrix A and vectors x and b</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion3D">
-<code class="sig-prename descclassname">pyphasefield.Engines.Diffusion.</code><code class="sig-name descname">engine_ImplicitDiffusion3D</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion3D" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion3D">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.Diffusion.</span></span><span class="sig-name descname"><span class="pre">engine_ImplicitDiffusion3D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion3D" title="Permalink to this definition"></a></dt>
 <dd><p>Computes the discretization of the diffusion equation using a purely implicit scheme in 3D</p>
 <p>Uses the function np.linalg.solve(A, b) to solve the equation Ax=b for the matrix A and vectors x and b</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion3D_ADI">
-<code class="sig-prename descclassname">pyphasefield.Engines.Diffusion.</code><code class="sig-name descname">engine_ImplicitDiffusion3D_ADI</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion3D_ADI" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion3D_ADI">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.Diffusion.</span></span><span class="sig-name descname"><span class="pre">engine_ImplicitDiffusion3D_ADI</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion3D_ADI" title="Permalink to this definition"></a></dt>
 <dd><p>Computes the discretization of the diffusion equation using the Alternating Direction Implicit method for 2D</p>
 <p>Uses the function np.linalg.inv(A) to compute A^-1 directly, since it is reused several times</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion3D_ADI_GMRES">
-<code class="sig-prename descclassname">pyphasefield.Engines.Diffusion.</code><code class="sig-name descname">engine_ImplicitDiffusion3D_ADI_GMRES</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion3D_ADI_GMRES" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion3D_ADI_GMRES">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.Diffusion.</span></span><span class="sig-name descname"><span class="pre">engine_ImplicitDiffusion3D_ADI_GMRES</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion3D_ADI_GMRES" title="Permalink to this definition"></a></dt>
 <dd><p>Computes the discretization of the diffusion equation using the Alternating Direction Implicit method for 2D</p>
 <p>Uses the function scipy.sparse.linalg.gmres(A, b) to <strong>quickly but approximately</strong> solve
 the equation Ax=b for the matrix A and vectors x and b</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion3D_GMRES">
-<code class="sig-prename descclassname">pyphasefield.Engines.Diffusion.</code><code class="sig-name descname">engine_ImplicitDiffusion3D_GMRES</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion3D_GMRES" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion3D_GMRES">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.Diffusion.</span></span><span class="sig-name descname"><span class="pre">engine_ImplicitDiffusion3D_GMRES</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Diffusion.engine_ImplicitDiffusion3D_GMRES" title="Permalink to this definition"></a></dt>
 <dd><p>Computes the discretization of the diffusion equation using a purely implicit scheme in 3D</p>
 <p>Uses the function scipy.sparse.linalg.gmres(A, b) to <strong>quickly but approximately</strong> solve
 the equation Ax=b for the matrix A and vectors x and b</p>
 </dd></dl>
 
-</div>
-<div class="section" id="module-pyphasefield.Engines.DiffusionGPU">
-<span id="pyphasefield-engines-diffusiongpu-module"></span><h2>pyphasefield.Engines.DiffusionGPU module<a class="headerlink" href="#module-pyphasefield.Engines.DiffusionGPU" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="module-pyphasefield.Engines.DiffusionGPU">
+<span id="pyphasefield-engines-diffusiongpu-module"></span><h2>pyphasefield.Engines.DiffusionGPU module<a class="headerlink" href="#module-pyphasefield.Engines.DiffusionGPU" title="Permalink to this headline"></a></h2>
 <dl class="py class">
-<dt id="pyphasefield.Engines.DiffusionGPU.DiffusionGPU">
-<em class="property">class </em><code class="sig-prename descclassname">pyphasefield.Engines.DiffusionGPU.</code><code class="sig-name descname">DiffusionGPU</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.DiffusionGPU.DiffusionGPU" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.DiffusionGPU.DiffusionGPU">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.DiffusionGPU.</span></span><span class="sig-name descname"><span class="pre">DiffusionGPU</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.DiffusionGPU.DiffusionGPU" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="pyphasefield.html#pyphasefield.simulation.Simulation" title="pyphasefield.simulation.Simulation"><code class="xref py py-class docutils literal notranslate"><span class="pre">pyphasefield.simulation.Simulation</span></code></a></p>
 <dl class="py method">
-<dt id="pyphasefield.Engines.DiffusionGPU.DiffusionGPU.init_fields">
-<code class="sig-name descname">init_fields</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.DiffusionGPU.DiffusionGPU.init_fields" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.DiffusionGPU.DiffusionGPU.init_fields">
+<span class="sig-name descname"><span class="pre">init_fields</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.DiffusionGPU.DiffusionGPU.init_fields" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="pyphasefield.Engines.DiffusionGPU.DiffusionGPU.initialize_fields_and_imported_data">
-<code class="sig-name descname">initialize_fields_and_imported_data</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.DiffusionGPU.DiffusionGPU.initialize_fields_and_imported_data" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.DiffusionGPU.DiffusionGPU.initialize_fields_and_imported_data">
+<span class="sig-name descname"><span class="pre">initialize_fields_and_imported_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.DiffusionGPU.DiffusionGPU.initialize_fields_and_imported_data" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="pyphasefield.Engines.DiffusionGPU.DiffusionGPU.just_before_simulating">
-<code class="sig-name descname">just_before_simulating</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.DiffusionGPU.DiffusionGPU.just_before_simulating" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.DiffusionGPU.DiffusionGPU.just_before_simulating">
+<span class="sig-name descname"><span class="pre">just_before_simulating</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.DiffusionGPU.DiffusionGPU.just_before_simulating" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="pyphasefield.Engines.DiffusionGPU.DiffusionGPU.simulation_loop">
-<code class="sig-name descname">simulation_loop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.DiffusionGPU.DiffusionGPU.simulation_loop" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.DiffusionGPU.DiffusionGPU.simulation_loop">
+<span class="sig-name descname"><span class="pre">simulation_loop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.DiffusionGPU.DiffusionGPU.simulation_loop" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.DiffusionGPU.engine_DiffusionGPU">
-<code class="sig-prename descclassname">pyphasefield.Engines.DiffusionGPU.</code><code class="sig-name descname">engine_DiffusionGPU</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.DiffusionGPU.engine_DiffusionGPU" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.DiffusionGPU.engine_DiffusionGPU">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.DiffusionGPU.</span></span><span class="sig-name descname"><span class="pre">engine_DiffusionGPU</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.DiffusionGPU.engine_DiffusionGPU" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
-</div>
-<div class="section" id="module-pyphasefield.Engines.NCGPU">
-<span id="pyphasefield-engines-ncgpu-module"></span><h2>pyphasefield.Engines.NCGPU module<a class="headerlink" href="#module-pyphasefield.Engines.NCGPU" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="module-pyphasefield.Engines.NCGPU">
+<span id="pyphasefield-engines-ncgpu-module"></span><h2>pyphasefield.Engines.NCGPU module<a class="headerlink" href="#module-pyphasefield.Engines.NCGPU" title="Permalink to this headline"></a></h2>
 <dl class="py class">
-<dt id="pyphasefield.Engines.NCGPU.NCGPU">
-<em class="property">class </em><code class="sig-prename descclassname">pyphasefield.Engines.NCGPU.</code><code class="sig-name descname">NCGPU</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NCGPU.NCGPU" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NCGPU.NCGPU">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.NCGPU.</span></span><span class="sig-name descname"><span class="pre">NCGPU</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NCGPU.NCGPU" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="pyphasefield.html#pyphasefield.simulation.Simulation" title="pyphasefield.simulation.Simulation"><code class="xref py py-class docutils literal notranslate"><span class="pre">pyphasefield.simulation.Simulation</span></code></a></p>
 <dl class="py method">
-<dt id="pyphasefield.Engines.NCGPU.NCGPU.init_fields">
-<code class="sig-name descname">init_fields</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NCGPU.NCGPU.init_fields" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NCGPU.NCGPU.init_fields">
+<span class="sig-name descname"><span class="pre">init_fields</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NCGPU.NCGPU.init_fields" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="pyphasefield.Engines.NCGPU.NCGPU.init_tdb_params">
-<code class="sig-name descname">init_tdb_params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NCGPU.NCGPU.init_tdb_params" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NCGPU.NCGPU.init_tdb_params">
+<span class="sig-name descname"><span class="pre">init_tdb_params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NCGPU.NCGPU.init_tdb_params" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="pyphasefield.Engines.NCGPU.NCGPU.just_before_simulating">
-<code class="sig-name descname">just_before_simulating</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NCGPU.NCGPU.just_before_simulating" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NCGPU.NCGPU.just_before_simulating">
+<span class="sig-name descname"><span class="pre">just_before_simulating</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NCGPU.NCGPU.just_before_simulating" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="pyphasefield.Engines.NCGPU.NCGPU.simulation_loop">
-<code class="sig-name descname">simulation_loop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NCGPU.NCGPU.simulation_loop" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NCGPU.NCGPU.simulation_loop">
+<span class="sig-name descname"><span class="pre">simulation_loop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NCGPU.NCGPU.simulation_loop" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.NCGPU.get_thermodynamics">
-<code class="sig-prename descclassname">pyphasefield.Engines.NCGPU.</code><code class="sig-name descname">get_thermodynamics</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ufunc</span></em>, <em class="sig-param"><span class="n">array</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NCGPU.get_thermodynamics" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NCGPU.get_thermodynamics">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.NCGPU.</span></span><span class="sig-name descname"><span class="pre">get_thermodynamics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ufunc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">array</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NCGPU.get_thermodynamics" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.NCGPU.make_seed">
-<code class="sig-prename descclassname">pyphasefield.Engines.NCGPU.</code><code class="sig-name descname">make_seed</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">phi</span></em>, <em class="sig-param"><span class="n">q1</span></em>, <em class="sig-param"><span class="n">q4</span></em>, <em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">y</span></em>, <em class="sig-param"><span class="n">angle</span></em>, <em class="sig-param"><span class="n">seed_radius</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NCGPU.make_seed" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NCGPU.make_seed">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.NCGPU.</span></span><span class="sig-name descname"><span class="pre">make_seed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">phi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed_radius</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NCGPU.make_seed" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.NCGPU.npvalue">
-<code class="sig-prename descclassname">pyphasefield.Engines.NCGPU.</code><code class="sig-name descname">npvalue</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">var</span></em>, <em class="sig-param"><span class="n">string</span></em>, <em class="sig-param"><span class="n">tdb</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NCGPU.npvalue" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NCGPU.npvalue">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.NCGPU.</span></span><span class="sig-name descname"><span class="pre">npvalue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">var</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">string</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tdb</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NCGPU.npvalue" title="Permalink to this definition"></a></dt>
 <dd><p>Returns a numpy float from the sympy expression gotten from pycalphad
 Reason: some numpy functions (i.e. sqrt) are incompatible with sympy floats!</p>
 </dd></dl>
 
-</div>
-<div class="section" id="module-pyphasefield.Engines.NCGPU_new">
-<span id="pyphasefield-engines-ncgpu-new-module"></span><h2>pyphasefield.Engines.NCGPU_new module<a class="headerlink" href="#module-pyphasefield.Engines.NCGPU_new" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="module-pyphasefield.Engines.NCGPU_new">
+<span id="pyphasefield-engines-ncgpu-new-module"></span><h2>pyphasefield.Engines.NCGPU_new module<a class="headerlink" href="#module-pyphasefield.Engines.NCGPU_new" title="Permalink to this headline"></a></h2>
 <dl class="py class">
-<dt id="pyphasefield.Engines.NCGPU_new.NCGPU_new">
-<em class="property">class </em><code class="sig-prename descclassname">pyphasefield.Engines.NCGPU_new.</code><code class="sig-name descname">NCGPU_new</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NCGPU_new.NCGPU_new" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NCGPU_new.NCGPU_new">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.NCGPU_new.</span></span><span class="sig-name descname"><span class="pre">NCGPU_new</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NCGPU_new.NCGPU_new" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="pyphasefield.html#pyphasefield.simulation.Simulation" title="pyphasefield.simulation.Simulation"><code class="xref py py-class docutils literal notranslate"><span class="pre">pyphasefield.simulation.Simulation</span></code></a></p>
 <dl class="py method">
-<dt id="pyphasefield.Engines.NCGPU_new.NCGPU_new.init_fields">
-<code class="sig-name descname">init_fields</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NCGPU_new.NCGPU_new.init_fields" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NCGPU_new.NCGPU_new.init_fields">
+<span class="sig-name descname"><span class="pre">init_fields</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NCGPU_new.NCGPU_new.init_fields" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="pyphasefield.Engines.NCGPU_new.NCGPU_new.init_tdb_params">
-<code class="sig-name descname">init_tdb_params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NCGPU_new.NCGPU_new.init_tdb_params" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NCGPU_new.NCGPU_new.init_tdb_params">
+<span class="sig-name descname"><span class="pre">init_tdb_params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NCGPU_new.NCGPU_new.init_tdb_params" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="pyphasefield.Engines.NCGPU_new.NCGPU_new.just_before_simulating">
-<code class="sig-name descname">just_before_simulating</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NCGPU_new.NCGPU_new.just_before_simulating" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NCGPU_new.NCGPU_new.just_before_simulating">
+<span class="sig-name descname"><span class="pre">just_before_simulating</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NCGPU_new.NCGPU_new.just_before_simulating" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="pyphasefield.Engines.NCGPU_new.NCGPU_new.simulation_loop">
-<code class="sig-name descname">simulation_loop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NCGPU_new.NCGPU_new.simulation_loop" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NCGPU_new.NCGPU_new.save_simulation">
+<span class="sig-name descname"><span class="pre">save_simulation</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NCGPU_new.NCGPU_new.save_simulation" title="Permalink to this definition"></a></dt>
+<dd><p>Saves all fields in a .npz in either the user-specified save path or a default path. Step number is saved
+in the file name.
+TODO: save data for simulation instance in header file</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyphasefield.Engines.NCGPU_new.NCGPU_new.simulation_loop">
+<span class="sig-name descname"><span class="pre">simulation_loop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NCGPU_new.NCGPU_new.simulation_loop" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.NCGPU_new.get_thermodynamics">
-<code class="sig-prename descclassname">pyphasefield.Engines.NCGPU_new.</code><code class="sig-name descname">get_thermodynamics</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ufunc</span></em>, <em class="sig-param"><span class="n">array</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NCGPU_new.get_thermodynamics" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NCGPU_new.get_thermodynamics">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.NCGPU_new.</span></span><span class="sig-name descname"><span class="pre">get_thermodynamics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ufunc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">array</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NCGPU_new.get_thermodynamics" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.NCGPU_new.make_seed">
-<code class="sig-prename descclassname">pyphasefield.Engines.NCGPU_new.</code><code class="sig-name descname">make_seed</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">phi</span></em>, <em class="sig-param"><span class="n">q1</span></em>, <em class="sig-param"><span class="n">q4</span></em>, <em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">y</span></em>, <em class="sig-param"><span class="n">angle</span></em>, <em class="sig-param"><span class="n">seed_radius</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NCGPU_new.make_seed" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NCGPU_new.make_seed">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.NCGPU_new.</span></span><span class="sig-name descname"><span class="pre">make_seed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">phi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed_radius</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NCGPU_new.make_seed" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.NCGPU_new.npvalue">
-<code class="sig-prename descclassname">pyphasefield.Engines.NCGPU_new.</code><code class="sig-name descname">npvalue</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">var</span></em>, <em class="sig-param"><span class="n">string</span></em>, <em class="sig-param"><span class="n">tdb</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NCGPU_new.npvalue" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NCGPU_new.npvalue">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.NCGPU_new.</span></span><span class="sig-name descname"><span class="pre">npvalue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">var</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">string</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tdb</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NCGPU_new.npvalue" title="Permalink to this definition"></a></dt>
 <dd><p>Returns a numpy float from the sympy expression gotten from pycalphad
 Reason: some numpy functions (i.e. sqrt) are incompatible with sympy floats!</p>
 </dd></dl>
 
-</div>
-<div class="section" id="module-pyphasefield.Engines.NComponent">
-<span id="pyphasefield-engines-ncomponent-module"></span><h2>pyphasefield.Engines.NComponent module<a class="headerlink" href="#module-pyphasefield.Engines.NComponent" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="module-pyphasefield.Engines.NComponent">
+<span id="pyphasefield-engines-ncomponent-module"></span><h2>pyphasefield.Engines.NComponent module<a class="headerlink" href="#module-pyphasefield.Engines.NComponent" title="Permalink to this headline"></a></h2>
 <dl class="py function">
-<dt id="pyphasefield.Engines.NComponent.add_nuclei">
-<code class="sig-prename descclassname">pyphasefield.Engines.NComponent.</code><code class="sig-name descname">add_nuclei</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">phi</span></em>, <em class="sig-param"><span class="n">q1</span></em>, <em class="sig-param"><span class="n">q4</span></em>, <em class="sig-param"><span class="n">p11</span></em>, <em class="sig-param"><span class="n">size</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.add_nuclei" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NComponent.add_nuclei">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.NComponent.</span></span><span class="sig-name descname"><span class="pre">add_nuclei</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">phi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p11</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.add_nuclei" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.NComponent.compute_tdb_energy_nc">
-<code class="sig-prename descclassname">pyphasefield.Engines.NComponent.</code><code class="sig-name descname">compute_tdb_energy_nc</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em>, <em class="sig-param"><span class="n">temps</span></em>, <em class="sig-param"><span class="n">c</span></em>, <em class="sig-param"><span class="n">phase</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.compute_tdb_energy_nc" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NComponent.compute_tdb_energy_nc">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.NComponent.</span></span><span class="sig-name descname"><span class="pre">compute_tdb_energy_nc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.compute_tdb_energy_nc" title="Permalink to this definition"></a></dt>
 <dd><p>Computes Gibbs Free Energy and its derivative*S* w.r.t. composition, for a given temperature field and list of composition fields
 Derivatives are computed by holding all other explicit composition variables constant
 c_i is increased, c_N is decreased (the implicitly-defined last composition variable which equals 1-sum(c_i) )</p>
@@ -1029,8 +940,8 @@ c_i is increased, c_N is decreased (the implicitly-defined last composition vari
 </dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.NComponent.compute_tdb_energy_nc_rev">
-<code class="sig-prename descclassname">pyphasefield.Engines.NComponent.</code><code class="sig-name descname">compute_tdb_energy_nc_rev</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em>, <em class="sig-param"><span class="n">temps</span></em>, <em class="sig-param"><span class="n">c</span></em>, <em class="sig-param"><span class="n">phase</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.compute_tdb_energy_nc_rev" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NComponent.compute_tdb_energy_nc_rev">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.NComponent.</span></span><span class="sig-name descname"><span class="pre">compute_tdb_energy_nc_rev</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.compute_tdb_energy_nc_rev" title="Permalink to this definition"></a></dt>
 <dd><p>Computes Gibbs Free Energy and its derivative*S* w.r.t. composition, for a given temperature field and list of composition fields
 Derivatives are computed by holding all other explicit composition variables constant
 c_i is increased, c_N is decreased (the implicitly-defined last composition variable which equals 1-sum(c_i) )</p>
@@ -1051,111 +962,111 @@ c_i is increased, c_N is decreased (the implicitly-defined last composition vari
 </dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.NComponent.discretization_NComponent">
-<code class="sig-prename descclassname">pyphasefield.Engines.NComponent.</code><code class="sig-name descname">discretization_NComponent</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.discretization_NComponent" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NComponent.discretization_NComponent">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.NComponent.</span></span><span class="sig-name descname"><span class="pre">discretization_NComponent</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.discretization_NComponent" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.NComponent.divagradb">
-<code class="sig-prename descclassname">pyphasefield.Engines.NComponent.</code><code class="sig-name descname">divagradb</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span></em>, <em class="sig-param"><span class="n">b</span></em>, <em class="sig-param"><span class="n">dx</span></em>, <em class="sig-param"><span class="n">dim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.divagradb" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NComponent.divagradb">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.NComponent.</span></span><span class="sig-name descname"><span class="pre">divagradb</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.divagradb" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.NComponent.engine_NComponent_ADI">
-<code class="sig-prename descclassname">pyphasefield.Engines.NComponent.</code><code class="sig-name descname">engine_NComponent_ADI</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.engine_NComponent_ADI" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NComponent.engine_NComponent_ADI">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.NComponent.</span></span><span class="sig-name descname"><span class="pre">engine_NComponent_ADI</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.engine_NComponent_ADI" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.NComponent.engine_NComponent_AnisoM">
-<code class="sig-prename descclassname">pyphasefield.Engines.NComponent.</code><code class="sig-name descname">engine_NComponent_AnisoM</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.engine_NComponent_AnisoM" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NComponent.engine_NComponent_AnisoM">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.NComponent.</span></span><span class="sig-name descname"><span class="pre">engine_NComponent_AnisoM</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.engine_NComponent_AnisoM" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.NComponent.engine_NComponent_Explicit">
-<code class="sig-prename descclassname">pyphasefield.Engines.NComponent.</code><code class="sig-name descname">engine_NComponent_Explicit</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.engine_NComponent_Explicit" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NComponent.engine_NComponent_Explicit">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.NComponent.</span></span><span class="sig-name descname"><span class="pre">engine_NComponent_Explicit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.engine_NComponent_Explicit" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.NComponent.engine_NComponent_FrozenOrientation">
-<code class="sig-prename descclassname">pyphasefield.Engines.NComponent.</code><code class="sig-name descname">engine_NComponent_FrozenOrientation</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.engine_NComponent_FrozenOrientation" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NComponent.engine_NComponent_FrozenOrientation">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.NComponent.</span></span><span class="sig-name descname"><span class="pre">engine_NComponent_FrozenOrientation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.engine_NComponent_FrozenOrientation" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.NComponent.engine_params_NComponent">
-<code class="sig-prename descclassname">pyphasefield.Engines.NComponent.</code><code class="sig-name descname">engine_params_NComponent</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.engine_params_NComponent" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NComponent.engine_params_NComponent">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.NComponent.</span></span><span class="sig-name descname"><span class="pre">engine_params_NComponent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.engine_params_NComponent" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.NComponent.find_Pn">
-<code class="sig-prename descclassname">pyphasefield.Engines.NComponent.</code><code class="sig-name descname">find_Pn</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">T_M</span></em>, <em class="sig-param"><span class="n">T</span></em>, <em class="sig-param"><span class="n">Q</span></em>, <em class="sig-param"><span class="n">dt</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.find_Pn" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NComponent.find_Pn">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.NComponent.</span></span><span class="sig-name descname"><span class="pre">find_Pn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_M</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.find_Pn" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.NComponent.functional_NComponent">
-<code class="sig-prename descclassname">pyphasefield.Engines.NComponent.</code><code class="sig-name descname">functional_NComponent</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.functional_NComponent" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NComponent.functional_NComponent">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.NComponent.</span></span><span class="sig-name descname"><span class="pre">functional_NComponent</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.functional_NComponent" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.NComponent.gaq">
-<code class="sig-prename descclassname">pyphasefield.Engines.NComponent.</code><code class="sig-name descname">gaq</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">gql</span></em>, <em class="sig-param"><span class="n">gqr</span></em>, <em class="sig-param"><span class="n">rgqsl</span></em>, <em class="sig-param"><span class="n">rgqsr</span></em>, <em class="sig-param"><span class="n">dqc</span></em>, <em class="sig-param"><span class="n">dx</span></em>, <em class="sig-param"><span class="n">dim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.gaq" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NComponent.gaq">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.NComponent.</span></span><span class="sig-name descname"><span class="pre">gaq</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gql</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gqr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rgqsl</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rgqsr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dqc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.gaq" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.NComponent.grad2">
-<code class="sig-prename descclassname">pyphasefield.Engines.NComponent.</code><code class="sig-name descname">grad2</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">phi</span></em>, <em class="sig-param"><span class="n">dx</span></em>, <em class="sig-param"><span class="n">dim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.grad2" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NComponent.grad2">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.NComponent.</span></span><span class="sig-name descname"><span class="pre">grad2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">phi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.grad2" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.NComponent.grad_c">
-<code class="sig-prename descclassname">pyphasefield.Engines.NComponent.</code><code class="sig-name descname">grad_c</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">phi</span></em>, <em class="sig-param"><span class="n">dx</span></em>, <em class="sig-param"><span class="n">dim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.grad_c" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NComponent.grad_c">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.NComponent.</span></span><span class="sig-name descname"><span class="pre">grad_c</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">phi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.grad_c" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.NComponent.grad_l">
-<code class="sig-prename descclassname">pyphasefield.Engines.NComponent.</code><code class="sig-name descname">grad_l</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">phi</span></em>, <em class="sig-param"><span class="n">dx</span></em>, <em class="sig-param"><span class="n">dim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.grad_l" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NComponent.grad_l">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.NComponent.</span></span><span class="sig-name descname"><span class="pre">grad_l</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">phi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.grad_l" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.NComponent.grad_r">
-<code class="sig-prename descclassname">pyphasefield.Engines.NComponent.</code><code class="sig-name descname">grad_r</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">phi</span></em>, <em class="sig-param"><span class="n">dx</span></em>, <em class="sig-param"><span class="n">dim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.grad_r" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NComponent.grad_r">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.NComponent.</span></span><span class="sig-name descname"><span class="pre">grad_r</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">phi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.grad_r" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.NComponent.init_NComponent">
-<code class="sig-prename descclassname">pyphasefield.Engines.NComponent.</code><code class="sig-name descname">init_NComponent</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em>, <em class="sig-param"><span class="n">dim</span><span class="o">=</span><span class="default_value">[200, 200]</span></em>, <em class="sig-param"><span class="n">sim_type</span><span class="o">=</span><span class="default_value">'seed'</span></em>, <em class="sig-param"><span class="n">number_of_seeds</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">tdb_path</span><span class="o">=</span><span class="default_value">'Ni-Cu_Ideal.tdb'</span></em>, <em class="sig-param"><span class="n">tdb_phases</span><span class="o">=</span><span class="default_value">['FCC_A1', 'LIQUID']</span></em>, <em class="sig-param"><span class="n">tdb_components</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">temperature_type</span><span class="o">=</span><span class="default_value">'isothermal'</span></em>, <em class="sig-param"><span class="n">initial_temperature</span><span class="o">=</span><span class="default_value">1574</span></em>, <em class="sig-param"><span class="n">temperature_gradient</span><span class="o">=</span><span class="default_value">0</span></em>, <em class="sig-param"><span class="n">cooling_rate</span><span class="o">=</span><span class="default_value">0</span></em>, <em class="sig-param"><span class="n">temperature_file_path</span><span class="o">=</span><span class="default_value">'T.xdmf'</span></em>, <em class="sig-param"><span class="n">initial_concentration_array</span><span class="o">=</span><span class="default_value">[0.40831]</span></em>, <em class="sig-param"><span class="n">cell_spacing</span><span class="o">=</span><span class="default_value">4.6e-06</span></em>, <em class="sig-param"><span class="n">d_ratio</span><span class="o">=</span><span class="default_value">1.0638297872340425</span></em>, <em class="sig-param"><span class="n">solver</span><span class="o">=</span><span class="default_value">'explicit'</span></em>, <em class="sig-param"><span class="n">nbc</span><span class="o">=</span><span class="default_value">['periodic', 'periodic']</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.init_NComponent" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NComponent.init_NComponent">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.NComponent.</span></span><span class="sig-name descname"><span class="pre">init_NComponent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[200,</span> <span class="pre">200]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sim_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'seed'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">number_of_seeds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tdb_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Ni-Cu_Ideal.tdb'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tdb_phases</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['FCC_A1',</span> <span class="pre">'LIQUID']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tdb_components</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'isothermal'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_temperature</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1574</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature_gradient</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cooling_rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature_file_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'T.xdmf'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_concentration_array</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[0.40831]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cell_spacing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4.6e-06</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d_ratio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0638297872340425</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solver</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'explicit'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nbc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['periodic',</span> <span class="pre">'periodic']</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.init_NComponent" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.NComponent.init_tdb_parameters">
-<code class="sig-prename descclassname">pyphasefield.Engines.NComponent.</code><code class="sig-name descname">init_tdb_parameters</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.init_tdb_parameters" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NComponent.init_tdb_parameters">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.NComponent.</span></span><span class="sig-name descname"><span class="pre">init_tdb_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.init_tdb_parameters" title="Permalink to this definition"></a></dt>
 <dd><p>Modifies the global vars which are parameters for the engine. Called from the function utils.preinitialize
 Returns True if variables are loaded successfully, False if certain variables dont exist in the TDB
 If false, preinitialize will print an error saying the TDB doesn’t have enough info to run the sim</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.NComponent.make_seed">
-<code class="sig-prename descclassname">pyphasefield.Engines.NComponent.</code><code class="sig-name descname">make_seed</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">phi</span></em>, <em class="sig-param"><span class="n">q1</span></em>, <em class="sig-param"><span class="n">q4</span></em>, <em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">y</span></em>, <em class="sig-param"><span class="n">angle</span></em>, <em class="sig-param"><span class="n">seed_radius</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.make_seed" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NComponent.make_seed">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.NComponent.</span></span><span class="sig-name descname"><span class="pre">make_seed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">phi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed_radius</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.make_seed" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.NComponent.npvalue">
-<code class="sig-prename descclassname">pyphasefield.Engines.NComponent.</code><code class="sig-name descname">npvalue</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">var</span></em>, <em class="sig-param"><span class="n">string</span></em>, <em class="sig-param"><span class="n">tdb</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.npvalue" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NComponent.npvalue">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.NComponent.</span></span><span class="sig-name descname"><span class="pre">npvalue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">var</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">string</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tdb</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.npvalue" title="Permalink to this definition"></a></dt>
 <dd><p>Returns a numpy float from the sympy expression gotten from pycalphad
 Reason: some numpy functions (i.e. sqrt) are incompatible with sympy floats!</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.NComponent.quaternion_implicit_matrix">
-<code class="sig-prename descclassname">pyphasefield.Engines.NComponent.</code><code class="sig-name descname">quaternion_implicit_matrix</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ac</span></em>, <em class="sig-param"><span class="n">ap</span></em>, <em class="sig-param"><span class="n">an</span></em>, <em class="sig-param"><span class="n">dc</span></em>, <em class="sig-param"><span class="n">dp</span></em>, <em class="sig-param"><span class="n">dn</span></em>, <em class="sig-param"><span class="n">adc</span></em>, <em class="sig-param"><span class="n">adp</span></em>, <em class="sig-param"><span class="n">adn</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.quaternion_implicit_matrix" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NComponent.quaternion_implicit_matrix">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.NComponent.</span></span><span class="sig-name descname"><span class="pre">quaternion_implicit_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ac</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ap</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">an</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">adc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">adp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">adn</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.quaternion_implicit_matrix" title="Permalink to this definition"></a></dt>
 <dd><p>Makes a quaternion implicit matrix
 a = q1 central rows, d = q4 central rows, ad = off-center coupling rows
 c = central value, p = positive neighbor, n = negative neighbor</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.NComponent.quaternion_implicit_method">
-<code class="sig-prename descclassname">pyphasefield.Engines.NComponent.</code><code class="sig-name descname">quaternion_implicit_method</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">q1</span></em>, <em class="sig-param"><span class="n">q4</span></em>, <em class="sig-param"><span class="n">alpha</span></em>, <em class="sig-param"><span class="n">HTp2</span></em>, <em class="sig-param"><span class="n">epsilon2</span></em>, <em class="sig-param"><span class="n">dx</span></em>, <em class="sig-param"><span class="n">beta</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.quaternion_implicit_method" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NComponent.quaternion_implicit_method">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.NComponent.</span></span><span class="sig-name descname"><span class="pre">quaternion_implicit_method</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">q1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">HTp2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epsilon2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.quaternion_implicit_method" title="Permalink to this definition"></a></dt>
 <dd><p>Makes a quaternion implicit matrix, then applies it to q1 and q4 using the Peaceman-Rachford method</p>
 <p>q1 and q4 are a and d</p>
 <p>alpha is one of the primary parameters of the matrix: M*dt/(2dx^2)</p>
@@ -1165,151 +1076,135 @@ c = central value, p = positive neighbor, n = negative neighbor</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.NComponent.renormalize">
-<code class="sig-prename descclassname">pyphasefield.Engines.NComponent.</code><code class="sig-name descname">renormalize</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">q1</span></em>, <em class="sig-param"><span class="n">q4</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.renormalize" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.NComponent.renormalize">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.NComponent.</span></span><span class="sig-name descname"><span class="pre">renormalize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">q1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q4</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.NComponent.renormalize" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
-</div>
-<div class="section" id="module-pyphasefield.Engines.Template">
-<span id="pyphasefield-engines-template-module"></span><h2>pyphasefield.Engines.Template module<a class="headerlink" href="#module-pyphasefield.Engines.Template" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="module-pyphasefield.Engines.Template">
+<span id="pyphasefield-engines-template-module"></span><h2>pyphasefield.Engines.Template module<a class="headerlink" href="#module-pyphasefield.Engines.Template" title="Permalink to this headline"></a></h2>
 <dl class="py class">
-<dt id="pyphasefield.Engines.Template.Template">
-<em class="property">class </em><code class="sig-prename descclassname">pyphasefield.Engines.Template.</code><code class="sig-name descname">Template</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Template.Template" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.Template.Template">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.Template.</span></span><span class="sig-name descname"><span class="pre">Template</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Template.Template" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="pyphasefield.html#pyphasefield.simulation.Simulation" title="pyphasefield.simulation.Simulation"><code class="xref py py-class docutils literal notranslate"><span class="pre">pyphasefield.simulation.Simulation</span></code></a></p>
 <dl class="py method">
-<dt id="pyphasefield.Engines.Template.Template.init_fields">
-<code class="sig-name descname">init_fields</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Template.Template.init_fields" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.Template.Template.init_fields">
+<span class="sig-name descname"><span class="pre">init_fields</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Template.Template.init_fields" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="pyphasefield.Engines.Template.Template.init_tdb_params">
-<code class="sig-name descname">init_tdb_params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Template.Template.init_tdb_params" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.Template.Template.init_tdb_params">
+<span class="sig-name descname"><span class="pre">init_tdb_params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Template.Template.init_tdb_params" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="pyphasefield.Engines.Template.Template.initialize_fields_and_imported_data">
-<code class="sig-name descname">initialize_fields_and_imported_data</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Template.Template.initialize_fields_and_imported_data" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.Template.Template.initialize_fields_and_imported_data">
+<span class="sig-name descname"><span class="pre">initialize_fields_and_imported_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Template.Template.initialize_fields_and_imported_data" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="pyphasefield.Engines.Template.Template.just_before_simulating">
-<code class="sig-name descname">just_before_simulating</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Template.Template.just_before_simulating" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.Template.Template.just_before_simulating">
+<span class="sig-name descname"><span class="pre">just_before_simulating</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Template.Template.just_before_simulating" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="pyphasefield.Engines.Template.Template.simulation_loop">
-<code class="sig-name descname">simulation_loop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Template.Template.simulation_loop" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.Template.Template.simulation_loop">
+<span class="sig-name descname"><span class="pre">simulation_loop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Template.Template.simulation_loop" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
-</div>
-<div class="section" id="module-pyphasefield.Engines.Warren1995">
-<span id="pyphasefield-engines-warren1995-module"></span><h2>pyphasefield.Engines.Warren1995 module<a class="headerlink" href="#module-pyphasefield.Engines.Warren1995" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="module-pyphasefield.Engines.Warren1995">
+<span id="pyphasefield-engines-warren1995-module"></span><h2>pyphasefield.Engines.Warren1995 module<a class="headerlink" href="#module-pyphasefield.Engines.Warren1995" title="Permalink to this headline"></a></h2>
 <dl class="py class">
-<dt id="pyphasefield.Engines.Warren1995.Warren1995">
-<em class="property">class </em><code class="sig-prename descclassname">pyphasefield.Engines.Warren1995.</code><code class="sig-name descname">Warren1995</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Warren1995.Warren1995" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.Warren1995.Warren1995">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.Warren1995.</span></span><span class="sig-name descname"><span class="pre">Warren1995</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Warren1995.Warren1995" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="pyphasefield.html#pyphasefield.simulation.Simulation" title="pyphasefield.simulation.Simulation"><code class="xref py py-class docutils literal notranslate"><span class="pre">pyphasefield.simulation.Simulation</span></code></a></p>
 <dl class="py method">
-<dt id="pyphasefield.Engines.Warren1995.Warren1995.init_fields">
-<code class="sig-name descname">init_fields</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Warren1995.Warren1995.init_fields" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.Warren1995.Warren1995.init_fields">
+<span class="sig-name descname"><span class="pre">init_fields</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Warren1995.Warren1995.init_fields" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="pyphasefield.Engines.Warren1995.Warren1995.initialize_fields_and_imported_data">
-<code class="sig-name descname">initialize_fields_and_imported_data</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Warren1995.Warren1995.initialize_fields_and_imported_data" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.Warren1995.Warren1995.initialize_fields_and_imported_data">
+<span class="sig-name descname"><span class="pre">initialize_fields_and_imported_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Warren1995.Warren1995.initialize_fields_and_imported_data" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="pyphasefield.Engines.Warren1995.Warren1995.just_before_simulating">
-<code class="sig-name descname">just_before_simulating</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Warren1995.Warren1995.just_before_simulating" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.Warren1995.Warren1995.just_before_simulating">
+<span class="sig-name descname"><span class="pre">just_before_simulating</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Warren1995.Warren1995.just_before_simulating" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="pyphasefield.Engines.Warren1995.Warren1995.simulation_loop">
-<code class="sig-name descname">simulation_loop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Warren1995.Warren1995.simulation_loop" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.Warren1995.Warren1995.simulation_loop">
+<span class="sig-name descname"><span class="pre">simulation_loop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Warren1995.Warren1995.simulation_loop" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.Warren1995.engine_Warren1995">
-<code class="sig-prename descclassname">pyphasefield.Engines.Warren1995.</code><code class="sig-name descname">engine_Warren1995</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Warren1995.engine_Warren1995" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.Warren1995.engine_Warren1995">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.Warren1995.</span></span><span class="sig-name descname"><span class="pre">engine_Warren1995</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Warren1995.engine_Warren1995" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.Warren1995.gradx">
-<code class="sig-prename descclassname">pyphasefield.Engines.Warren1995.</code><code class="sig-name descname">gradx</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">phi</span></em>, <em class="sig-param"><span class="n">dx</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Warren1995.gradx" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.Warren1995.gradx">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.Warren1995.</span></span><span class="sig-name descname"><span class="pre">gradx</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">phi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dx</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Warren1995.gradx" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.Warren1995.gradxx">
-<code class="sig-prename descclassname">pyphasefield.Engines.Warren1995.</code><code class="sig-name descname">gradxx</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">phi</span></em>, <em class="sig-param"><span class="n">dx</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Warren1995.gradxx" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.Warren1995.gradxx">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.Warren1995.</span></span><span class="sig-name descname"><span class="pre">gradxx</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">phi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dx</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Warren1995.gradxx" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.Warren1995.grady">
-<code class="sig-prename descclassname">pyphasefield.Engines.Warren1995.</code><code class="sig-name descname">grady</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">phi</span></em>, <em class="sig-param"><span class="n">dx</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Warren1995.grady" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.Warren1995.grady">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.Warren1995.</span></span><span class="sig-name descname"><span class="pre">grady</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">phi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dx</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Warren1995.grady" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.Warren1995.gradyy">
-<code class="sig-prename descclassname">pyphasefield.Engines.Warren1995.</code><code class="sig-name descname">gradyy</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">phi</span></em>, <em class="sig-param"><span class="n">dx</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Warren1995.gradyy" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.Warren1995.gradyy">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.Warren1995.</span></span><span class="sig-name descname"><span class="pre">gradyy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">phi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dx</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Warren1995.gradyy" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pyphasefield.Engines.Warren1995.init_Warren1995">
-<code class="sig-prename descclassname">pyphasefield.Engines.Warren1995.</code><code class="sig-name descname">init_Warren1995</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim</span></em>, <em class="sig-param"><span class="n">dim</span></em>, <em class="sig-param"><span class="n">diamond_size</span><span class="o">=</span><span class="default_value">15</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Warren1995.init_Warren1995" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pyphasefield.Engines.Warren1995.init_Warren1995">
+<span class="sig-prename descclassname"><span class="pre">pyphasefield.Engines.Warren1995.</span></span><span class="sig-name descname"><span class="pre">init_Warren1995</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">diamond_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">15</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyphasefield.Engines.Warren1995.init_Warren1995" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
-</div>
-<div class="section" id="module-pyphasefield.Engines">
-<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-pyphasefield.Engines" title="Permalink to this headline">¶</a></h2>
-</div>
-</div>
+</section>
+<section id="module-pyphasefield.Engines">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-pyphasefield.Engines" title="Permalink to this headline"></a></h2>
+</section>
+</section>
 
 
            </div>
-           
           </div>
           <footer>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>
-        &#169; Copyright 2021, pyphasefield Development Team.
-
-    </p>
+    <p>&#169; Copyright 2021, pyphasefield Development Team.</p>
   </div>
-    
-    
-    
-    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    
-    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
 
 </footer>
         </div>
       </div>
-
     </section>
-
   </div>
-  
-
-  <script type="text/javascript">
+  <script>
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
-
-  
-  
-    
-   
+  </script> 
 
 </body>
 </html>

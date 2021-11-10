@@ -1,25 +1,21 @@
 How to use pyphasefield: Diffusion Engine
 =========================================
 
-Pyphasefield is structured around Engine python files. These files contain a subclass of ``simulation`` along with code to run 
-a single simulation step. This subclass is then utilized in a python script by calling [Engine].simulate(number_of_steps). In 
-this document, we will illustrate this process with an example script, using the built-in Diffusion pyphasefield engine.
+In the previous example, a non-functional script was shown to illustrate the possible functions which may be used. To demonstrate the usage, 
+we will illustrate this process with an example script, using the built-in Diffusion pyphasefield engine.
 
 The Code
---------
+~~~~~~~~
 
 .. code-block:: python
 
 	#built for pyphasefield version 1.1.0, may not work on future versions!
-	import sys
-	sys.path.insert(0,"..")
 	import pyphasefield.Engines as engines
-
 
 	sim = engines.Diffusion(dimensions=[500, 500])
 
 	#initialize non-array parameters
-	sim.set_framework("GPU_SERIAL") #"CPU_SERIAL", "GPU_SERIAL" (GPU_SERIAL requires numba)
+	sim.set_framework("CPU_SERIAL") #"CPU_SERIAL", "GPU_SERIAL" (GPU_SERIAL requires numba)
 	sim.set_dx(1.)
 	sim.set_dt(0.1)
 	sim.set_save_path("data/diffusion_test")
@@ -39,15 +35,13 @@ The Code
 	#change array data here, for custom simulations
 	"""
 	sim.fields[0].data[:] = 1.
-	sim.fields[0].data[]
 	length = sim.dimensions[0]
 	width = sim.dimensions[1]
-	c[length // 4:3 * length // 4, width // 4:3 * width // 4] = 0.
+	sim.fields[0].data[length // 4:3 * length // 4, width // 4:3 * width // 4] = 0.
 	"""
 
 
 	#initial conditions
-	sim.simulate(0)
 	sim.plot_simulation()
 
 	#run simulation
@@ -55,3 +49,14 @@ The Code
 
 	#final conditions
 	sim.plot_simulation()
+	
+Results
+~~~~~~~
+
+.. image:: diffusion1.png
+
+.. image:: diffusion2.png
+	
+Downloads
+~~~~~~~~~
+:download:`Jupyter Notebook <Diffusion_Example.ipynb>`

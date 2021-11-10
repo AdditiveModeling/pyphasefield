@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>How to use pyphasefield: Creating your own Engine &mdash; pyphasefield  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="How to use pyphasefield: Diffusion Engine" href="diffusion.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> pyphasefield
+            <img src="../_static/logo2.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation Instructions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="script_template.html">How to use pyphasefield: Script Template</a></li>
+<li class="toctree-l1"><a class="reference internal" href="diffusion.html">How to use pyphasefield: Diffusion Engine</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">How to use pyphasefield: Creating your own Engine</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#the-code">The Code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#downloads">Downloads</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">pyphasefield</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>How to use pyphasefield: Creating your own Engine</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/usage/engine_template.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="how-to-use-pyphasefield-creating-your-own-engine">
+<h1>How to use pyphasefield: Creating your own Engine<a class="headerlink" href="#how-to-use-pyphasefield-creating-your-own-engine" title="Permalink to this headline"></a></h1>
+<p>While the engines included with pyphasefield can be useful, it is very likely that the average user may want to run their own
+custom phase field model. To enable this, a Template engine file is shown here, which may be modified quite freely. This
+template file may be downloaded <a class="reference download internal" download="" href="../_downloads/9ced8bbac9e50b9554a9bb1ecf5b9441/Template.py"><code class="xref download docutils literal notranslate"><span class="pre">here</span></code></a>.</p>
+<section id="the-code">
+<h2>The Code<a class="headerlink" href="#the-code" title="Permalink to this headline"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">try</span><span class="p">:</span>
+        <span class="c1">#import from within Engines folder</span>
+        <span class="kn">from</span> <span class="nn">..field</span> <span class="kn">import</span> <span class="n">Field</span>
+        <span class="kn">from</span> <span class="nn">..simulation</span> <span class="kn">import</span> <span class="n">Simulation</span>
+        <span class="kn">from</span> <span class="nn">..ppf_utils</span> <span class="kn">import</span> <span class="n">COLORMAP_OTHER</span><span class="p">,</span> <span class="n">COLORMAP_PHASE</span>
+<span class="k">except</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+                <span class="c1">#import classes from pyphasefield library</span>
+                <span class="kn">from</span> <span class="nn">pyphasefield.field</span> <span class="kn">import</span> <span class="n">Field</span>
+                <span class="kn">from</span> <span class="nn">pyphasefield.simulation</span> <span class="kn">import</span> <span class="n">Simulation</span>
+                <span class="kn">from</span> <span class="nn">pyphasefield.ppf_utils</span> <span class="kn">import</span> <span class="n">COLORMAP_OTHER</span><span class="p">,</span> <span class="n">COLORMAP_PHASE</span>
+        <span class="k">except</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s2">&quot;Cannot import from pyphasefield library!&quot;</span><span class="p">)</span>
+
+<span class="k">class</span> <span class="nc">Template</span><span class="p">(</span><span class="n">Simulation</span><span class="p">):</span>
+        <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+                <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="c1">#additional initialization code goes below</span>
+                <span class="c1">#runs *before* tdb, thermal, fields, and boundary conditions are loaded/initialized</span>
+
+        <span class="k">def</span> <span class="nf">init_tdb_params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">init_tdb_params</span><span class="p">()</span>
+                <span class="c1">#additional tdb-related code goes below</span>
+                <span class="c1">#runs *after* tdb file is loaded, tdb_phases and tdb_components are initialized</span>
+                <span class="c1">#runs *before* thermal, fields, and boundary conditions are loaded/initialized</span>
+
+        <span class="k">def</span> <span class="nf">init_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                <span class="c1">#initialization of fields code goes here</span>
+                <span class="c1">#runs *after* tdb and thermal data is loaded/initialized</span>
+                <span class="c1">#runs *before* boundary conditions are initialized</span>
+                <span class="k">pass</span>
+
+
+        <span class="k">def</span> <span class="nf">initialize_fields_and_imported_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">initialize_fields_and_imported_data</span><span class="p">()</span>
+                <span class="c1">#initialization of fields/imported data goes below</span>
+                <span class="c1">#runs *after* tdb, thermal, fields, and boundary conditions are loaded/initialized</span>
+
+        <span class="k">def</span> <span class="nf">just_before_simulating</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">just_before_simulating</span><span class="p">()</span>
+                <span class="c1">#additional code to run just before beginning the simulation goes below</span>
+                <span class="c1">#runs immediately before simulating, no manual changes permitted to changes implemented here</span>
+
+        <span class="k">def</span> <span class="nf">simulation_loop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                <span class="c1">#code to run each simulation step goes here</span>
+                <span class="k">pass</span>
+</pre></div>
+</div>
+<p>Creating MyDiffusionClass from the Template</p>
+<p>In order to create an engine, the first piece is to add code to the simulation loop to define what the engine actually does. Let us use a 2D
+diffusion equation to drive this engine. This will essentially recreate part of the included Diffusion engine that comes with pyphasefield.
+The diffusion equation in 2D is given as the following:</p>
+<p><span class="math notranslate nohighlight">\(\frac{dc}{dt} = D\nabla ^2 c = D(\frac{d^2c}{dx^2} + \frac{d^2c}{dy^2})\)</span>.</p>
+<p>In discretized form, using finite difference expressions for each of these terms, we get:</p>
+<p><span class="math notranslate nohighlight">\(\frac{t-t_0}{\Delta t} = D\frac{c_{x+1, y}+c_{x-1, y}+c_{x, y+1}+c_{x, y-1}-4*c_{x, y}}{\Delta x^2}\)</span>.</p>
+<p><span class="math notranslate nohighlight">\(t = t_0 + D\Delta t\frac{c_{x+1, y}+c_{x-1, y}+c_{x, y+1}+c_{x, y-1}-4*c_{x, y}}{\Delta x^2}\)</span>.</p>
+<p>In our code, we can write these offset terms using the built-in numpy function numpy.roll, which offsets an array along a particular
+axis by a given amount. In this simulation, c will be our only field (sim.fields[0]). We will also include D as a user_data parameter
+in pyphasefield. Ultimately, this code looks like this:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="o">...</span>
+
+<span class="k">class</span> <span class="nc">Template</span><span class="p">(</span><span class="n">Simulation</span><span class="p">):</span>
+        <span class="o">...</span>
+
+        <span class="k">def</span> <span class="nf">simulation_loop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                <span class="c1">#code to run each simulation step goes here</span>
+                <span class="n">c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">data</span>
+                <span class="n">D</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_data</span><span class="p">[</span><span class="s2">&quot;D&quot;</span><span class="p">]</span>
+                <span class="n">dx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dx</span>
+                <span class="n">dt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
+
+                <span class="c1">#define offset arrays, remember the sign of roll is opposite the direction of the cell of interest</span>
+                <span class="c1">#also, x is dimension 1, y is dimension 0 (C style arrays...)</span>
+                <span class="n">c_p0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="c1">#x+1, y.</span>
+                <span class="n">c_m0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="c1">#x-1, y.</span>
+                <span class="n">c_0p</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="c1">#x, y+1.</span>
+                <span class="n">c_0m</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="c1">#x, y-1.</span>
+
+                <span class="c1">#apply change from a single step</span>
+                <span class="n">c</span> <span class="o">+=</span> <span class="n">D</span><span class="o">*</span><span class="n">dt</span><span class="o">*</span><span class="p">(</span><span class="n">c_p0</span> <span class="o">+</span> <span class="n">c_m0</span> <span class="o">+</span> <span class="n">c_0p</span> <span class="o">+</span> <span class="n">c_0m</span> <span class="o">-</span> <span class="mi">4</span><span class="o">*</span><span class="n">c</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">dx</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>We also can define what the default field is for c, as well as specify a default value for D if the user did not
+specify one. This isn’t required, but doesn’t hurt:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="o">...</span>
+
+<span class="k">class</span> <span class="nc">Template</span><span class="p">(</span><span class="n">Simulation</span><span class="p">):</span>
+        <span class="o">...</span>
+
+        <span class="k">def</span> <span class="nf">init_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                <span class="c1">#initialization of fields code goes here</span>
+                <span class="c1">#runs *after* tdb and thermal data is loaded/initialized</span>
+                <span class="c1">#runs *before* boundary conditions are initialized</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="s2">&quot;D&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_data</span><span class="p">):</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">user_data</span><span class="p">[</span><span class="s2">&quot;D&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.1</span>
+                <span class="n">dim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dimensions</span>
+                <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">dim</span><span class="p">)</span>
+                <span class="n">length</span> <span class="o">=</span> <span class="n">dim</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">width</span> <span class="o">=</span> <span class="n">dim</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">c</span><span class="p">[</span><span class="n">length</span> <span class="o">//</span> <span class="mi">4</span><span class="p">:</span><span class="mi">3</span> <span class="o">*</span> <span class="n">length</span> <span class="o">//</span> <span class="mi">4</span><span class="p">,</span> <span class="n">width</span> <span class="o">//</span> <span class="mi">4</span><span class="p">:</span><span class="mi">3</span> <span class="o">*</span> <span class="n">width</span> <span class="o">//</span> <span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">add_field</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="s2">&quot;c&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Altogether, the code looks like this for MyDiffusionClass.py</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="k">try</span><span class="p">:</span>
+        <span class="c1">#import from within Engines folder</span>
+        <span class="kn">from</span> <span class="nn">..field</span> <span class="kn">import</span> <span class="n">Field</span>
+        <span class="kn">from</span> <span class="nn">..simulation</span> <span class="kn">import</span> <span class="n">Simulation</span>
+        <span class="kn">from</span> <span class="nn">..ppf_utils</span> <span class="kn">import</span> <span class="n">COLORMAP_OTHER</span><span class="p">,</span> <span class="n">COLORMAP_PHASE</span>
+<span class="k">except</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+                <span class="c1">#import classes from pyphasefield library</span>
+                <span class="kn">from</span> <span class="nn">pyphasefield.field</span> <span class="kn">import</span> <span class="n">Field</span>
+                <span class="kn">from</span> <span class="nn">pyphasefield.simulation</span> <span class="kn">import</span> <span class="n">Simulation</span>
+                <span class="kn">from</span> <span class="nn">pyphasefield.ppf_utils</span> <span class="kn">import</span> <span class="n">COLORMAP_OTHER</span><span class="p">,</span> <span class="n">COLORMAP_PHASE</span>
+        <span class="k">except</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s2">&quot;Cannot import from pyphasefield library!&quot;</span><span class="p">)</span>
+
+<span class="k">class</span> <span class="nc">Template</span><span class="p">(</span><span class="n">Simulation</span><span class="p">):</span>
+        <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+                <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="c1">#additional initialization code goes below</span>
+                <span class="c1">#runs *before* tdb, thermal, fields, and boundary conditions are loaded/initialized</span>
+
+        <span class="k">def</span> <span class="nf">init_tdb_params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">init_tdb_params</span><span class="p">()</span>
+                <span class="c1">#additional tdb-related code goes below</span>
+                <span class="c1">#runs *after* tdb file is loaded, tdb_phases and tdb_components are initialized</span>
+                <span class="c1">#runs *before* thermal, fields, and boundary conditions are loaded/initialized</span>
+
+        <span class="k">def</span> <span class="nf">init_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                <span class="c1">#initialization of fields code goes here</span>
+                <span class="c1">#runs *after* tdb and thermal data is loaded/initialized</span>
+                <span class="c1">#runs *before* boundary conditions are initialized</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="s2">&quot;D&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_data</span><span class="p">):</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">user_data</span><span class="p">[</span><span class="s2">&quot;D&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.1</span>
+                <span class="n">dim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dimensions</span>
+                <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">dim</span><span class="p">)</span>
+                <span class="n">length</span> <span class="o">=</span> <span class="n">dim</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">width</span> <span class="o">=</span> <span class="n">dim</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">c</span><span class="p">[</span><span class="n">length</span> <span class="o">//</span> <span class="mi">4</span><span class="p">:</span><span class="mi">3</span> <span class="o">*</span> <span class="n">length</span> <span class="o">//</span> <span class="mi">4</span><span class="p">,</span> <span class="n">width</span> <span class="o">//</span> <span class="mi">4</span><span class="p">:</span><span class="mi">3</span> <span class="o">*</span> <span class="n">width</span> <span class="o">//</span> <span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">add_field</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="s2">&quot;c&quot;</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">initialize_fields_and_imported_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">initialize_fields_and_imported_data</span><span class="p">()</span>
+                <span class="c1">#initialization of fields/imported data goes below</span>
+                <span class="c1">#runs *after* tdb, thermal, fields, and boundary conditions are loaded/initialized</span>
+
+        <span class="k">def</span> <span class="nf">just_before_simulating</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">just_before_simulating</span><span class="p">()</span>
+                <span class="c1">#additional code to run just before beginning the simulation goes below</span>
+                <span class="c1">#runs immediately before simulating, no manual changes permitted to changes implemented here</span>
+
+        <span class="k">def</span> <span class="nf">simulation_loop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                <span class="c1">#code to run each simulation step goes here</span>
+                <span class="n">c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">data</span>
+                <span class="n">D</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_data</span><span class="p">[</span><span class="s2">&quot;D&quot;</span><span class="p">]</span>
+                <span class="n">dx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dx</span>
+                <span class="n">dt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
+
+                <span class="c1">#define offset arrays, remember the sign of roll is opposite the direction of the cell of interest</span>
+                <span class="c1">#also, x is dimension 1, y is dimension 0 (C style arrays...)</span>
+                <span class="n">c_p0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="c1">#x+1, y.</span>
+                <span class="n">c_m0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="c1">#x-1, y.</span>
+                <span class="n">c_0p</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="c1">#x, y+1.</span>
+                <span class="n">c_0m</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="c1">#x, y-1.</span>
+
+                <span class="c1">#apply change from a single step</span>
+                <span class="n">c</span> <span class="o">+=</span> <span class="n">D</span><span class="o">*</span><span class="n">dt</span><span class="o">*</span><span class="p">(</span><span class="n">c_p0</span> <span class="o">+</span> <span class="n">c_m0</span> <span class="o">+</span> <span class="n">c_0p</span> <span class="o">+</span> <span class="n">c_0m</span> <span class="o">-</span> <span class="mi">4</span><span class="o">*</span><span class="n">c</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">dx</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Now, if we use a slightly edited script from the diffusion example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1">#built for pyphasefield version 1.1.0, may not work on future versions!</span>
+<span class="kn">from</span> <span class="nn">MyDiffusionClass</span> <span class="kn">import</span> <span class="n">MyDiffusionClass</span>
+
+<span class="n">sim</span> <span class="o">=</span> <span class="n">MyDiffusionClass</span><span class="p">(</span><span class="n">dimensions</span><span class="o">=</span><span class="p">[</span><span class="mi">500</span><span class="p">,</span> <span class="mi">500</span><span class="p">])</span>
+
+<span class="c1">#initialize non-array parameters</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">set_framework</span><span class="p">(</span><span class="s2">&quot;CPU_SERIAL&quot;</span><span class="p">)</span> <span class="c1">#&quot;CPU_SERIAL&quot; (GPU_SERIAL not coded for MyDiffusionClass yet!)</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">set_dx</span><span class="p">(</span><span class="mf">1.</span><span class="p">)</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">set_dt</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">set_save_path</span><span class="p">(</span><span class="s2">&quot;data/diffusion_test&quot;</span><span class="p">)</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">set_autosave_flag</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">set_autosave_save_images_flag</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">set_autosave_rate</span><span class="p">(</span><span class="mi">2000</span><span class="p">)</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">set_boundary_conditions</span><span class="p">(</span><span class="s2">&quot;PERIODIC&quot;</span><span class="p">)</span>
+
+<span class="n">data</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;D&quot;</span><span class="p">:</span><span class="mf">1.</span>
+<span class="p">}</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">set_user_data</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+<span class="c1">#initialize simulation arrays, all parameter changes should be BEFORE this point!</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">initialize_fields_and_imported_data</span><span class="p">()</span>
+
+<span class="c1">#change array data here, for custom simulations</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">sim.fields[0].data[:] = 1.</span>
+<span class="sd">length = sim.dimensions[0]</span>
+<span class="sd">width = sim.dimensions[1]</span>
+<span class="sd">sim.fields[0].data[length // 4:3 * length // 4, width // 4:3 * width // 4] = 0.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<span class="c1">#initial conditions</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">plot_simulation</span><span class="p">()</span>
+
+<span class="c1">#run simulation</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">simulate</span><span class="p">(</span><span class="mi">2000</span><span class="p">)</span>
+
+<span class="c1">#final conditions</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">plot_simulation</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>We obtain the same results as the built-in diffusion class!</p>
+<img alt="../_images/diffusion1.png" src="../_images/diffusion1.png" />
+<img alt="../_images/diffusion2.png" src="../_images/diffusion2.png" />
+</section>
+<section id="downloads">
+<h2>Downloads<a class="headerlink" href="#downloads" title="Permalink to this headline"></a></h2>
+<p><a class="reference download internal" download="" href="../_downloads/9306617bea53c0453bdc0d0f9c8fc123/engine_template.zip"><code class="xref download docutils literal notranslate"><span class="pre">MyDiffusionClass</span></code></a>.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="diffusion.html" class="btn btn-neutral float-left" title="How to use pyphasefield: Diffusion Engine" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, pyphasefield Development Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

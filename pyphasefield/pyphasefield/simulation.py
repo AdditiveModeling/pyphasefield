@@ -257,7 +257,7 @@ class Simulation:
             * If the timestep counter is a multiple of time_steps_per_checkpoint, save a checkpoint of the simulation
         """
         if(self._begun_simulation == False):
-            self._begun_simulation == True
+            self._begun_simulation = True
             self.just_before_simulating()
         for i in range(number_of_timesteps):
             self.time_step_counter += 1
@@ -423,9 +423,7 @@ class Simulation:
         return 0
     
     def plot_simulation(self, fields=None, interpolation="bicubic", units="cells", save_images=False, show_images=True, size=None, norm=False):
-        if(self._begun_simulation == False):
-            self.just_before_simulating()
-        if(self._uses_gpu):
+        if(self._uses_gpu and self._begun_simulation):
             ppf_gpu_utils.retrieve_fields_from_GPU(self)
         if fields is None:
             fields = range(len(self.fields))
@@ -572,12 +570,12 @@ class Simulation:
     
 
     def apply_boundary_conditions(self):
-        neumann_slices_1 = [[(0), (None, 0), (None, None, 0)], [(1), (None, 1), (None, None, 1)]]
-        neumann_slices_2 = [[(-1), (None, -1), (None, None, -1)], [(-2), (None, -2), (None, None, -2)]]
-        periodic_slices_1 = [[(0), (None, 0), (None, None, 0)], [(-2), (None, -2), (None, None, -2)]]
-        periodic_slices_2 = [[(-1), (None, -1), (None, None, -1)], [(1), (None, 1), (None, None, 1)]]
-        dirchlet_slices_1 = [(0), (None, 0), (None, None, 0)]
-        dirchlet_slices_2 = [(-1), (None, -1), (None, None, -1)]
+        neumann_slices_1 = [[(0), (slice(None), 0), (slice(None), slice(None), 0)], [(1), (slice(None), 1), (slice(None), slice(None), 1)]]
+        neumann_slices_2 = [[(-1), (slice(None), -1), (slice(None), slice(None), -1)], [(-2), (slice(None), -2), (slice(None), slice(None), -2)]]
+        periodic_slices_1 = [[(0), (slice(None), 0), (slice(None), slice(None), 0)], [(-2), (slice(None), -2), (slice(None), slice(None), -2)]]
+        periodic_slices_2 = [[(-1), (slice(None), -1), (slice(None), slice(None), -1)], [(1), (slice(None), 1), (slice(None), slice(None), 1)]]
+        dirchlet_slices_1 = [(0), (slice(None), 0), (slice(None), slice(None), 0)]
+        dirchlet_slices_2 = [(-1), (slice(None), -1), (slice(None), slice(None), -1)]
         if(self._uses_gpu):
             ppf_gpu_utils.apply_boundary_conditions(self)
             return
@@ -586,6 +584,7 @@ class Simulation:
             for i in range(dims):
                 if not(self.temperature is None):
                     self.temperature.data[periodic_slices_1[0][i]] = self.temperature.data[periodic_slices_1[1][i]]
+                    self.temperature.data[periodic_slices_2[0][i]] = self.temperature.data[periodic_slices_2[1][i]]
                 for j in range(len(self.fields)):
                     self.fields[j].data[periodic_slices_1[0][i]] = self.fields[j].data[periodic_slices_1[1][i]]
                     self.fields[j].data[periodic_slices_2[0][i]] = self.fields[j].data[periodic_slices_2[1][i]]
@@ -595,6 +594,7 @@ class Simulation:
             for i in range(dims):
                 if not(self.temperature is None):
                     self.temperature.data[neumann_slices_1[0][i]] = self.temperature.data[neumann_slices_1[1][i]]
+                    self.temperature.data[neumann_slices_2[0][i]] = self.temperature.data[neumann_slices_2[1][i]]
                 for j in range(len(self.fields)):
                     self.fields[j].data[neumann_slices_1[0][i]] = self.fields[j].data[neumann_slices_1[1][i]] - self.dx*self._boundary_conditions_array[j][neumann_slices_1[0][i]]
                     self.fields[j].data[neumann_slices_2[0][i]] = self.fields[j].data[neumann_slices_2[1][i]] + self.dx*self._boundary_conditions_array[j][neumann_slices_2[0][i]]
@@ -605,6 +605,7 @@ class Simulation:
                 if not(self.temperature is None):
                     #use neumann boundary conditions for temperature field if using dirchlet boundary conditions
                     self.temperature.data[neumann_slices_1[0][i]] = self.temperature.data[neumann_slices_1[1][i]]
+                    self.temperature.data[neumann_slices_2[0][i]] = self.temperature.data[neumann_slices_2[1][i]]
                 for j in range(len(self.fields)):
                     self.fields[j].data[dirchlet_slices_1[i]] = self._boundary_conditions_array[j][dirchlet_slices_1[i]]
                     self.fields[j].data[dirchlet_slices_2[i]] = self._boundary_conditions_array[j][dirchlet_slices_2[i]]
@@ -613,12 +614,14 @@ class Simulation:
                 if(self._boundary_conditions_type[i] == "PERIODIC"):
                     if not(self.temperature is None):
                         self.temperature.data[periodic_slices_1[0][i]] = self.temperature.data[periodic_slices_1[1][i]]
+                        self.temperature.data[periodic_slices_2[0][i]] = self.temperature.data[periodic_slices_2[1][i]]
                     for j in range(len(self.fields)):
                         self.fields[j].data[periodic_slices_1[0][i]] = self.fields[j].data[periodic_slices_1[1][i]]
                         self.fields[j].data[periodic_slices_2[0][i]] = self.fields[j].data[periodic_slices_2[1][i]]
                 elif(self._boundary_conditions_type[i] == "NEUMANN"):
                     if not(self.temperature is None):
                         self.temperature.data[neumann_slices_1[0][i]] = self.temperature.data[neumann_slices_1[1][i]]
+                        self.temperature.data[neumann_slices_2[0][i]] = self.temperature.data[neumann_slices_2[1][i]]
                     for j in range(len(self.fields)):
                         self.fields[j].data[neumann_slices_1[0][i]] = self.fields[j].data[neumann_slices_1[1][i]] - self.dx*self._boundary_conditions_array[j][neumann_slices_1[0][i]]
                         self.fields[j].data[neumann_slices_2[0][i]] = self.fields[j].data[neumann_slices_2[1][i]] + self.dx*self._boundary_conditions_array[j][neumann_slices_2[0][i]]
@@ -626,6 +629,7 @@ class Simulation:
                     if not(self.temperature is None):
                         #use neumann boundary conditions for temperature field if using dirchlet boundary conditions
                         self.temperature.data[neumann_slices_1[0][i]] = self.temperature.data[neumann_slices_1[1][i]]
+                        self.temperature.data[neumann_slices_2[0][i]] = self.temperature.data[neumann_slices_2[1][i]]
                     for j in range(len(self.fields)):
                         self.fields[j].data[dirchlet_slices_1[i]] = self._boundary_conditions_array[j][dirchlet_slices_1[i]]
                         self.fields[j].data[dirchlet_slices_2[i]] = self._boundary_conditions_array[j][dirchlet_slices_2[i]]

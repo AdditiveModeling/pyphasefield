@@ -23,6 +23,7 @@ setuptools.setup(
 		"scipy",
 		"matplotlib",
 		"meshio",
+        "tinydb",
     ],
     python_requires='>=3.6',
 )

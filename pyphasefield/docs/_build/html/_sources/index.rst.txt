@@ -7,10 +7,13 @@ Welcome to pyphasefield's documentation!
 ========================================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
    
    installation
+   usage/script_template
+   usage/diffusion
+   usage/engine_template
 
 
 

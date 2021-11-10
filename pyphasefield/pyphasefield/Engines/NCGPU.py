@@ -26,7 +26,7 @@ ufunc_g_l = None
 ufunc_g_s = None
 
 @cuda.jit(device=True)
-def divagradb(a, axp, axm, ayp, aym, b, bxp, bxm, byp, bym, idx):
+def divagradb(a, axp, axm, ayp, aym, b, bxp, bxm, byp, bym, idx): 
     return 0.5*idx*idx*((axp+a)*(bxp-b) - (a+axm)*(b-bxm) + (ayp+a)*(byp-b) - (a+aym)*(b-bym))
     #return (idx*idx*a*(bxp+bxm+byp+bym-4*b) + 0.25*idx*idx*((axp - axm)*(bxp - bxm) + (ayp - aym)*(byp - bym)))
 
@@ -39,7 +39,7 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
     
     startx, starty = cuda.grid(2)
     stridex, stridey = cuda.gridsize(2)
-    threadId = cuda.grid(1)
+    threadId = startx + starty*stridex
     
     dx = params[0]
     d = params[1]
@@ -49,6 +49,10 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
     y_e = params[5]
     beta = params[6]
     dt = params[9]
+    ebar = params[10]
+    eqbar = params[11]
+    noise_amp_phi = params[12]
+    noise_amp_q = params[14]
     L = c_params[0]
     T_M = c_params[1]
     S = c_params[2]
@@ -71,11 +75,11 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
     #M_c is transfer 2 to len(fields)-2 (for 2 components, eg Ni and Cu, M_c is just 2
     #dFdc is transfer len(fields)-1 to 2*len(fields)-5 (for 2 components, eg Ni and Cu, dFdc is just 3
         
-    ebar2 = 6.*math.sqrt(2.)*S[1]*d/T_M[1]
-    eqbar2 = 0.25*ebar2
-    
-    for i in range(starty+1, phi.shape[0]-1, stridey):
-        for j in range(startx+1, phi.shape[1]-1, stridex):
+    ebar2 = ebar*ebar
+    eqbar2 = eqbar*eqbar
+    for j in range(startx+1, phi.shape[1]-1, stridex):
+        for i in range(starty+1, phi.shape[0]-1, stridey):
+        
             #interpolating functions
             g = (phi[i][j]**2)*(1-phi[i][j])**2
             h = (phi[i][j]**3)*(6.*phi[i][j]**2 - 15.*phi[i][j] + 10.)
@@ -131,7 +135,7 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
             psiy2 = psiy**2
             psiy3 = psiy2*psiy
             psiy4 = psiy2**2
-            #eta = 1. - 3.*y_e + 4.*y_e*(psix**4 + psiy**4)/mag_grad_phi4
+            eta = 1. - 3.*y_e + 4.*y_e*(psix**4 + psiy**4)/mag_grad_phi4
             dq2q2dx = (2.*q1[i][j]*dq1dx - 2.*q4[i][j]*dq4dx)
             dqq2dx = (2.*q4[i][j]*dq1dx + 2.*q1[i][j]*dq4dx)
             dq2q2dy = (2*q1[i][j]*dq1dy - 2.*q4[i][j]*dq4dy)
@@ -170,7 +174,7 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
             
             #mobilities
             M_q = M_qmax + (1e-6-M_qmax)*h
-            #M_phi *= eta
+            M_phi *= eta
             
             #dphidt
             dphidt = ebar2*(1.-3.*y_e)*(T[i][j]*lphi + dTdx*dphidx + dTdy*dphidy)
@@ -182,7 +186,7 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
             
             #noise in phi
             noise_phi = math.sqrt(2.*8.314*T[i][j]*M_phi/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
-            #dphidt += noise_phi
+            dphidt += noise_phi*noise_amp_phi
             
             #dcidt
             for l in range(3, len(fields)):
@@ -218,18 +222,22 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
             lq1 = (q1[i][j+1]+q1[i][j-1]+q1[i+1][j]+q1[i-1][j]-4*q1[i][j])*idx*idx
             lq4 = (q4[i][j+1]+q4[i][j-1]+q4[i+1][j]+q4[i-1][j]-4*q4[i][j])*idx*idx
             
-            #noise_q1 = math.sqrt(8.314*T[i][j]/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
-            #noise_q4 = math.sqrt(8.314*T[i][j]/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
-            noise_q1 = 0.
-            noise_q4 = 0.
+            q_noise_coeff = 0.0000000001
+            noise_q1 = noise_amp_q*math.sqrt(q_noise_coeff*8.314*T[i][j]/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
+            noise_q4 = noise_amp_q*math.sqrt(q_noise_coeff*8.314*T[i][j]/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
+            #noise_q1 = 0.
+            #noise_q4 = 0.
             
             dq1dt = M_q*((1-q1[i][j]**2)*(f_ori_1+lq1*eqbar2-dfintdq1+noise_q1) - q1[i][j]*q4[i][j]*(f_ori_4+lq4*eqbar2-dfintdq4+noise_q4))
             dq4dt = M_q*((1-q4[i][j]**2)*(f_ori_4+lq4*eqbar2-dfintdq4+noise_q4) - q1[i][j]*q4[i][j]*(f_ori_1+lq1*eqbar2-dfintdq1+noise_q1))
-            phi_out[i][j] = phi[i][j] + dt*dphidt
-            if(phi_out[i][j] < 0.000001):
-                phi_out[i][j] = 0.000001
-            if(phi_out[i][j] > 0.999999):
-                phi_out[i][j] = 0.999999
+            dphi = dt*dphidt
+            #dphi = max(-0.01, dt*dphidt)
+            #dphi = min(0.01, dphi)
+            phi_out[i][j] = phi[i][j]+dphi
+            if(phi_out[i][j] < 0.0001):
+                phi_out[i][j] = 0.0001
+            if(phi_out[i][j] > 0.9999):
+                phi_out[i][j] = 0.9999
             q1_out[i][j] = q1[i][j] + dt*dq1dt
             q4_out[i][j] = q4[i][j] + dt*dq4dt
             renorm = math.sqrt((q1_out[i][j]**2+q4_out[i][j]**2))
@@ -239,22 +247,68 @@ def NComponent_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
                 c_i = fields[l]
                 c_i_out = fields_out[l]
                 c_i_out[i][j] *= dt
+                #c_i_out[i][j] = max(-0.1, c_i_out[i][j])
+                #c_i_out[i][j] = min(0.1, c_i_out[i][j])
                 c_i_out[i][j] += c_i[i][j]
-
+                #c_i_out[i][j] = max(0, c_i_out[i][j])
+                
 @numba.jit
 def get_thermodynamics(ufunc, array):
     return ufunc(array)
+
+@cuda.jit
+def NComponent_noise_kernel(fields, T, transfer, rng_states, ufunc_array, params, c_params):
+    startx, starty = cuda.grid(2)     
+    stridex, stridey = cuda.gridsize(2) 
+    threadId = startx + starty*stridex
+    
+    v_m = params[2]
+    D_L = params[7]
+    D_S = params[8]
+    noise_amp_c = params[13]
+    W = c_params[4]
+    
+    phi = fields[0]
+    q1 = fields[1]
+    q4 = fields[2]
+    #c is fields 3 to k, where k equals the number of components +1. 
+    #For N components this is N-1 fields, the last one being implicitly defined
+    
+    phi_out = fields[0]
+    q1_out = fields[1]
+    q4_out = fields[2]
+    
+    G_L = transfer[0]
+    G_S = transfer[1]
+    #M_c is transfer 2 to len(fields)-2 (for 2 components, eg Ni and Cu, M_c is just 2
+    #dFdc is transfer len(fields)-1 to 2*len(fields)-5 (for 2 components, eg Ni and Cu, dFdc is just 3
+    
+    for i in range(starty+1, phi.shape[0]-1, stridey):
+        for j in range(startx+1, phi.shape[1]-1, stridex):
+            for l in range(3, len(fields)):
+                dFdc = transfer[l-1+len(fields)-3]
+                noise_c = noise_amp_c*math.sqrt(2.*8.314*T[i][j]/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
+                dFdc[i][j] += noise_c
+                if(i == 1):
+                    dFdc[phi.shape[0]-1][j] += noise_c
+                if(j == 1):
+                    dFdc[i][phi.shape[1]-1] += noise_c
+                if(i == phi.shape[0]-2):
+                    dFdc[0][j] += noise_c
+                if(j == phi.shape[1]-2):
+                    dFdc[i][0] += noise_c
             
 @cuda.jit
 def NComponent_helper_kernel(fields, T, transfer, rng_states, ufunc_array, params, c_params):
     #initializes certain arrays that are used in div-grad terms, to avoid recomputing terms 4 or 6 times
     startx, starty = cuda.grid(2)     
     stridex, stridey = cuda.gridsize(2) 
-    threadId = cuda.grid(1)
+    threadId = startx + starty*stridex
     
     v_m = params[2]
     D_L = params[7]
     D_S = params[8]
+    noise_amp_c = params[13]
     W = c_params[4]
     
     phi = fields[0]
@@ -278,29 +332,29 @@ def NComponent_helper_kernel(fields, T, transfer, rng_states, ufunc_array, param
             for l in range(3, len(fields)):
                 ufunc_array[i][j][l-3] = fields[l][i][j]
                 c_N -= fields[l][i][j]
+            comps = len(fields)-2
             ufunc_array[i][j][len(fields)-3] = c_N
             ufunc_array[i][j][len(fields)-2] = T[i][j]
             #dGdc = numba.cuda.local.array((2,1), numba.float64)
+            #NEEDS FIXING vvvvvvvvvv
             G_L[i][j] = get_thermodynamics(ufunc_g_l, ufunc_array[i][j])
             G_S[i][j] = get_thermodynamics(ufunc_g_s, ufunc_array[i][j])
-            
-            ufunc_array[i][j][len(fields)-3] -= 0.0000001
-            ufunc_array[i][j][0] += 0.0000001
-            dGLdc = 10000000.*(get_thermodynamics(ufunc_g_l, ufunc_array[i][j]) - G_L[i][j])
-            dGSdc = 10000000.*(get_thermodynamics(ufunc_g_s, ufunc_array[i][j]) - G_S[i][j])
             
             g = (phi[i][j]**2)*(1-phi[i][j])**2
             h = (phi[i][j]**3)*(6.*phi[i][j]**2 - 15.*phi[i][j] + 10.)
             
-            #get Langevin noise, put in c_noise
-            noise_c = math.sqrt(2.*8.314*T[i][j]/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
-            #noise_c = 0.
-            
+            ufunc_array[i][j][len(fields)-3] -= 0.0000001
             for l in range(3, len(fields)):
+                ufunc_array[i][j][l-3] += 0.0000001
+                dGLdc = 10000000.*(get_thermodynamics(ufunc_g_l, ufunc_array[i][j])-G_L[i][j])
+                dGSdc = 10000000.*(get_thermodynamics(ufunc_g_s, ufunc_array[i][j])-G_S[i][j])
                 M_c = transfer[l-1]
                 dFdc = transfer[l-1+len(fields)-3]
                 M_c[i][j] = v_m*fields[l][i][j]*(D_L + h*(D_S - D_L))/(8.314*T[i][j])
-                dFdc[i][j] = (dGLdc + h*(dGSdc-dGLdc))/v_m + (W[l-3]-W[len(fields)-3])*g*T[i][j]+noise_c
+                dFdc[i][j] = (dGLdc + h*(dGSdc-dGLdc))/v_m + (W[l-3]-W[len(fields)-3])*g*T[i][j]
+                ufunc_array[i][j][l-3] -= 0.0000001
+            ufunc_array[i][j][len(fields)-3] += 0.0000001
+                    
                 
 def make_seed(phi, q1, q4, x, y, angle, seed_radius):
     shape = phi.shape
@@ -332,6 +386,9 @@ class NCGPU(Simulation):
         self.uses_gpu = True
         self._framework = "GPU_SERIAL" #must be this framework for this engine
         self.user_data["d_ratio"] = 4. #default value
+        self.user_data["noise_phi"] = 1. #default value
+        self.user_data["noise_c"] = 1. #default value
+        self.user_data["noise_q"] = 1. #default value
         
     def init_tdb_params(self):
         super().init_tdb_params()
@@ -364,7 +421,7 @@ class NCGPU(Simulation):
             self.user_data["H"] = npvalue(T, "H", tdb)
             self.user_data["y_e"] = npvalue(T, "Y_E", tdb)
             self.user_data["ebar"] = np.sqrt(6*np.sqrt(2)*self.user_data["S"][1]*self.user_data["d"]/self.user_data["T_M"][1])
-            self.user_data["eqbar"] = 0.5*self.user_data["ebar"]
+            self.user_data["eqbar"] = 0.1*self.user_data["ebar"]
             self.set_time_step_length(self.get_cell_spacing()**2/5./self.user_data["D_L"]/8)
             self.user_data["beta"] = 1.5
         except Exception as e:
@@ -374,24 +431,27 @@ class NCGPU(Simulation):
             
     def init_fields(self):
         self._num_transfer_arrays = 2*len(self._tdb_components)
-        self.user_data["rng_states"] = create_xoroshiro128p_states(256*256, seed=3446621627)
+        self._tdb_ufunc_input_size = len(self._tdb_components)+1
+        self.user_data["rng_states"] = create_xoroshiro128p_states(256*256, seed=1)
+        #init_xoroshiro128p_states(256*256, seed=3446621627)
         dim = self.dimensions
+        q1 = np.zeros(dim)
+        q4 = np.zeros(dim)
+        try:
+            melt_angle = self.user_data["melt_angle"]
+        except:
+            print("self.user_data[\"melt_angle\"] not defined, defaulting to 0")
+            melt_angle = 0.
+        #angle is halved because that is how quaternions do
+        q1 += np.cos(0.5*melt_angle)
+        q4 += np.sin(0.5*melt_angle)
+        
         try:
             sim_type = self.user_data["sim_type"]
             if(sim_type == "seed"):
                 #initialize phi, q1, q4
                 
                 phi = np.zeros(dim)
-                q1 = np.zeros(dim)
-                q4 = np.zeros(dim)
-                try:
-                    melt_angle = self.user_data["melt_angle"]
-                except:
-                    print("self.user_data[\"melt_angle\"] not defined, defaulting to 0")
-                    melt_angle = 0*np.pi/8
-                #angle is halved because that is how quaternions do
-                q1 += np.cos(0.5*melt_angle)
-                q4 += np.sin(0.5*melt_angle)
                 try:
                     seed_angle = self.user_data["seed_angle"]
                 except:
@@ -414,18 +474,16 @@ class NCGPU(Simulation):
                         c_n = np.zeros(dim)
                         c_n += 1./len(self._tdb_components)
                         self.add_field(c_n, "c_"+self._tdb_components[i], colormap=COLORMAP_OTHER)
-            elif(sim_type=="seeds"):
+            elif(sim_type == "seeds"):
                 #initialize phi, q1, q4
                 phi = np.zeros(dim)
-                q1 = np.zeros(dim)
-                q4 = np.zeros(dim)
-                melt_angle = 0*np.pi/8
-                #angle is halved because that is how quaternions do
-                q1 += np.cos(0.5*melt_angle)
-                q4 += np.sin(0.5*melt_angle)
-
+                try:
+                    number_of_seeds = self.user_data["number_of_seeds"]
+                except:
+                    print("self.user_data[\"number_of_seeds\"] not defined, defaulting to about 1 seed per 10000 cells")
+                    number_of_seeds = np.prod(dim)//10000
                 for j in range(number_of_seeds):
-                    seed_angle = (np.random.rand()-0.5)*np.pi/2
+                    seed_angle = (np.random.rand()-0.5)*np.pi/2 + melt_angle
                     x_pos = int(np.random.rand()*dim[1])
                     y_pos = int(np.random.rand()*dim[0])
                     phi, q1, q4 = make_seed(phi, q1, q4, x_pos, y_pos, seed_angle, 5)
@@ -450,12 +508,6 @@ class NCGPU(Simulation):
         
         except:
             phi = np.zeros(dim)
-            q1 = np.zeros(dim)
-            q4 = np.zeros(dim)
-            melt_angle = 0
-            #angle is halved because that is how quaternions do
-            q1 += np.cos(0.5*melt_angle)
-            q4 += np.sin(0.5*melt_angle)
             self.add_field(phi, "phi", colormap=COLORMAP_PHASE)
             self.add_field(q1, "q1")
             self.add_field(q4, "q4")
@@ -475,6 +527,14 @@ class NCGPU(Simulation):
                         
     def just_before_simulating(self):
         super().just_before_simulating()
+        if not "d_ratio" in self.user_data:
+            self.user_data["d_ratio"] = 4.
+        if not "noise_phi" in self.user_data:
+            self.user_data["noise_phi"] = 1.
+        if not "noise_c" in self.user_data:
+            self.user_data["noise_c"] = 1.
+        if not "noise_q" in self.user_data:
+            self.user_data["noise_q"] = 1.
         params = []
         c_params = []
         params.append(self.dx)
@@ -487,6 +547,11 @@ class NCGPU(Simulation):
         params.append(self.user_data["D_L"])
         params.append(self.user_data["D_S"])
         params.append(self.dt)
+        params.append(self.user_data["ebar"])
+        params.append(self.user_data["eqbar"])
+        params.append(self.user_data["noise_phi"])
+        params.append(self.user_data["noise_c"])
+        params.append(self.user_data["noise_q"])
         c_params.append(self.user_data["L"])
         c_params.append(self.user_data["T_M"])
         c_params.append(self.user_data["S"])
@@ -504,12 +569,22 @@ class NCGPU(Simulation):
                                                                       self.user_data["rng_states"], self._tdb_ufunc_gpu_device, 
                                                                       self.user_data["params"], self.user_data["c_params"])
             cuda.synchronize()
+            NComponent_noise_kernel[self._gpu_blocks_per_grid_1D, self._gpu_threads_per_block_1D](self._fields_gpu_device, 
+                                                                      self._temperature_gpu_device, self._fields_transfer_gpu_device, 
+                                                                      self.user_data["rng_states"], self._tdb_ufunc_gpu_device, 
+                                                                      self.user_data["params"], self.user_data["c_params"])
+            cuda.synchronize()
             NComponent_kernel[self._gpu_blocks_per_grid_1D, self._gpu_threads_per_block_1D](self._fields_gpu_device, 
                                                                       self._temperature_gpu_device, self._fields_transfer_gpu_device, 
                                                                       self._fields_out_gpu_device, self.user_data["rng_states"], 
                                                                       self.user_data["params"], self.user_data["c_params"])
         elif(len(self.dimensions) == 2):
             NComponent_helper_kernel[self._gpu_blocks_per_grid_2D, self._gpu_threads_per_block_2D](self._fields_gpu_device, 
+                                                                      self._temperature_gpu_device, self._fields_transfer_gpu_device, 
+                                                                      self.user_data["rng_states"], self._tdb_ufunc_gpu_device, 
+                                                                      self.user_data["params"], self.user_data["c_params"])
+            cuda.synchronize()
+            NComponent_noise_kernel[self._gpu_blocks_per_grid_2D, self._gpu_threads_per_block_2D](self._fields_gpu_device, 
                                                                       self._temperature_gpu_device, self._fields_transfer_gpu_device, 
                                                                       self.user_data["rng_states"], self._tdb_ufunc_gpu_device, 
                                                                       self.user_data["params"], self.user_data["c_params"])
@@ -524,10 +599,14 @@ class NCGPU(Simulation):
                                                                       self.user_data["rng_states"], self._tdb_ufunc_gpu_device, 
                                                                       self.user_data["params"], self.user_data["c_params"])
             cuda.synchronize()
+            NComponent_noise_kernel[self._gpu_blocks_per_grid_3D, self._gpu_threads_per_block_3D](self._fields_gpu_device, 
+                                                                      self._temperature_gpu_device, self._fields_transfer_gpu_device, 
+                                                                      self.user_data["rng_states"], self._tdb_ufunc_gpu_device, 
+                                                                      self.user_data["params"], self.user_data["c_params"])
+            cuda.synchronize()
             NComponent_kernel[self._gpu_blocks_per_grid_3D, self._gpu_threads_per_block_3D](self._fields_gpu_device, 
                                                                       self._temperature_gpu_device, self._fields_transfer_gpu_device, 
                                                                       self._fields_out_gpu_device, self.user_data["rng_states"], 
                                                                       self.user_data["params"], self.user_data["c_params"])
         cuda.synchronize()
         self._fields_gpu_device, self._fields_out_gpu_device = self._fields_out_gpu_device, self._fields_gpu_device
-        

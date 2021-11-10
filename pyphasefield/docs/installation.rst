@@ -13,7 +13,7 @@ packages, separate from the base installation. After opening the Anaconda termin
 environment if necessary, run the following commands to install pyphasefield, as well as recommended (but not required) packages:
 
 * ``pip install pyphasefield``: Installs pyphasefield, along with required dependencies
-* Optional: ``conda install -c conda-forge pycalphad``: Installs pycalphad, along with required dependencies
+* Optional: ``conda install -c conda-forge pycalphad==0.8.4``: Installs pycalphad, along with required dependencies (currently requires an older version, working to update to the latest)
 
 If your computer has a NVIDIA GPU, it is strongly recommended to also install numba (along with cudatoolkit) to be able to run 
 phase field simulations on your GPU, as it can lead to speedups of over 100x. To do so, run the following commands:

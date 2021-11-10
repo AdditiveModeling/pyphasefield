@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>How to use pyphasefield: Script Template &mdash; pyphasefield  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="How to use pyphasefield: Diffusion Engine" href="diffusion.html" />
+    <link rel="prev" title="Installation Instructions" href="../installation.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> pyphasefield
+            <img src="../_static/logo2.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation Instructions</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">How to use pyphasefield: Script Template</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#the-code">The Code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#description-of-functions">Description of Functions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="diffusion.html">How to use pyphasefield: Diffusion Engine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="engine_template.html">How to use pyphasefield: Creating your own Engine</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">pyphasefield</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>How to use pyphasefield: Script Template</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/usage/script_template.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="how-to-use-pyphasefield-script-template">
+<h1>How to use pyphasefield: Script Template<a class="headerlink" href="#how-to-use-pyphasefield-script-template" title="Permalink to this headline"></a></h1>
+<p>Pyphasefield is structured around Engine python files. These files contain a subclass of <code class="docutils literal notranslate"><span class="pre">simulation</span></code> along with code to run
+a single simulation step. This subclass is then utilized in a python script by calling [Simulation].simulate(number_of_steps). In
+this document, we will go through all the commands required to utilize these engines through an example script file, which may be
+run either as a standalone python script, or in code cells within a jupyter notebook. The code, in both .py and .ipynb formats, may
+be downloaded <a class="reference download internal" download="" href="../_downloads/481f9b4be17282b54d27788d699156ad/script_template.zip"><code class="xref download docutils literal notranslate"><span class="pre">here</span></code></a>.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The below script is, as written, non-functional. It is merely an illustration of all the functions which are typically called
+to run a simulation, and must be edited from its present form to run a simulation. In particular, the script references a path
+to a TDB file, however no TDB file actually exists at that location in the <a class="reference download internal" download="" href="../_downloads/481f9b4be17282b54d27788d699156ad/script_template.zip"><code class="xref download docutils literal notranslate"><span class="pre">downloadable</span> <span class="pre">code</span></code></a>.
+Later tutorial pages have functional scripts which may be run as-is with no modification.</p>
+</div>
+<section id="the-code">
+<h2>The Code<a class="headerlink" href="#the-code" title="Permalink to this headline"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pyphasefield</span> <span class="k">as</span> <span class="nn">ppf</span>
+<span class="kn">import</span> <span class="nn">pyphasefield.Engines</span> <span class="k">as</span> <span class="nn">engines</span>
+
+<span class="n">tdbc</span> <span class="o">=</span> <span class="n">ppf</span><span class="o">.</span><span class="n">TDBContainer</span><span class="p">(</span><span class="s2">&quot;Ni-Cu_Ideal.tdb&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;FCC_A1&quot;</span><span class="p">,</span> <span class="s2">&quot;LIQUID&quot;</span><span class="p">],</span> <span class="p">[</span><span class="s2">&quot;CU&quot;</span><span class="p">,</span> <span class="s2">&quot;NI&quot;</span><span class="p">])</span>
+
+<span class="n">sim</span> <span class="o">=</span> <span class="n">engines</span><span class="o">.</span><span class="n">Diffusion</span><span class="p">(</span><span class="n">dimensions</span><span class="o">=</span><span class="p">[</span><span class="mi">200</span><span class="p">,</span> <span class="mi">200</span><span class="p">])</span>
+
+<span class="c1">#initialize non-array parameters</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">set_framework</span><span class="p">(</span><span class="s2">&quot;CPU_SERIAL&quot;</span><span class="p">)</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">set_dx</span><span class="p">(</span><span class="mf">1.</span><span class="p">)</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">set_dt</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">set_time_step_counter</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">set_temperature_type</span><span class="p">(</span><span class="s2">&quot;ISOTHERMAL&quot;</span><span class="p">)</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">set_temperature_initial_T</span><span class="p">(</span><span class="mf">1584.</span><span class="p">)</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">set_temperature_dTdx</span><span class="p">(</span><span class="mf">100000.</span><span class="p">)</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">set_temperature_dTdy</span><span class="p">(</span><span class="mf">0.</span><span class="p">)</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">set_temperature_dTdz</span><span class="p">(</span><span class="mf">0.</span><span class="p">)</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">set_temperature_dTdt</span><span class="p">(</span><span class="o">-</span><span class="mf">3000000.</span><span class="p">)</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">set_temperature_dTdt</span><span class="p">(</span><span class="mf">0.</span><span class="p">)</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">set_temperature_path</span><span class="p">(</span><span class="s2">&quot;T.xdmf&quot;</span><span class="p">)</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">set_temperature_units</span><span class="p">(</span><span class="s2">&quot;K&quot;</span><span class="p">)</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">set_tdb_container</span><span class="p">(</span><span class="n">tdbc</span><span class="p">)</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">set_tdb_path</span><span class="p">(</span><span class="s2">&quot;Ni-Cu_Ideal.tdb&quot;</span><span class="p">)</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">set_tdb_phases</span><span class="p">([</span><span class="s2">&quot;FCC_A1&quot;</span><span class="p">,</span> <span class="s2">&quot;LIQUID&quot;</span><span class="p">])</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">set_tdb_components</span><span class="p">([</span><span class="s2">&quot;CU&quot;</span><span class="p">,</span> <span class="s2">&quot;NI&quot;</span><span class="p">])</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">set_save_path</span><span class="p">(</span><span class="s2">&quot;data/test_simulation&quot;</span><span class="p">)</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">set_autosave_flag</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">set_autosave_save_images_flag</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">set_autosave_rate</span><span class="p">(</span><span class="mi">40000</span><span class="p">)</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">set_boundary_conditions</span><span class="p">(</span><span class="s2">&quot;NEUMANN&quot;</span><span class="p">)</span>
+
+<span class="n">data</span> <span class="o">=</span> <span class="p">{</span>
+
+<span class="p">}</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">set_user_data</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+<span class="c1">#initialize simulation arrays, all parameter changes should be BEFORE this point!</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">initialize_fields_and_imported_data</span><span class="p">()</span>
+
+<span class="c1">#change array data here, for custom simulations</span>
+
+<span class="c1">#run simulation</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+    <span class="n">sim</span><span class="o">.</span><span class="n">simulate</span><span class="p">(</span><span class="mi">1000</span><span class="p">)</span>
+    <span class="n">sim</span><span class="o">.</span><span class="n">plot_simulation</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="description-of-functions">
+<h2>Description of Functions<a class="headerlink" href="#description-of-functions" title="Permalink to this headline"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">tdbc</span> <span class="o">=</span> <span class="n">ppf</span><span class="o">.</span><span class="n">TDBContainer</span><span class="p">(</span><span class="s2">&quot;Ni-Cu_Ideal.tdb&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;FCC_A1&quot;</span><span class="p">,</span> <span class="s2">&quot;LIQUID&quot;</span><span class="p">],</span> <span class="p">[</span><span class="s2">&quot;CU&quot;</span><span class="p">,</span> <span class="s2">&quot;NI&quot;</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>TDBContainer is an object which stores ufuncs which phase field code uses to extract thermodynamic information about a simulation.
+This is done so that multiple simulations can re-use the same thermodynamic conditions, as for extremely large TDB files in can take
+upwards of a minute to load all the information into pycalphad. The parameters are:
+* relative path to the TDB file, with the script being the current directory
+* list of phases to use from the TDB file.
+* List of components to use from the TDB file.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sim</span> <span class="o">=</span> <span class="n">engines</span><span class="o">.</span><span class="n">Diffusion</span><span class="p">(</span><span class="n">dimensions</span><span class="o">=</span><span class="p">[</span><span class="mi">200</span><span class="p">,</span> <span class="mi">200</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>This creates a Simulation object, sim (in this example, it is the subclass Diffusion). The required parameter, dimensions, is a list of
+integer values dictating the dimensionality (number of values in the list) and size of the simulation box.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sim</span><span class="o">.</span><span class="n">set_framework</span><span class="p">(</span><span class="s2">&quot;CPU_SERIAL&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This sets what compute framework the simulation will use. Currently implemented values are “CPU_SERIAL”, for code running on a CPU like normal,
+and “GPU_SERIAL”, for code running on a single GPU (requires numba!)</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sim</span><span class="o">.</span><span class="n">set_dx</span><span class="p">(</span><span class="mf">1.</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This sets the size of a single cell in the simulation. Pyphasefield uses a square regular grid, with the length of each edge of a cell equal to dx.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sim</span><span class="o">.</span><span class="n">set_dt</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This sets the length of a time step in the simulation. Some engines will set this value automatically, to prevent instability due to a large timestep
+in an explicit scheme simulation.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sim</span><span class="o">.</span><span class="n">set_time_step_counter</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This sets what time step the simulation will have reached at the start of running the simulation. Typically 0, unless running from the middle
+of a thermal file (discussed later).</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sim</span><span class="o">.</span><span class="n">set_temperature_type</span><span class="p">(</span><span class="s2">&quot;ISOTHERMAL&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This sets what type of thermal conditions are present in the simulation. Simulations have a special field called sim.temperature, and the data
+contained within (numpy ndarray) may be accessed using sim.temperature.data. Possible values include:</p>
+<ul class="simple">
+<li><p>None: Used if a simulation does not use temperature, or if you wish to have temperature evolve using phase field equations (in which case,
+temperature would just be another field in sim.fields)</p></li>
+<li><p>“ISOTHERMAL”: Used if the overall temperature does not change during a simulation. Only sim.set_temperature_initial_T() need be used</p></li>
+<li><p>“LINEAR GRADIENT”: Used if the simulation has a simple linear gradient in either space or time or both. sim.set_temperature_initial_T() will set the
+temperature of the cell [0, 0, 0, …], while sim.set_temperature_dTdx(), sim.set_temperature_dTdy(), sim.set_temperature_dTdz() will set the thermal
+gradient in the x, y, and z dimensions as necessary, while sim.set_temperature_dTdt() will set how all cells change in temperature over time.</p></li>
+<li><p>“XDMF_FILE”: Used if you wish to pull thermal data from a file (for example, if you generate the thermal field using a different simulation scheme,
+like FEM!). Only sim.set_temperature_path() has to be used for this case.</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sim</span><span class="o">.</span><span class="n">set_temperature_initial_T</span><span class="p">(</span><span class="mf">1584.</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Sets the temperature of the entire simulation (isothermal) or the initial temperature of the origin (linear gradient).</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sim</span><span class="o">.</span><span class="n">set_temperature_dTdx</span><span class="p">(</span><span class="mf">100000.</span><span class="p">)</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">set_temperature_dTdy</span><span class="p">(</span><span class="mf">0.</span><span class="p">)</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">set_temperature_dTdz</span><span class="p">(</span><span class="mf">0.</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Sets the thermal gradient along each dimension</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sim</span><span class="o">.</span><span class="n">set_temperature_dTdt</span><span class="p">(</span><span class="o">-</span><span class="mf">3000000.</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Sets the change in temperature over time, often called the cooling rate. Note that while cooling is more commonly used, dTdt must be negative
+to result in cooling over time!</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sim</span><span class="o">.</span><span class="n">set_temperature_path</span><span class="p">(</span><span class="s2">&quot;T.xdmf&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Sets the relative path to an XDMF file, to be used to pull thermal data from. The current location of the script (or jupyter notebook) is the
+current directory in this case.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sim</span><span class="o">.</span><span class="n">set_temperature_units</span><span class="p">(</span><span class="s2">&quot;K&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Mostly unused at present, this modifies the name of the temperature field, so if you wish to print out an image of the thermal field using
+matplotlib, it will label the field automatically.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sim</span><span class="o">.</span><span class="n">set_tdb_container</span><span class="p">(</span><span class="n">tdbc</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>One possible method for setting the TDB thermodynamics for a simulation, loading the information from a previously initialized TDBContainer object.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sim</span><span class="o">.</span><span class="n">set_tdb_path</span><span class="p">(</span><span class="s2">&quot;Ni-Cu_Ideal.tdb&quot;</span><span class="p">)</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">set_tdb_phases</span><span class="p">([</span><span class="s2">&quot;FCC_A1&quot;</span><span class="p">,</span> <span class="s2">&quot;LIQUID&quot;</span><span class="p">])</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">set_tdb_components</span><span class="p">([</span><span class="s2">&quot;CU&quot;</span><span class="p">,</span> <span class="s2">&quot;NI&quot;</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>Another possible method, giving the path, phases, and components directly to the simulation.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sim</span><span class="o">.</span><span class="n">set_save_path</span><span class="p">(</span><span class="s2">&quot;data/test_simulation&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Sets the path to where the simulation will save checkpoint files (and images if desired). Path is relative, with the script as the current directory</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sim</span><span class="o">.</span><span class="n">set_autosave_flag</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Flag that sets whether a simulation will automatically save a checkpoint file every few steps</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sim</span><span class="o">.</span><span class="n">set_autosave_save_images_flag</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Flag that sets whether a simulation will automatically save images of the fields every few steps</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sim</span><span class="o">.</span><span class="n">set_autosave_rate</span><span class="p">(</span><span class="mi">40000</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Sets how often a simulation will automatically save checkpoints/images, if the respective flags are set.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sim</span><span class="o">.</span><span class="n">set_boundary_conditions</span><span class="p">(</span><span class="s2">&quot;NEUMANN&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Sets the boundary conditions for a given sim. Options are as follows:</p>
+<ul class="simple">
+<li><p>“PERIODIC”: Periodic boundary conditions</p></li>
+<li><p>“NEUMANN”: Neumann (defined gradient at boundary) boundary conditions</p></li>
+<li><p>“DIRCHLET”: Dirchlet (defined value at boundary) boundary conditions</p></li>
+<li><p>[“PERIODIC”, “NEUMANN”]: A list defines different boundary conditions along each dimensions. In this case, it would have periodic boundary conditions along
+the x axis, and Neumann boundary conditions along the y axis. Other permutations of the previous three values are also permitted.</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">data</span> <span class="o">=</span> <span class="p">{</span>
+
+<span class="p">}</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">set_user_data</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Sets engine-specific parameters, using a dictionary. For example, the Diffusion engine has one engine-specific parameter, D, which may be seen in the
+diffusion example code</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sim</span><span class="o">.</span><span class="n">initialize_fields_and_imported_data</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>This function initializes the size and content of fields based on the previously defined parameters, as well as initializes boundary conditions,
+loads data from TDB files, and creates and initializes the temperature field. Any changes you wish to make to field data must be done after
+calling this function!</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+    <span class="n">sim</span><span class="o">.</span><span class="n">simulate</span><span class="p">(</span><span class="mi">1000</span><span class="p">)</span>
+    <span class="n">sim</span><span class="o">.</span><span class="n">plot_simulation</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Runs a simulation for 1000 time steps, then plots the fields using matplotlib to show the progress.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../installation.html" class="btn btn-neutral float-left" title="Installation Instructions" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="diffusion.html" class="btn btn-neutral float-right" title="How to use pyphasefield: Diffusion Engine" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, pyphasefield Development Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

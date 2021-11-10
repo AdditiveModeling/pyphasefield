@@ -59,12 +59,31 @@ def engine_Warren1995(sim):
     dx = sim.get_cell_spacing()
     phi = sim.fields[0].data
     c = sim.fields[1].data
+    T = sim.temperature.data
     
     g = _g(phi)
     p = _p(phi)
     gprime = _gprime(phi)
-    H_A = sim.W_A*gprime + 30*sim.L_A*(1/sim.T-1/sim.T_mA)*g
-    H_B = sim.W_B*gprime + 30*sim.L_B*(1/sim.T-1/sim.T_mB)*g
+    
+    R = 8.314
+    
+    W_A = sim.user_data["W_A"]
+    W_B = sim.user_data["W_B"]
+    M_A = sim.user_data["M_A"]
+    M_B = sim.user_data["M_B"]
+    L_A = sim.user_data["L_A"]
+    L_B = sim.user_data["L_B"]
+    T_MA = sim.user_data["T_MA"]
+    T_MB = sim.user_data["T_MB"]
+    D_S = sim.user_data["D_S"]
+    D_L = sim.user_data["D_L"]
+    v_m = sim.user_data["v_m"]
+    ebar2 = sim.user_data["ebar"]**2
+    alpha = sim.user_data["alpha"]
+    y_e = sim.user_data["y_e"]
+    
+    H_A = W_A*gprime + 30*L_A*(1/T-1/T_MA)*g
+    H_B = W_B*gprime + 30*L_B*(1/T-1/T_MB)*g
     phixx = gradxx(phi, dx)
     phiyy = gradyy(phi, dx)
     lphi = phixx+phiyy
@@ -73,24 +92,23 @@ def engine_Warren1995(sim):
     phixy = grady(phix, dx)
     
     #change in c
-    D_C = sim.D_S+p*(sim.D_L-sim.D_S)
-    temp = D_C*sim.v_m*c*(1-c)*(H_B-H_A)/sim.R
+    D_C = D_S+p*(D_L-D_S)
+    temp = D_C*v_m*c*(1-c)*(H_B-H_A)/R
     deltac = D_C*(gradxx(c, dx)+gradyy(c, dx))+(gradx(D_C, dx)*gradx(c, dx)+grady(D_C, dx)*grady(c, dx))+temp*(lphi)+(gradx(temp, dx)*phix+grady(temp, dx)*phiy)
     #print(deltac)
     #print(temp)
     
     #change in phi
     theta = np.arctan2(phiy, phix)
-    eta = 1+sim.y_e*np.cos(4*theta)
-    etap = -4*sim.y_e*np.sin(4*theta)
+    eta = 1+y_e*np.cos(4*theta)
+    etap = -4*y_e*np.sin(4*theta)
     etapp = -16*(eta-1)
     c2 = np.cos(2*theta)
     s2 = np.sin(2*theta)
-    M_phi = (1-c)*sim.M_A + c*sim.M_B
-    ebar2 = sim.ebar**2
+    M_phi = (1-c)*M_A + c*M_B
     deltaphi = M_phi*((ebar2*eta*eta*lphi-(1-c)*H_A-c*H_B)+ebar2*eta*etap*(s2*(phiyy-phixx)+2*c2*phixy)+0.5*ebar2*(etap*etap+eta*etapp)*(-2*s2*phixy+lphi+c2*(phiyy-phixx)))
     randArray = 2*np.random.random(phi.shape)-1
-    deltaphi += M_phi*sim.alpha*randArray*(16*g)*((1-c)*H_A+c*H_B)
+    deltaphi += M_phi*alpha*randArray*(16*g)*((1-c)*H_A+c*H_B)
     np.set_printoptions(threshold=np.inf)
     
     
