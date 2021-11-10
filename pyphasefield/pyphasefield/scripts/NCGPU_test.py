@@ -22,6 +22,9 @@ sim.initialize_fields_and_imported_data()
 
 sim.simulate(15000)
 
+#this will automatically create the file folder for the simulation, plot_simulation will not!
+sim.save_simulation()
+
 #save images as files. If this code is copy-pasted into a Jupyter notebook, reverse the booleans to plot images in the NB!
 #also don't forget to fix the path to the TDB!
 sim.plot_simulation(save_images=True, show_images=False)
