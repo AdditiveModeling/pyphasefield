@@ -309,6 +309,8 @@ def NComponent_helper_kernel(fields, T, transfer, rng_states, ufunc_array, param
     D_L = params[7]
     D_S = params[8]
     noise_amp_c = params[13]
+    thermo_finite_diff_incr = params[15]
+    tfdi_inv = 1./thermo_finite_diff_incr
     W = c_params[4]
     
     phi = fields[0]
@@ -343,17 +345,17 @@ def NComponent_helper_kernel(fields, T, transfer, rng_states, ufunc_array, param
             g = (phi[i][j]**2)*(1-phi[i][j])**2
             h = (phi[i][j]**3)*(6.*phi[i][j]**2 - 15.*phi[i][j] + 10.)
             
-            ufunc_array[i][j][len(fields)-3] -= 0.0000001
+            ufunc_array[i][j][len(fields)-3] -= thermo_finite_diff_incr
             for l in range(3, len(fields)):
-                ufunc_array[i][j][l-3] += 0.0000001
-                dGLdc = 10000000.*(get_thermodynamics(ufunc_g_l, ufunc_array[i][j])-G_L[i][j])
-                dGSdc = 10000000.*(get_thermodynamics(ufunc_g_s, ufunc_array[i][j])-G_S[i][j])
+                ufunc_array[i][j][l-3] += thermo_finite_diff_incr
+                dGLdc = tfdi_inv*(get_thermodynamics(ufunc_g_l, ufunc_array[i][j])-G_L[i][j])
+                dGSdc = tfdi_inv*(get_thermodynamics(ufunc_g_s, ufunc_array[i][j])-G_S[i][j])
                 M_c = transfer[l-1]
                 dFdc = transfer[l-1+len(fields)-3]
                 M_c[i][j] = v_m*fields[l][i][j]*(D_L + h*(D_S - D_L))/(8.314*T[i][j])
                 dFdc[i][j] = (dGLdc + h*(dGSdc-dGLdc))/v_m + (W[l-3]-W[len(fields)-3])*g*T[i][j]
-                ufunc_array[i][j][l-3] -= 0.0000001
-            ufunc_array[i][j][len(fields)-3] += 0.0000001
+                ufunc_array[i][j][l-3] -= thermo_finite_diff_incr
+            ufunc_array[i][j][len(fields)-3] += thermo_finite_diff_incr
                     
                 
 def make_seed(phi, q1, q4, x, y, angle, seed_radius):
@@ -535,6 +537,9 @@ class NCGPU(Simulation):
             self.user_data["noise_c"] = 1.
         if not "noise_q" in self.user_data:
             self.user_data["noise_q"] = 1.
+        #initialize finite diff approximation for thermodynamic gradient terms to 1e-7, approx. half the digits of precision of doubles
+        if not "thermo_finite_diff_incr" in self.user_data:
+            self.user_data["thermo_finite_diff_incr"] = 0.0000001;
         params = []
         c_params = []
         params.append(self.dx)
@@ -552,6 +557,7 @@ class NCGPU(Simulation):
         params.append(self.user_data["noise_phi"])
         params.append(self.user_data["noise_c"])
         params.append(self.user_data["noise_q"])
+        params.append(self.user_data["thermo_finite_diff_incr"])
         c_params.append(self.user_data["L"])
         c_params.append(self.user_data["T_M"])
         c_params.append(self.user_data["S"])
