@@ -3,8 +3,6 @@ from pkgutil import iter_modules
 from pathlib import Path
 from importlib import import_module
 
-from .Diffusion import Diffusion
-
 # iterate through the modules in the current package
 package_dir = Path(__file__).resolve().parent
 for (_, module_name, _) in iter_modules([package_dir]):
@@ -19,5 +17,5 @@ for (_, module_name, _) in iter_modules([package_dir]):
                 # Add the class to this package's variables
                 globals()[attribute_name] = attribute
     except Exception as e:
-        print(e)
+        print(module_name+", "+str(e))
         pass

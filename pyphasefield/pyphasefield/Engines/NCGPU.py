@@ -1,26 +1,20 @@
 import numpy as np
 import sympy as sp
 from scipy.sparse.linalg import gmres
-from numba import cuda
-import numba
 import matplotlib.pyplot as plt
 np.set_printoptions(threshold=np.inf)
 import math
-from numba.cuda.random import create_xoroshiro128p_states, xoroshiro128p_uniform_float32
+from pyphasefield.field import Field
+from pyphasefield.simulation import Simulation
+from pyphasefield.ppf_utils import COLORMAP_OTHER, COLORMAP_PHASE
 
 try:
-    #import from within Engines folder
-    from ..field import Field
-    from ..simulation import Simulation
-    from ..ppf_utils import COLORMAP_OTHER, COLORMAP_PHASE
+    from numba import cuda
+    import numba
+    from numba.cuda.random import create_xoroshiro128p_states, xoroshiro128p_uniform_float32
 except:
-    try:
-        #import classes from pyphasefield library
-        from pyphasefield.field import Field
-        from pyphasefield.simulation import Simulation
-        from pyphasefield.ppf_utils import COLORMAP_OTHER, COLORMAP_PHASE
-    except:
-        raise ImportError("Cannot import from pyphasefield library!")
+    import pyphasefield.jit_placeholder as numba
+    import pyphasefield.jit_placeholder as cuda
 
 ufunc_g_l = None
 ufunc_g_s = None
@@ -615,4 +609,3 @@ class NCGPU(Simulation):
                                                                       self._fields_out_gpu_device, self.user_data["rng_states"], 
                                                                       self.user_data["params"], self.user_data["c_params"])
         cuda.synchronize()
-        self._fields_gpu_device, self._fields_out_gpu_device = self._fields_out_gpu_device, self._fields_gpu_device

@@ -1,24 +1,15 @@
 import numpy as np
 from scipy.sparse.linalg import gmres
-
-try:
-    #import from within Engines folder
-    from ..field import Field
-    from ..simulation import Simulation
-    from ..ppf_utils import COLORMAP_OTHER, COLORMAP_PHASE
-except:
-    try:
-        #import classes from pyphasefield library
-        from pyphasefield.field import Field
-        from pyphasefield.simulation import Simulation
-        from pyphasefield.ppf_utils import COLORMAP_OTHER, COLORMAP_PHASE
-    except:
-        raise ImportError("Cannot import from pyphasefield library!")
+from pyphasefield.field import Field
+from pyphasefield.simulation import Simulation
+from pyphasefield.ppf_utils import COLORMAP_OTHER, COLORMAP_PHASE
         
 try:
     from numba import cuda
 except:
-    pass
+    import pyphasefield.jit_placeholder as cuda
+
+
 
 def diffusion_matrix_1d(xsize, centervalue, neighborvalue):
     """
@@ -642,23 +633,23 @@ def engine_CrankNicolsonDiffusion3D_ADI_GMRES(sim):
 def diffusion_kernel_1D(fields, fields_out, D, dx, dt):
     startx = cuda.grid(1)      
     stridex = cuda.gridsize(1) 
-    
+
     alpha = D*dt/(dx*dx) #laplacian coefficient in diffusion discretization
-    
+
     c = fields[0]
     c_out = fields_out[0]
 
     # assuming x and y inputs are same length
     for i in range(startx, c.shape[1], stridex):
         c_out[i] = c[i]+alpha*(-2*c[i]+c[i+1]+c[i-1])
-            
+
 @cuda.jit
 def diffusion_kernel_2D(fields, fields_out, D, dx, dt):
     startx, starty = cuda.grid(2)      
     stridex, stridey = cuda.gridsize(2) 
-    
+
     alpha = D*dt/(dx*dx) #laplacian coefficient in diffusion discretization
-    
+
     c = fields[0]
     c_out = fields_out[0]
 
@@ -666,14 +657,14 @@ def diffusion_kernel_2D(fields, fields_out, D, dx, dt):
     for i in range(starty, c.shape[0], stridey):
         for j in range(startx, c.shape[1], stridex):
             c_out[i][j] = c[i][j]+alpha*(-4*c[i][j]+c[i+1][j]+c[i-1][j]+c[i][j+1]+c[i][j-1])
-            
+
 @cuda.jit
 def diffusion_kernel_3D(fields, fields_out, D, dx, dt):
     startx, starty, startz = cuda.grid(3)      
     stridex, stridey, startz = cuda.gridsize(3) 
-    
+
     alpha = D*dt/(dx*dx) #laplacian coefficient in diffusion discretization
-    
+
     c = fields[0]
     c_out = fields_out[0]
 
@@ -695,7 +686,6 @@ def engine_DiffusionGPU(sim):
         diffusion_kernel_3D[sim._gpu_blocks_per_grid_3D, sim._gpu_threads_per_block_3D](sim._fields_gpu_device, sim._fields_out_gpu_device, 
                                                                   sim.user_data["D"], sim.dx, sim.dt)
     cuda.synchronize()
-    sim._fields_gpu_device, sim._fields_out_gpu_device = sim._fields_out_gpu_device, sim._fields_gpu_device
 
 class Diffusion(Simulation):
     def __init__(self, **kwargs):
@@ -713,21 +703,30 @@ class Diffusion(Simulation):
             self.user_data["adi"] = False
         if not ("gmres" in self.user_data):
             self.user_data["gmres"] = False
+            
+        #create field using local dimensions, but modify the array using global dimensions
+        #slicing the field will account for the global -> local conversion!
+        dim_global = self._global_dimensions
         dim = self.dimensions
         c = np.zeros(dim)
-        if(len(dim) == 1):
-            length = dim[0]
-            c[length // 4:3 * length // 4] = 1
-        elif(len(dim) == 2):
-            length = dim[0]
-            width = dim[1]
-            c[length // 4:3 * length // 4, width // 4:3 * width // 4] = 1
-        elif(len(dim) == 3):
-            length = dim[0]
-            width = dim[1]
-            depth = dim[2]
-            c[length // 4:3 * length // 4, width // 4:3 * width // 4, depth // 4:3 * depth // 4] = 1
+        
         self.add_field(c, "c")
+        field = self.fields[0]
+        if(len(dim) == 1):
+            for i in range(dim_global[0]//100 + 1):
+                field[100*i:100*i+50] = 1
+        elif(len(dim) == 2):
+            for i in range(dim_global[0]//100 + 1):
+                for j in range(dim_global[1]//100 + 1):
+                    field[100*i:100*i+50, 100*j:100*j+50] = 1
+                    field[100*i+50:100*i+100, 100*j+50:100*j+100] = 1
+        elif(len(dim) == 3):
+            for i in range(dim_global[0]//100 + 1):
+                for j in range(dim_global[1]//100 + 1):
+                    for k in range(dim_global[2]//100 + 1):
+                        field[100*i:100*i+50, 100*j:100*j+50, 100*j:100*j+50] = 1
+                        field[100*i+50:100*i+100, 100*j+50:100*j+100, 100*j+50:100*j+100] = 1
+        
         
     def initialize_fields_and_imported_data(self):
         super().initialize_fields_and_imported_data()
@@ -743,7 +742,7 @@ class Diffusion(Simulation):
         solver = self.user_data["solver"]
         gmres = self.user_data["gmres"]
         adi = self.user_data["adi"]
-        if(self._framework == "GPU_SERIAL"):
+        if(self._framework == "GPU_SERIAL" or self._framework == "GPU_PARALLEL"):
             engine_DiffusionGPU(self)
         else: #"CPU_SERIAL"
             if (solver == "explicit"):

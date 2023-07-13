@@ -1,25 +1,14 @@
 import numpy as np
 import math
-
-try:
-    #import from within Engines folder
-    from ..field import Field
-    from ..simulation import Simulation
-    from ..ppf_utils import COLORMAP_OTHER, COLORMAP_PHASE_INV
-except:
-    try:
-        #import classes from pyphasefield library
-        from pyphasefield.field import Field
-        from pyphasefield.simulation import Simulation
-        from pyphasefield.ppf_utils import COLORMAP_OTHER, COLORMAP_PHASE_INV
-    except:
-        raise ImportError("Cannot import from pyphasefield library!")
+from pyphasefield.field import Field
+from pyphasefield.simulation import Simulation
+from pyphasefield.ppf_utils import COLORMAP_OTHER, COLORMAP_PHASE
         
 try:
     from numba import cuda
     from numba.cuda.random import create_xoroshiro128p_states, xoroshiro128p_uniform_float32
 except:
-    pass
+    import pyphasefield.jit_placeholder as cuda
 
 def __p(phi):
     return phi*phi*phi*(10-15*phi+6*phi*phi)
