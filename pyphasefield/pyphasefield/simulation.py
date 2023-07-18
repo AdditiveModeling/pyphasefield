@@ -706,7 +706,7 @@ class Simulation:
         """
         Function to initialize the simulation, called after class attributes are set. 
         
-        Deprecated, use initialize_engine() instead.
+        Deprecated name, use initialize_engine() instead.
         
         Notes
         -----
@@ -878,14 +878,18 @@ class Simulation:
             self._save_path = str(file_path.parent)
 
         # Load array
-        fields_dict = np.load(file_path, allow_pickle=True)
-
-        # Add arrays self.fields as Field objects
-        for key, value in fields_dict.items():
-            self.add_field(value, key, full_grid=True)
+        if(self._MPI_RANK == 0):
+            fields_dict = np.load(file_path, allow_pickle=True)
             
-        # Set dimensions of simulation
-        self.dimensions = list(self.fields[0].get_cells().shape)
+        if(self._parallel):
+            pass
+        else:
+            # Add arrays self.fields as Field objects
+            for key, value in fields_dict.items():
+                self.add_field(value, key, full_grid=True)
+            
+            # Set dimensions of simulation
+            self.dimensions = list(self.fields[0].get_cells().shape)
 
         # Time step set from parsing file name or manually --> defaults to 0
         if step < 0:
@@ -946,6 +950,12 @@ class Simulation:
                 self._MPI_COMM_WORLD.Send(array_send, dest=0, tag=self._MPI_rank)
         #empty for rank>0, contains complete fields for rank==0
         return global_fields
+    
+    def _disperse_fields(self):
+        #warning - this function begins with the entire array on a single core
+        #if the simulation is *very* large, it could run out of memory
+        #only used for loading checkpoints in parallel simulations
+        pass
                 
     def _make_global_slice(self, shape, offset):
         _slice = []
@@ -987,6 +997,9 @@ class Simulation:
 
         np.savez(str(save_loc) + "/step_" + str(self.time_step_counter), **save_dict)
         return 0
+    
+    def save_images(self, fields=None, interpolation="bicubic", units="cells", size=None, norm=False):
+        self.plot_simulation(fields, interpolation=interpolation, units=units, save_images=True, show_images=False, size=size, norm=norm)
     
     def plot_simulation(self, fields=None, interpolation="bicubic", units="cells", save_images=False, show_images=True, size=None, norm=False):
         """
@@ -1047,7 +1060,6 @@ class Simulation:
             pxp = self.fields[0].data[points[0], points[1], points[2]+1]-phi
             pyp = self.fields[0].data[points[0], points[1]+1, points[2]]-phi
             pzp = self.fields[0].data[points[0]+1, points[1], points[2]]-phi
-            print(len(phi))
             cs = []
             try:
                 minx = min(pxp)
@@ -1097,7 +1109,17 @@ class Simulation:
                     plt.xlabel("m")
                     plt.ylabel("m")
                 if(save_images):
-                    plt.savefig(self._save_path+"/"+_fields[i].name+"_"+str(self.get_time_step_counter())+".png")
+                    #make sure parent path exists
+                    if not self._save_path:
+                        #if save path is not defined, do not save, just return
+                        print("self._save_path not defined, aborting saving images!")
+                        save_img = False
+                    else:
+                        save_loc = Path(self._save_path)
+                        save_img = True
+                    if(save_img):
+                        save_loc.mkdir(parents=True, exist_ok=True)
+                        plt.savefig(self._save_path+"/"+_fields[i].name+"_"+str(self.get_time_step_counter())+".png")
                 if(show_images):
                     plt.show()
                 else:
@@ -1210,9 +1232,10 @@ class Simulation:
                 outputs itself
         """
         bc = boundary_conditions_type
+        dims = len(self.dimensions)
         if not(type(boundary_conditions_type) is list): #single bc type
             self._boundary_conditions_type = []
-            for i in range(len(bc)):
+            for i in range(dims):
                 self._boundary_conditions_type.append([])
                 self._boundary_conditions_type[i].append(bc)
                 self._boundary_conditions_type[i].append(bc)
@@ -1220,17 +1243,16 @@ class Simulation:
             self._boundary_conditions_type = bc
         elif(len(bc) == len(self.dimensions)): #only 1 bc per dimension, symmetric
             self._boundary_conditions_type = []
-            for i in range(len(bc)):
+            for i in range(dims):
                 self._boundary_conditions_type.append([])
                 self._boundary_conditions_type[i].append(bc[i])
                 self._boundary_conditions_type[i].append(bc[i])
         else: #2 bcs per dimension, asymmetric
             self._boundary_conditions_type = []
-            for i in range(len(bc)//2):
+            for i in range(dims):
                 self._boundary_conditions_type.append([])
                 self._boundary_conditions_type[i].append(bc[2*i])
                 self._boundary_conditions_type[i].append(bc[2*i+1])
-        print(self._boundary_conditions_type)
             
         
     def set_user_data(self, data):
@@ -1270,66 +1292,30 @@ class Simulation:
         if(self._uses_gpu):
             ppf_gpu_utils.apply_boundary_conditions(self)
             return
-        neumann_slices_1 = [[(0), (slice(None), 0), (slice(None), slice(None), 0)], [(1), (slice(None), 1), (slice(None), slice(None), 1)]]
-        neumann_slices_2 = [[(-1), (slice(None), -1), (slice(None), slice(None), -1)], [(-2), (slice(None), -2), (slice(None), slice(None), -2)]]
-        periodic_slices_1 = [[(0), (slice(None), 0), (slice(None), slice(None), 0)], [(-2), (slice(None), -2), (slice(None), slice(None), -2)]]
-        periodic_slices_2 = [[(-1), (slice(None), -1), (slice(None), slice(None), -1)], [(1), (slice(None), 1), (slice(None), slice(None), 1)]]
-        dirichlet_slices_1 = [(0), (slice(None), 0), (slice(None), slice(None), 0)]
-        dirichlet_slices_2 = [(-1), (slice(None), -1), (slice(None), slice(None), -1)]
-        if(self._boundary_conditions_type == "PERIODIC"):
-            dims = len(self.fields[0].data.shape)
-            for i in range(dims):
-                if not(self.temperature is None):
-                    self.temperature.data[periodic_slices_1[0][i]] = self.temperature.data[periodic_slices_1[1][i]]
-                    self.temperature.data[periodic_slices_2[0][i]] = self.temperature.data[periodic_slices_2[1][i]]
-                for j in range(len(self.fields)):
-                    self.fields[j].data[periodic_slices_1[0][i]] = self.fields[j].data[periodic_slices_1[1][i]]
-                    self.fields[j].data[periodic_slices_2[0][i]] = self.fields[j].data[periodic_slices_2[1][i]]
-        elif(self._boundary_conditions_type == "NEUMANN"):
-            dims = len(self.fields[0].data.shape)
-            _slice = []
-            for i in range(dims):
-                if not(self.temperature is None):
-                    self.temperature.data[neumann_slices_1[0][i]] = self.temperature.data[neumann_slices_1[1][i]]
-                    self.temperature.data[neumann_slices_2[0][i]] = self.temperature.data[neumann_slices_2[1][i]]
-                for j in range(len(self.fields)):
-                    self.fields[j].data[neumann_slices_1[0][i]] = self.fields[j].data[neumann_slices_1[1][i]] - self.dx*self.boundary_fields[j].data[neumann_slices_1[0][i]]
-                    self.fields[j].data[neumann_slices_2[0][i]] = self.fields[j].data[neumann_slices_2[1][i]] + self.dx*self.boundary_fields[j].data[neumann_slices_2[0][i]]
-        elif(self._boundary_conditions_type == "DIRICHLET"):
-            dims = len(self.fields[0].data.shape)
-            _slice = []
-            for i in range(dims):
-                if not(self.temperature is None):
-                    #use neumann boundary conditions for temperature field if using dirichlet boundary conditions
-                    self.temperature.data[neumann_slices_1[0][i]] = self.temperature.data[neumann_slices_1[1][i]]
-                    self.temperature.data[neumann_slices_2[0][i]] = self.temperature.data[neumann_slices_2[1][i]]
-                for j in range(len(self.fields)):
-                    self.fields[j].data[dirichlet_slices_1[i]] = self.boundary_fields[j].data[dirichlet_slices_1[i]]
-                    self.fields[j].data[dirichlet_slices_2[i]] = self.boundary_fields[j].data[dirichlet_slices_2[i]]
-        else: #is array
-            for i in range(len(self._boundary_conditions_type)):
-                if(self._boundary_conditions_type[i] == "PERIODIC"):
+        neumann_slices_target = [[(0), (slice(None), 0), (slice(None), slice(None), 0)], [(-1), (slice(None), -1), (slice(None), slice(None), -1)]]
+        neumann_slices_source = [[(1), (slice(None), 1), (slice(None), slice(None), 1)], [(-2), (slice(None), -2), (slice(None), slice(None), -2)]]
+        periodic_slices_target = [[(0), (slice(None), 0), (slice(None), slice(None), 0)], [(-1), (slice(None), -1), (slice(None), slice(None), -1)]]
+        periodic_slices_source = [[(-2), (slice(None), -2), (slice(None), slice(None), -2)], [(1), (slice(None), 1), (slice(None), slice(None), 1)]]
+        dirichlet_slices_target = [[(0), (slice(None), 0), (slice(None), slice(None), 0)],[(-1), (slice(None), -1), (slice(None), slice(None), -1)]]
+        dims = len(self.fields[0].data.shape)
+        for i in range(dims):
+            for k in range(2):
+                if(self._boundary_conditions_type[i][k] == "PERIODIC"):
                     if not(self.temperature is None):
-                        self.temperature.data[periodic_slices_1[0][i]] = self.temperature.data[periodic_slices_1[1][i]]
-                        self.temperature.data[periodic_slices_2[0][i]] = self.temperature.data[periodic_slices_2[1][i]]
+                        self.temperature.data[periodic_slices_target[k][i]] = self.temperature.data[periodic_slices_source[k][i]]
                     for j in range(len(self.fields)):
-                        self.fields[j].data[periodic_slices_1[0][i]] = self.fields[j].data[periodic_slices_1[1][i]]
-                        self.fields[j].data[periodic_slices_2[0][i]] = self.fields[j].data[periodic_slices_2[1][i]]
-                elif(self._boundary_conditions_type[i] == "NEUMANN"):
+                        self.fields[j].data[periodic_slices_target[k][i]] = self.fields[j].data[periodic_slices_source[k][i]]
+                elif(self._boundary_conditions_type[i][k] == "NEUMANN"):
                     if not(self.temperature is None):
-                        self.temperature.data[neumann_slices_1[0][i]] = self.temperature.data[neumann_slices_1[1][i]]
-                        self.temperature.data[neumann_slices_2[0][i]] = self.temperature.data[neumann_slices_2[1][i]]
+                        self.temperature.data[neumann_slices_target[k][i]] = self.temperature.data[neumann_slices_source[k][i]]
                     for j in range(len(self.fields)):
-                        self.fields[j].data[neumann_slices_1[0][i]] = self.fields[j].data[neumann_slices_1[1][i]] - self.dx*self.boundary_fields[j].data[neumann_slices_1[0][i]]
-                        self.fields[j].data[neumann_slices_2[0][i]] = self.fields[j].data[neumann_slices_2[1][i]] + self.dx*self.boundary_fields[j].data[neumann_slices_2[0][i]]
-                elif(self._boundary_conditions_type[i] == "DIRICHLET"):
+                        self.fields[j].data[neumann_slices_target[k][i]] = self.fields[j].data[neumann_slices_source[k][i]] - self.dx*self.boundary_fields[j].data[neumann_slices_target[k][i]]
+                elif(self._boundary_conditions_type == "DIRICHLET"):
                     if not(self.temperature is None):
                         #use neumann boundary conditions for temperature field if using dirichlet boundary conditions
-                        self.temperature.data[neumann_slices_1[0][i]] = self.temperature.data[neumann_slices_1[1][i]]
-                        self.temperature.data[neumann_slices_2[0][i]] = self.temperature.data[neumann_slices_2[1][i]]
+                        self.temperature.data[neumann_slices_target[k][i]] = self.temperature.data[neumann_slices_source[k][i]]
                     for j in range(len(self.fields)):
-                        self.fields[j].data[dirichlet_slices_1[i]] = self.boundary_fields[j].data[dirichlet_slices_1[i]]
-                        self.fields[j].data[dirichlet_slices_2[i]] = self.boundary_fields[j].data[dirichlet_slices_2[i]]
+                        self.fields[j].data[dirichlet_slices_target[k][i]] = self.boundary_fields[j].data[dirichlet_slices_target[k][i]]
         return
     
     def send_fields_to_GPU(self):

@@ -27,14 +27,8 @@ class Template(Simulation):
     def init_fields(self):
         #initialization of fields code goes here
         #runs *after* tdb and thermal data is loaded/initialized
-        #runs *before* boundary conditions are initialized
+        #boundary conditions are created simulatenously through the use of the add_field method
         pass
-        
-        
-    def initialize_fields_and_imported_data(self):
-        super().initialize_fields_and_imported_data()
-        #initialization of fields/imported data goes below
-        #runs *after* tdb, thermal, fields, and boundary conditions are loaded/initialized
                         
     def just_before_simulating(self):
         super().just_before_simulating()

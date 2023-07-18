@@ -577,11 +577,6 @@ class AnisoDorrGPU(Simulation):
                 c_n = np.zeros(dim)
                 c_n += 0.5
                 self.add_field(c_n, "c_CU", colormap=COLORMAP_OTHER)
-        
-    def initialize_fields_and_imported_data(self):
-        super().initialize_fields_and_imported_data()
-        #initialization of fields/imported data goes below
-        #runs *after* tdb, thermal, fields, and boundary conditions are loaded/initialized
                         
     def just_before_simulating(self):
         super().just_before_simulating()

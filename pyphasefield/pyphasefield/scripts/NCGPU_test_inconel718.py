@@ -18,7 +18,7 @@ user_data = {
 }
 sim.set_user_data(user_data)
 
-sim.initialize_fields_and_imported_data()
+sim.initialize_engine()
 sim.dt = 0.000000001 #manually set timestep to 1ns
 
 sim.simulate(20000)

@@ -2,7 +2,7 @@ import numpy as np
 import math
 from pyphasefield.field import Field
 from pyphasefield.simulation import Simulation
-from pyphasefield.ppf_utils import COLORMAP_OTHER, COLORMAP_PHASE
+from pyphasefield.ppf_utils import COLORMAP_OTHER, COLORMAP_PHASE_INV
         
 try:
     from numba import cuda
@@ -315,12 +315,6 @@ class Warren1995(Simulation):
         c = np.zeros(dim)
         c += self.user_data["initial_concentration"]
         self.add_field(c, "c", colormap=COLORMAP_OTHER)
-        
-        
-    def initialize_fields_and_imported_data(self):
-        super().initialize_fields_and_imported_data()
-        #initialization of fields/imported data goes below
-        #runs *after* tdb, thermal, fields, and boundary conditions are loaded/initialized
                         
     def just_before_simulating(self):
         super().just_before_simulating()
@@ -351,8 +345,8 @@ class Warren1995(Simulation):
             c_params.append([self.user_data["B_A"], self.user_data["B_B"]])
             c_params.append([self.user_data["W_A"], self.user_data["W_B"]])
             c_params.append([self.user_data["M_A"], self.user_data["M_B"]])
-            self.user_data["params"] = np.array(params)
-            self.user_data["c_params"] = np.array(c_params)
+            self.user_data["params"] = cuda.to_device(np.array(params))
+            self.user_data["c_params"] = cuda.to_device(np.array(c_params))
             self.user_data["rng_states"] = create_xoroshiro128p_states(256*256, seed=1)
         
     def simulation_loop(self):

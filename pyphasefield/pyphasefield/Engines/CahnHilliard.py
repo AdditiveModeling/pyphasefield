@@ -368,11 +368,6 @@ class CahnHilliard(Simulation):
         #runs *before* boundary conditions are initialized
         phi = 0.001*np.random.random(self.dimensions) + 0.4995
         self.add_field(phi, "phi")
-        
-    def initialize_fields_and_imported_data(self):
-        super().initialize_fields_and_imported_data()
-        #initialization of fields/imported data goes below
-        #runs *after* tdb, thermal, fields, and boundary conditions are loaded/initialized
                         
     def just_before_simulating(self):
         super().just_before_simulating()

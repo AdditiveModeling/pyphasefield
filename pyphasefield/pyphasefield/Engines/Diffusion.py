@@ -726,12 +726,6 @@ class Diffusion(Simulation):
                     for k in range(dim_global[2]//100 + 1):
                         field[100*i:100*i+50, 100*j:100*j+50, 100*j:100*j+50] = 1
                         field[100*i+50:100*i+100, 100*j+50:100*j+100, 100*j+50:100*j+100] = 1
-        
-        
-    def initialize_fields_and_imported_data(self):
-        super().initialize_fields_and_imported_data()
-        #initialization of fields/imported data goes below
-        #runs *after* tdb, thermal, fields, and boundary conditions are loaded/initialized
                         
     def just_before_simulating(self):
         super().just_before_simulating()
