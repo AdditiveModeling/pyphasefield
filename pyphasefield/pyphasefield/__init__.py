@@ -1,4 +1,7 @@
 try:
+    import warnings
+    #in case Numba 0.57.0, filter these warnings
+    warnings.filterwarnings("ignore", message=".*The 'nopython' keyword.*")
     from .field import Field
     from .simulation import Simulation
     from .ppf_utils import *

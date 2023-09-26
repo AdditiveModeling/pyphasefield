@@ -2,10 +2,13 @@ import setuptools
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
+    
+with open("VERSION", "r") as v:
+    version_string = v.read()
 
 setuptools.setup(
     name="pyphasefield",
-    version="2.0.0",
+    version=version_string,
     author="Scott Peters",
     author_email="scott@dpeters.net",
     description="Python phase field simulation",

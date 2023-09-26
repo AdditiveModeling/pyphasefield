@@ -878,8 +878,15 @@ class Simulation:
             self._save_path = str(file_path.parent)
 
         # Load array
-        if(self._MPI_RANK == 0):
+        if(self._MPI_rank == 0):
             fields_dict = np.load(file_path, allow_pickle=True)
+            
+        #if not defined, set boundary conditions for the user (in case they just want to load the data and view it)
+        if(self._boundary_conditions_type is None):
+            #get first array
+            array = list(fields_dict.items())[0][1]
+            self.dimensions = list(array.shape)
+            self.set_boundary_conditions("PERIODIC")
             
         if(self._parallel):
             pass

@@ -9,25 +9,21 @@ LINE_UP = '\033[1A'
 LINE_CLEAR = '\x1b[2K'
 
 required_packages = ["numpy", "scipy", "sympy", "matplotlib", "tinydb", "meshio", "symengine"]
-pycalphad_prerequisites = ["cython", "setuptools_scm", "importlib-metadata", "importlib-resources", "pytest", "pytest_cov", "xarray"]
+pycalphad_prerequisites = ["cython", "numexpr", "bottleneck", "setuptools_scm", "importlib-metadata", "importlib-resources", "pytest", "pytest_cov", "xarray"]
 
 def install_package(name):
-    try:
-        importlib.import_module(name)
-        print(success+"Already have "+name+" installed"+end_color)
-    except:
-        #exception implies package is not installed!
-        print("Attempting to install "+name+" using pip", end='\r')
-        out = os.system("python -m pip install "+name+" >> pyphasefield_installation.log 2>&1")
+    #dont check if package is already installed, it could get confused and not install when it needs to
+    print("Attempting to install "+name+" using pip", end='\r')
+    out = os.system("python -m pip install "+name+" >> pyphasefield_installation.log 2>&1")
+    if(out != 0):
+        print(warning+"Failed to install "+name+" using pip, attempting to install with conda"+end_color, end='\r')
+        out = os.system("conda install -c conda-forge -y "+name+" >> pyphasefield_installation.log 2>&1")
         if(out != 0):
-            print(warning+"Failed to install "+name+" using pip, attempting to install with conda"+end_color, end='\r')
-            out = os.system("conda install -y "+name+" >> pyphasefield_installation.log 2>&1")
-            if(out != 0):
-                print(LINE_CLEAR+fail+"Failed to install "+name+" using conda, unable to proceed!"+end_color)
-            else:
-                print(LINE_CLEAR+success+"Successfully installed "+name+" using conda!"+end_color)
+            print(LINE_CLEAR+fail+"Failed to install "+name+" using conda, unable to proceed!"+end_color)
         else:
-            print(success+"Successfully installed "+name+" using pip!"+end_color)
+            print(LINE_CLEAR+success+"Successfully installed "+name+" using conda!"+end_color)
+    else:
+        print(success+"Successfully installed "+name+" using pip!"+end_color)
             
 coral = input(warning+"Are you running pyphasefield on a CORAL-architecture-supercomputer (POWER9/Tesla GPU) or equivalent? (y/[n]) "+end_color)
 
@@ -40,9 +36,9 @@ if(coral.lower() == "y" or coral.lower() == "yes"):
     calphad = "y"
 else:
     coral = False
+    cuda = input(warning+"Would you like to install numba and cudatoolkit for GPU simulations? (Requires installation through conda!) (y/[n]) "+end_color)
     jupyter = input(warning+"Would you like to set up a jupyter notebook kernel? (y/[n]) "+end_color)
     mpi = input(warning+"Would you like to install mpi4py for parallel simulations? (requires MPI to be pre-installed on the supercomputer!) (y/[n]) "+end_color)
-    cuda = input(warning+"Would you like to install numba and cudatoolkit for GPU simulations? (Requires installation through conda!) (y/[n]) "+end_color)
     if(cuda.lower() == "y" or cuda.lower() == "yes"):
         ver = input(warning+"    Specify version of cudatoolkit here (e.g. 11.4.2), in case the latest is not supported. Leave blank for latest. "+end_color)
     calphad = input(warning+"Would you like to install pycalphad for calphad thermodynamics integration? (y/[n]) "+end_color)
@@ -63,10 +59,32 @@ if(calphad.lower() == "y" or calphad.lower() == "yes"):
     calphad = True
 else:
     calphad = False
+    
+if(cuda):
+    print("Attempting to install numba and cudatoolkit, "+warning+"will fail if not run in a conda environment!"+end_color)
+    out = os.system("conda install -c conda-forge -y numba >> pyphasefield_installation.log 2>&1")
+    if(out != 0):
+        print(fail+"Failed to install numba automatically, install this package manually if you would like GPU simulations!"+end_color)
+    else:
+        print(success+"Successfully installed numba!"+end_color, end='\r')
+    if(len(ver) == 0):
+        out = os.system("conda install -y -c conda-forge cudatoolkit >> pyphasefield_installation.log 2>&1")
+    else:
+        out = os.system("conda install -y -c conda-forge cudatoolkit=="+ver+" >> pyphasefield_installation.log 2>&1")
+    if(out != 0):
+        print(fail+"\nFailed to install cudatoolkit automatically, install this package manually if you would like GPU simulations!"+end_color)
+    else:
+        print(LINE_UP+LINE_CLEAR+success+"Successfully installed numba!"+end_color)
+        print(success+"Successfully installed cudatoolkit!"+end_color)
+else:
+    print("Skipping installing numba and cudatoolkit")
 
 
 for name in required_packages:
     install_package(name)
+    
+
+    
 
 
 if(jupyter):
@@ -112,25 +130,6 @@ if(mpi):
 else:
     print("Skipping installing mpi4py")
 
-if(cuda):
-    print("Attempting to install numba and cudatoolkit, "+warning+"will fail if not run in a conda environment!"+end_color)
-    out = os.system("conda install -y numba >> pyphasefield_installation.log 2>&1")
-    if(out != 0):
-        print(fail+"Failed to install numba automatically, install this package manually if you would like GPU simulations!"+end_color)
-    else:
-        print(success+"Successfully installed numba!"+end_color, end='\r')
-    if(len(ver) == 0):
-        out = os.system("conda install -y cudatoolkit >> pyphasefield_installation.log 2>&1")
-    else:
-        out = os.system("conda install -y cudatoolkit=="+ver+" >> pyphasefield_installation.log 2>&1")
-    if(out != 0):
-        print(fail+"\nFailed to install cudatoolkit automatically, install this package manually if you would like GPU simulations!"+end_color)
-    else:
-        print(LINE_UP+LINE_CLEAR+success+"Successfully installed numba!"+end_color)
-        print(success+"Successfully installed cudatoolkit!"+end_color)
-else:
-    print("Skipping installing numba and cudatoolkit")
-    
 if(calphad):
     print("Attempting to install pycalphad using pip", end='\r')
     out = os.system("python -m pip install pycalphad >> pyphasefield_installation.log 2>&1")
