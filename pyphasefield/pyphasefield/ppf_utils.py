@@ -149,16 +149,16 @@ def make_seed(sim, p=0, q=[1, 2, 3, 4], x=None, y=None, z=None, angle=None, axis
         if(z is None):
             coordinates.append(int(gdims[len(gdims)-3]*np.random.rand()))
         else:
-            coordinates.append(z)
+            coordinates.append(int(z))
     if(len(shape) > 1):
         if(y is None):
             coordinates.append(int(gdims[len(gdims)-2]*np.random.rand()))
         else:
-            coordinates.append(y)
+            coordinates.append(int(y))
     if(x is None):
         coordinates.append(int(gdims[len(gdims)-1]*np.random.rand()))
     else:
-        coordinates.append(x)
+        coordinates.append(int(x))
     p_slices = []
     q_slices = []
     p_mask_slices = []

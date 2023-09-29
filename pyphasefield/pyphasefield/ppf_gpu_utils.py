@@ -14,11 +14,14 @@ from . import ppf_utils
     bc[x][1] : number representing coordinate of target data point
     bc[x][2] : magnitude of dirichlet contribution
     bc[x][3] : magnitude of neumann contribution
+    
+    The arrays are reproduced here for easy reference:
+    bcl_serial = cuda.to_device(np.array([[1, 1, 0, 0], [1, 0, 0, 1], [0, 0, 1, 0]], dtype=int))
+    bcr_serial = cuda.to_device(np.array([[1, 0, 0, 0], [1, 1, 0, 1], [0, 1, 1, 0]], dtype=int))
+    bcl_parallel = cuda.to_device(np.array([[1, -1, 0, 0], [1, 0, 0, 1], [0, 0, 1, 0]], dtype=int))
+    bcr_parallel = cuda.to_device(np.array([[1, 2, 0, 0], [1, 1, 0, 1], [0, 1, 1, 0]], dtype=int))
 """
-bcl_serial = cuda.to_device(np.array([[1, 1, 0, 0], [1, 0, 0, 1], [0, 0, 1, 0]], dtype=int))
-bcr_serial = cuda.to_device(np.array([[1, 0, 0, 0], [1, 1, 0, 1], [0, 1, 1, 0]], dtype=int))
-bcl_parallel = cuda.to_device(np.array([[1, -1, 0, 0], [1, 0, 0, 1], [0, 0, 1, 0]], dtype=int))
-bcr_parallel = cuda.to_device(np.array([[1, 2, 0, 0], [1, 1, 0, 1], [0, 1, 1, 0]], dtype=int))
+
 
 @cuda.jit
 def boundary_kernel_1D_x(fields, bcfields, bcs, l, r, dx):
@@ -297,6 +300,10 @@ def create_GPU_devices(sim):
         sim._temperature_bc_subarrays[i] = cuda.to_device(sim._temperature_bc_subarrays[i])
     sim._ngbc = cuda.to_device(np.array(sim._ngbc))
     sim._t_ngbc = cuda.to_device(np.array(sim._t_ngbc))
+    sim._bcl_serial = cuda.to_device(np.array([[1, 1, 0, 0], [1, 0, 0, 1], [0, 0, 1, 0]], dtype=int))
+    sim._bcr_serial = cuda.to_device(np.array([[1, 0, 0, 0], [1, 1, 0, 1], [0, 1, 1, 0]], dtype=int))
+    sim._bcl_parallel = cuda.to_device(np.array([[1, -1, 0, 0], [1, 0, 0, 1], [0, 0, 1, 0]], dtype=int))
+    sim._bcr_parallel = cuda.to_device(np.array([[1, 2, 0, 0], [1, 1, 0, 1], [0, 1, 1, 0]], dtype=int))
             
 def send_fields_to_GPU(sim):
     #03/28/2023 - tried to ensure device arrays are reused, avoid memory leaks
@@ -351,11 +358,11 @@ def apply_boundary_conditions(sim):
     #TODO: apply new boundary kernels here
     #currently broken because of the change to 2N bc types, to allow for asymmetric bcs
     bc = sim._boundary_conditions_type
-    l, r = bcl_serial, bcr_serial
+    l, r = sim._bcl_serial, sim._bcr_serial
     if(sim._parallel):
-        l, r = bcl_parallel, bcr_parallel
+        l, r = sim._bcl_parallel, sim._bcr_parallel
     if(len(sim.dimensions) == 1):
-        boundary_kernel_1D_x[sim._gpu_blocks_per_grid_1D, sim._gpu_threads_per_block_1D](sim._fields_gpu_device, sim._bc_subarrays[0], sim._ngbc, l, r, sim.dx)
+        boundary_kernel_1D_x[sim._gpu_blocks_per_grid_1D, sim._gpu_threads_per_block_1D](sim._fields_gpu_device, sim._bc_subarrays[0], sim._ngbc, l, r, 0.1)
         if not(sim._temperature_gpu_device is None):
             boundary_kernel_1D_single_x[sim._gpu_blocks_per_grid_1D, sim._gpu_threads_per_block_1D](sim._temperature_gpu_device, sim._temperature_bc_subarrays[0], sim._t_ngbc, l, r, sim.dx)
     
