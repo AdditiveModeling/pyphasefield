@@ -860,6 +860,7 @@ class NCGPU_new(Simulation):
         self.user_data["noise_phi"] = 1. #default value
         self.user_data["noise_c"] = 1. #default value
         self.user_data["noise_q"] = 1. #default value
+        self.user_data["seed_composition"] = None #default value
         
     def init_tdb_params(self):
         super().init_tdb_params()
@@ -955,10 +956,27 @@ class NCGPU_new(Simulation):
             except:
                 print("self.user_data[\"seed_angle\"] not defined, defaulting to pi/4")
                 seed_angle = 1*np.pi/4
+            try:
+                seed_composition = self.user_data["seed_composition"]
+                assert not(seed_composition is None)
+            except:
+                print("self.user_data[\"seed_composition\"] not specified, defaulting to order-parameter-only nucleation for seeds")
+                seed_composition = None
+            try:
+                seed_size = self.user_data["seed_radius"]
+            except:
+                print("self.user_data[\"seed_radius\"] not specified, defaulting to a radius of 5 cells")
+                seed_size = 5
             if(len(self.dimensions) == 3):
-                make_seed(self, p=0, q=[1, 2, 3, 4], x=gdim[2]/2, y=gdim[1]/2, z=gdim[0]/2, angle=seed_angle)
+                c_index_list = []
+                for i in range(len(self._tdb_components)-1):
+                    c_index_list.append(5+i)
+                make_seed(self, p=0, q=[1, 2, 3, 4], c=c_index_list, composition=seed_composition, x=gdim[2]/2, y=gdim[1]/2, z=gdim[0]/2, angle=seed_angle, seed_radius=seed_size)
             else:
-                make_seed(self, p=0, q=[1, 2], x=gdim[1]/2, y=gdim[0]/2, angle=seed_angle)
+                c_index_list = []
+                for i in range(len(self._tdb_components)-1):
+                    c_index_list.append(3+i)
+                make_seed(self, p=0, q=[1, 2], c=c_index_list, composition=seed_composition, x=gdim[1]/2, y=gdim[0]/2, angle=seed_angle, seed_radius=seed_size)
             #initialize concentration array(s)
 
         elif(sim_type == "seeds"):
@@ -968,12 +986,29 @@ class NCGPU_new(Simulation):
             except:
                 print("self.user_data[\"number_of_seeds\"] not defined, defaulting to about 1 seed per 100^"+str(len(gdim))+" cells")
                 number_of_seeds = np.prod(gdim)//(100**len(gdim))
+            try:
+                seed_composition = self.user_data["seed_composition"]
+                assert not(seed_composition is None)
+            except:
+                print("self.user_data[\"seed_composition\"] not specified, defaulting to order-parameter-only nucleation for seeds")
+                seed_composition = None
+            try:
+                seed_size = self.user_data["seed_radius"]
+            except:
+                print("self.user_data[\"seed_radius\"] not specified, defaulting to a radius of 5 cells")
+                seed_size = 5
             np.random.seed(3)
             for j in range(number_of_seeds):
                 if(len(self.dimensions) == 3):
-                    make_seed(self, p=0, q=[1, 2, 3, 4])
+                    c_index_list = []
+                    for i in range(len(self._tdb_components)-1):
+                        c_index_list.append(5+i)
+                    make_seed(self, p=0, q=[1, 2, 3, 4], c=c_index_list, composition=seed_composition, seed_radius=seed_size)
                 else:
-                    make_seed(self, p=0, q=[1, 2])
+                    c_index_list = []
+                    for i in range(len(self._tdb_components)-1):
+                        c_index_list.append(3+i)
+                    make_seed(self, p=0, q=[1, 2], c=c_index_list, composition=seed_composition, seed_radius=seed_size)
         
         
     

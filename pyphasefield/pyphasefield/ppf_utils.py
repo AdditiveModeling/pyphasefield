@@ -79,7 +79,7 @@ def random_uniform_quaternion():
     s = np.sqrt((1-z[0]) / z[1])
     return [x[0], y[0], s*x[1], s*y[1]]
 
-def make_seed(sim, p=0, q=[1, 2, 3, 4], x=None, y=None, z=None, angle=None, axis=[0, 0, 1], orientation=None, 
+def make_seed(sim, p=0, q=[1, 2, 3, 4], c=[5], composition=None, x=None, y=None, z=None, angle=None, axis=[0, 0, 1], orientation=None, 
               seed_radius=5, q_extra = 5):
     """
     Fairly comprehensive method for adding seed nuclei to a simulation
@@ -94,6 +94,12 @@ def make_seed(sim, p=0, q=[1, 2, 3, 4], x=None, y=None, z=None, angle=None, axis
     q : list of int, default = [1, 2, 3, 4]
         Indices of the quaternion orientation fields
         Either 0, 2, or 4 long. 0 means no quaternions, 2 is 2D, equivalent to complex rotation, 4 is 3D, full quaternion orientation
+    c : list of int, default = [5]
+        Indices of the composition fields 
+    composition : list of float, default = None
+        A list containing the values to set the composition field equal to
+        If None, do not set the composition field at all (order-parameter only nucleation)
+        If defined, must be the same length as c!
     x : int, optional
         Cell index on x axis to center the seed nuclei. If unspecified, choose a random location
     y : int, optional
@@ -178,6 +184,9 @@ def make_seed(sim, p=0, q=[1, 2, 3, 4], x=None, y=None, z=None, angle=None, axis
     q_mask_slices = tuple(q_mask_slices)
     
     phi.data[p_slices][seed_mask_p[p_mask_slices]] = 1
+    if not(composition is None):
+        for i in range(len(c)):
+            sim.fields[c[i]].data[p_slices][seed_mask_p[p_mask_slices]] = composition[i]
     if not(no_q):
         if(q_2d):
             q1.data[q_slices][seed_mask_q[q_mask_slices]] = np.cos(0.5*angle)
