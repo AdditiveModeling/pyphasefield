@@ -7,6 +7,7 @@ import math
 from numba.cuda.random import create_xoroshiro128p_states, xoroshiro128p_uniform_float32
 import meshio as mio
 from . import ppf_utils
+import h5py
                 
 """format is:
     x is the boundary condition type from sim._ngbc or sim._t_ngbc, 0 is periodic, 1 is neumann, 2 is dirichlet
@@ -406,16 +407,31 @@ def update_temperature_field(sim):
                                                                                     sim.get_time_step_length())
     elif(sim._temperature_type == "XDMF_FILE"):
         current_time = sim.get_time_step_length()*sim.get_time_step_counter()
-        while(current_time > sim._t_file_bounds[1]):
-            with mio.xdmf.TimeSeriesReader(sim._temperature_path) as reader:
-                reader.cells=[]
-                sim._t_file_bounds[0] = sim._t_file_bounds[1]
-                sim._t_file_arrays[0] = sim._t_file_arrays[1]
-                sim._t_file_index += 1
-                sim._t_file_bounds[1], point_data1, cell_data0 = reader.read_data(sim._t_file_index)
-                sim._t_file_arrays[1] = np.squeeze(point_data1['T'])
-                sim._t_file_gpu_devices[0], sim._t_file_gpu_devices[1] = sim._t_file_gpu_devices[1], sim._t_file_gpu_devices[0]
-                sim._t_file_gpu_devices[1] = cuda.to_device(sim._t_file_arrays[1])
+        if(pathlib.Path(sim._temperature_path).suffix == ".xdmf"):
+            while(current_time > sim._t_file_bounds[1]):
+                with mio.xdmf.TimeSeriesReader(sim._temperature_path) as reader:
+                    reader.cells=[]
+                    sim._t_file_bounds[0] = sim._t_file_bounds[1]
+                    sim._t_file_arrays[0] = sim._t_file_arrays[1]
+                    sim._t_file_index += 1
+                    sim._t_file_bounds[1], point_data1, cell_data0 = reader.read_data(sim._t_file_index)
+                    sim._t_file_arrays[1] = np.squeeze(point_data1['T'])
+                    sim._t_file_gpu_devices[0], sim._t_file_gpu_devices[1] = sim._t_file_gpu_devices[1], sim._t_file_gpu_devices[0]
+                    sim._t_file_gpu_devices[1] = cuda.to_device(sim._t_file_arrays[1])
+        elif(pathlib.Path(sim._temperature_path).suffix == ".hdf5"):
+            with h5py.File(sim._temperature_path) as f:
+                times = f["times"][:]
+                #assume the first time slice is less than the current time, if not, interpolate before first slice
+                while(times[sim._t_file_index] < current_time):
+                    if(sim.t_file_index == len(times)-1):
+                        break #interpolate past last time slice if necessary
+                    sim._t_file_index += 1
+                    sim._t_file_bounds[0] = sim._t_file_bounds[1]
+                    sim._t_file_bounds[1] = times[sim._t_file_index]
+                    sim._t_file_arrays[0] = sim._t_file_arrays[1]
+                    sim._t_file_arrays[1] = sim._build_interpolated_t_array(f, sim._t_file_index)
+                    sim._t_file_gpu_devices[0], sim._t_file_gpu_devices[1] = sim._t_file_gpu_devices[1], sim._t_file_gpu_devices[0]
+                    sim._t_file_gpu_devices[1] = cuda.to_device(sim._t_file_arrays[1])
         if(len(sim.dimensions) == 1):
             update_thermal_file_1D_kernel[sim._gpu_blocks_per_grid_1D, sim._gpu_threads_per_block_1D](sim._temperature_gpu_device, 
                                                                                     sim._t_file_gpu_devices[0], sim._t_file_gpu_devices[1], 

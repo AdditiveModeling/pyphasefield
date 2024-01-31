@@ -11,6 +11,7 @@ from tinydb import where
 from . import ppf_utils
 from . import parallel_utils
 import time
+import h5py
 
 #DO NOT load mpi4py automatically, can crash jupyter notebooks if it isn't enabled.
 #only load if parallelism is requested
@@ -83,17 +84,18 @@ class Simulation:
         Defined separately from the other fields, as certain standard temperature types could work for any simulation
     _temperature_type : str, optional
         A string which defines the method used for the temperature field
-        Values can be ISOTHERMAL, LINEAR_GRADIENT, or XDMF_FILE
+        Values can be ISOTHERMAL, LINEAR_GRADIENT, or THERMAL_HISTORY_FILE
         ISOTHERMAL: Single, static temperature
         FROZEN_GRADIENT: Static ("frozen") thermal gradient, thermal field is not evolved like the other fields
         ACTIVE_GRADIENT: Dynamic thermal gradient, thermal field must be simulated just like the other fields
-        XDMF_FILE: Static temperature field, defined by a XDMF file using meshio.xdmf.TimeSeriesReader
+        THERMAL_HISTORY_FILE: Static temperature field 
+            defined by a HDF5 file using h5py or by a XDMF file using meshio.xdmf.TimeSeriesReader
             linearly interpolates between defined thermal slices, as it is impractical to store thermal data for every PF time step
         (Here, static means the temperature field is not simulated by phase field equations, it is an independent variable)
         If undefined, the simulation will not use/initialize a temperature field
     _temperature_path : str, optional
-        If Simulation._temperature_type == "XDMF_FILE", the meshio.xdmf.TimeSeriesReader will read from the file at this path
-        REQUIRED if Simulation._temperature_type == "XDMF_FILE"
+        If Simulation._temperature_type == "THERMAL_HISTORY_FILE", the thermal history will be read from the file at this path
+        REQUIRED if Simulation._temperature_type == "THERMAL_HISTORY_FILE"
     _temperature_units : str, default = "K"
         NOTE: pyphasefield always uses kelvin under the hood! This variable is only used for plotting graphs
     _initial_T : float, optional
@@ -173,7 +175,7 @@ class Simulation:
         self._framework = framework
         self._uses_gpu = False
         self._parallel = False
-        self._allow_parallelism = True #if false, each core will run a unique simulation. Good for running many small simulations.
+        self._batched_simulations = True #if false, each core will run a unique simulation. Good for running many small simulations.
         self._gpu_blocks_per_grid_1D = (256)
         self._gpu_blocks_per_grid_2D = (16, 16)
         self._gpu_blocks_per_grid_3D = (8, 8, 4)
@@ -205,6 +207,7 @@ class Simulation:
         self._fields_transfer_gpu_device = None
         self.dimensions = dimensions.copy()
         self.dx = dx
+        self._dx_units = "m"
         self.dt = dt
         self.time_step_counter = initial_time_step
         
@@ -227,6 +230,8 @@ class Simulation:
         self._t_file_bounds = [0, 0]
         self._t_file_arrays = [None, None]
         self._t_file_gpu_devices = [None, None]
+        self._t_file_units = ["K", "m"]
+        self._initialized_t_file_helper_arrays = False
         
         #tdb related variables
         self._tdb_container = tdb_container #TDBContainer class, for storing TDB info across simulation instances (load times...)
@@ -265,6 +270,10 @@ class Simulation:
                 for i in range(len(self._boundary_conditions_type)):
                     if(self._boundary_conditions_type[i] == "DIRCHLET"):
                         self._boundary_conditions_type[i] = "DIRICHLET"
+                        
+        #previous versions used XDMF_FILE for temperature type, modify to new wording
+        if(self._temperature_type == "XDMF_FILE"):
+            self._temperature_type = "THERMAL_HISTORY_FILE"
         
         #debug mode flag, for verbose printing to track down errors
         self._debug_mode_flag = False
@@ -345,27 +354,84 @@ class Simulation:
             start, end = self._generate_T_slices(index)
             self._temperature_boundary_field[start] = self._initial_T
             self._temperature_boundary_field[end] = self._initial_T + grad*self.dx*self._global_dimensions[index]
-        elif(self._temperature_type == "XDMF_FILE"):
+        elif(self._temperature_type == "THERMAL_HISTORY_FILE"):
             if(self._temperature_path is None):
-                self._temperature_path = "T.xdmf"
+                #default to T.hdf5 first, then to T.xdmf if that doesn't exist
+                if not(Path.cwd().joinpath("T.hdf5").exists()):
+                    if not(Path.cwd().joinpath("T.xdmf").exists()):
+                        raise FileNotFoundError("No default thermal history file found (T.hdf5 or T.xdmf). Please specify a path.")
+                    else:
+                        self._temperature_path = "T.xdmf"
+                        
+                else:
+                    self._temperature_path = "T.hdf5"
+            else:
+                if not(Path.cwd().joinpath(self._temperature_path).exists()):
+                    raise FileNotFoundError("No thermal history file found at the path specified!")
+            #add code to handle hdf5 files directly here, in addition to xdmf (which won't be explicitly removed)
             self._t_file_index = 1
-            with mio.xdmf.TimeSeriesReader(self._temperature_path) as reader:
-                dt = self.dt
-                step = self.time_step_counter
-                points, cells = reader.read_points_cells()
-                self._t_file_bounds[0], point_data0, cell_data0 = reader.read_data(0)
-                self._t_file_arrays[0] = np.squeeze(point_data0['T'])
-                self._t_file_bounds[1], point_data1, cell_data0 = reader.read_data(self._t_file_index)
-                self._t_file_arrays[1] = np.squeeze(point_data1['T'])
-                while(dt*step > self._t_file_bounds[1]):
-                    self._t_file_bounds[0] = self._t_file_bounds[1]
-                    self._t_file_arrays[0] = self._t_file_arrays[1]
-                    self._t_file_index += 1
-                    self._t_file_bounds[1], point_data1, cell_data0 = reader.read_data(self.t_file_index)
+            dt = self.dt
+            step = self.time_step_counter
+            current_time = dt*step
+            if(pathlib.Path(self._temperature_path).suffix == ".xdmf"):
+                with mio.xdmf.TimeSeriesReader(self._temperature_path) as reader:
+                    points, cells = reader.read_points_cells()
+                    self._t_file_bounds[0], point_data0, cell_data0 = reader.read_data(0)
+                    self._t_file_arrays[0] = np.squeeze(point_data0['T'])
+                    self._t_file_bounds[1], point_data1, cell_data0 = reader.read_data(self._t_file_index)
                     self._t_file_arrays[1] = np.squeeze(point_data1['T'])
-                array = self._t_file_arrays[0]*(self._t_file_bounds[1] - dt*step)/(self._t_file_bounds[1]-self._t_file_bounds[0]) + self._t_file_arrays[1]*(dt*step-self._t_file_bounds[0])/(self._t_file_bounds[1]-self._t_file_bounds[0])
-                t_field = Field(data=array, simulation=self, colormap="jet", name="Temperature ("+self._temperature_units+")")
-                self.temperature = t_field
+                    while(current_time > self._t_file_bounds[1]):
+                        self._t_file_bounds[0] = self._t_file_bounds[1]
+                        self._t_file_arrays[0] = self._t_file_arrays[1]
+                        self._t_file_index += 1
+                        self._t_file_bounds[1], point_data1, cell_data0 = reader.read_data(self.t_file_index)
+                        self._t_file_arrays[1] = np.squeeze(point_data1['T'])
+            elif(pathlib.Path(self._temperature_path).suffix == ".hdf5"):
+                with h5py.File(self._temperature_path) as f:
+                    times = f["times"][:]
+                    #assume the first time slice is less than the current time, if not, interpolate before first slice
+                    while(times[self._t_file_index] < current_time):
+                        if(self.t_file_index == len(times)-1):
+                            break #interpolate past last time slice if necessary
+                        self._t_file_index += 1
+                    self._t_file_bounds[0] = times[self._t_file_index-1]
+                    self._t_file_bounds[1] = times[self._t_file_index]
+                    self._t_file_arrays[0] = self._build_interpolated_t_array(f, self._t_file_index-1)
+                    self._t_file_arrays[1] = self._build_interpolated_t_array(f, self._t_file_index)
+            else:
+                raise ValueError("Extension must be .hdf5 or .xdmf")
+            array = self._t_file_arrays[0]*(self._t_file_bounds[1] - current_time)/(self._t_file_bounds[1]-self._t_file_bounds[0]) + self._t_file_arrays[1]*(current_time-self._t_file_bounds[0])/(self._t_file_bounds[1]-self._t_file_bounds[0])
+            t_field = Field(data=array, simulation=self, colormap="jet", name="Temperature ("+self._temperature_units+")")
+            self.temperature = t_field
+                
+    def _build_interpolated_t_array(self, f, index):
+        if not(self._initialized_t_file_helper_arrays):
+            self._build_t_file_helper_arrays() #creates self._t_interpolation_points just once
+            self._initialized_t_file_helper_arrays = True
+        dims_F = f["gridsize_F"][:]
+        array = f["data"][:][index]
+        if(len(dims_F) == 2):
+            x = (np.arange(array.shape[1], dtype=float)*dims_F[0])
+            y = (np.arange(array.shape[0], dtype=float)*dims_F[1])
+            interp = RegularGridInterpolator([y,x], array, bounds_error=False, fill_value=None)
+        elif(len(dims_F) == 3):
+            x = (np.arange(array.shape[2], dtype=float)*dims_F[0])
+            y = (np.arange(array.shape[1], dtype=float)*dims_F[1])
+            z = (np.arange(array.shape[0], dtype=float)*dims_F[2])
+            interp = RegularGridInterpolator([z,y,x], array, bounds_error=False, fill_value=None)
+        interp_array = interp(self._t_interpolation_points, method="linear").reshape(*self.dimensions)
+        return interp_array
+            
+        
+    def _build_t_file_helper_arrays(self):
+        aranges = []
+        for i in range(len(self.dimensions)):
+            aranges.append((np.arange(self.dimensions[i], dtype=float)+self._dim_offset[i])*cell_spacing)
+        grid = np.meshgrid(aranges, indexing='ij')
+        if(len(grid) == 2):
+            self._t_interpolation_points = np.array([grid[0].ravel(), grid[1].ravel()]).T
+        elif(len(grid) == 3):
+            self._t_interpolation_points = np.array([grid[0].ravel(), grid[1].ravel(), grid[2].ravel()]).T
                 
     def _generate_T_slices(self, index):
         ndims = len(self.dimensions)
@@ -754,6 +820,22 @@ class Simulation:
         self.apply_boundary_conditions(init=True)
         if not(self._temperature_type is None):
             assert(self.temperature.data.shape == self.fields[0].data.shape)
+        self._check_temperature_file_bounds()
+        
+    def _check_temperature_file_bounds(self):
+        if(self._temperature_type == "THERMAL_HISTORY_FILE"):
+            if(self._MPI_rank == 0):
+                f = h5py.File(self._temperature_path)
+                shape = np.flip(f["data"][0].shape)
+                size = f["gridsize_F"][:]
+                thermal_size = shape*size
+                sim_size = np.flip(self._global_dimensions*self.dx)
+                for i in range(len(sim_size)):
+                    if(np.abs(sim_size[i]-thermal_size[i])/sim_size[i] > 0.2): #if dimensions are mismatched by more than 20%
+                        print(f"Sim dimensions (x, y(, z)) are: {sim_size} in {self._dx_units}")
+                        print(f"Thermal file dimensions are: {thermal_size} in {self._t_file_units[1]}")
+                        print("Mismatch detected, consider matching the sizes more closely!")
+                        break
                 
     def simulation_loop(self):
         """
@@ -813,20 +895,34 @@ class Simulation:
         elif(self._temperature_type == "LINEAR_GRADIENT" or self._temperature_type == "FROZEN_GRADIENT"):
             self.temperature.data += self._dTdt*self.dt
             return
-        elif(self._temperature_type == "XDMF_FILE"):
+        elif(self._temperature_type == "THERMAL_HISTORY_FILE"):
             dt = self.get_time_step_length()
             step = self.get_time_step_counter()
-            while(dt*step > self._t_file_bounds[1]):
-                with mio.xdmf.TimeSeriesReader(self._temperature_path) as reader:
-                    reader.cells=[]
-                    self._t_file_bounds[0] = self._t_file_bounds[1]
-                    self._t_file_arrays[0] = self._t_file_arrays[1]
-                    self._t_file_index += 1
-                    self._t_file_bounds[1], point_data1, cell_data0 = reader.read_data(self._t_file_index)
-                    self._t_file_arrays[1] = np.squeeze(point_data1['T'])
+            current_time = dt*step
+            if(pathlib.Path(self._temperature_path).suffix == ".xdmf"):
+                while(current_time > self._t_file_bounds[1]):
+                    with mio.xdmf.TimeSeriesReader(self._temperature_path) as reader:
+                        reader.cells=[]
+                        self._t_file_bounds[0] = self._t_file_bounds[1]
+                        self._t_file_arrays[0] = self._t_file_arrays[1]
+                        self._t_file_index += 1
+                        self._t_file_bounds[1], point_data1, cell_data0 = reader.read_data(self._t_file_index)
+                        self._t_file_arrays[1] = np.squeeze(point_data1['T'])
+            elif(pathlib.Path(self._temperature_path).suffix == ".hdf5"):
+                with h5py.File(self._temperature_path) as f:
+                    times = f["times"][:]
+                    #assume the first time slice is less than the current time, if not, interpolate before first slice
+                    while(times[self._t_file_index] < current_time):
+                        if(self.t_file_index == len(times)-1):
+                            break #interpolate past last time slice if necessary
+                        self._t_file_index += 1
+                        self._t_file_bounds[0] = self._t_file_bounds[1]
+                        self._t_file_bounds[1] = times[self._t_file_index]
+                        self._t_file_arrays[0] = self._t_file_arrays[1]
+                        self._t_file_arrays[1] = self._build_interpolated_t_array(f, self._t_file_index)
             array = self.temperature.get_cells()
             array[:] = 0
-            array += self._t_file_arrays[0]*(self._t_file_bounds[1] - dt*step)/(self._t_file_bounds[1]-self._t_file_bounds[0]) + self._t_file_arrays[1]*(dt*step-self._t_file_bounds[0])/(self._t_file_bounds[1]-self._t_file_bounds[0])
+            array += self._t_file_arrays[0]*(self._t_file_bounds[1] - current_time)/(self._t_file_bounds[1]-self._t_file_bounds[0]) + self._t_file_arrays[1]*(current_time-self._t_file_bounds[0])/(self._t_file_bounds[1]-self._t_file_bounds[0])
             return
         else:
             raise ValueError("Unknown temperature profile.")
@@ -866,9 +962,16 @@ class Simulation:
         else:
             file_path = Path(file_path)
             
+        npz_filetype = False
+            
         if file_path.is_dir():
             if step > -1:
-                file_path = file_path.joinpath("step_"+str(step)+".npz")
+                file_path = file_path.joinpath("step_"+str(step)+".hdf5")
+                if not(Path.cwd().joinpath(file_path).exists()):
+                    file_path = file_path.joinpath("step_"+str(step)+".npz")
+                    npz_filetype = True
+                if not(Path.cwd().joinpath(file_path).exists()):
+                    raise FileNotFoundError("No checkpoint exists for timestep = "+str(step)+"!")
             else:
                 raise ValueError("Given path is a folder, must specify a timestep!")
 
@@ -876,28 +979,50 @@ class Simulation:
         #only does so if the save path for the simulation is not set!
         if(self._save_path is None):
             self._save_path = str(file_path.parent)
+            
+        #if npz filetype, use deprecated loading mechanism
+        if(npz_filetype):
 
-        # Load array
-        if(self._MPI_rank == 0):
-            fields_dict = np.load(file_path, allow_pickle=True)
-            
-        #if not defined, set boundary conditions for the user (in case they just want to load the data and view it)
-        if(self._boundary_conditions_type is None):
-            #get first array
-            array = list(fields_dict.items())[0][1]
-            self.dimensions = list(array.shape)
-            self.set_boundary_conditions("PERIODIC")
-            
-        if(self._parallel):
-            pass
+            # Load array
+            if(self._MPI_rank == 0):
+                fields_dict = np.load(file_path, allow_pickle=True)
+
+            #if not defined, set boundary conditions for the user (in case they just want to load the data and view it)
+            if(self._boundary_conditions_type is None):
+                #get first array
+                array = list(fields_dict.items())[0][1]
+                self.dimensions = list(array.shape)
+                self.set_boundary_conditions("PERIODIC")
+
+            if(self._parallel):
+                pass
+            else:
+                # Add arrays self.fields as Field objects
+                for key, value in fields_dict.items():
+                    self.add_field(value, key, full_grid=True)
+
+                # Set dimensions of simulation
+                self.dimensions = list(self.fields[0].get_cells().shape)
         else:
-            # Add arrays self.fields as Field objects
-            for key, value in fields_dict.items():
-                self.add_field(value, key, full_grid=True)
+            f = h5py.File(file_path, "r")
+            _names = f.attrs["names"]
+            if(self._parallel):
+                self.dimensions = list(f["mydataset"].shape)
+                self._global_dimensions = self.dimensions.copy()
+                #reinitialize parallelism to create subarray dimensions (*SHOULD* modify self.dimensions to reflect this)
+                self.initialize_parallelism()
+                _slice = list(self._make_global_slice(self.dimensions, self._dim_offset))
+                _slice.insert(0,0)
+                for i, name in enumerate(_names):
+                    _slice[0] = i
+                    self.add_field(f["mydataset"][_slice], name, full_grid=False)
+            else:
+                for i, name in enumerate(_names):
+                    self.add_field(f["mydataset"][0], name, full_grid=True)
+                
+                self.dimensions = list(self.fields[0].get_cells().shape)
+            f.close()
             
-            # Set dimensions of simulation
-            self.dimensions = list(self.fields[0].get_cells().shape)
-
         # Time step set from parsing file name or manually --> defaults to 0
         if step < 0:
             filename = file_path.stem
@@ -913,9 +1038,13 @@ class Simulation:
             self.time_step_counter = int(step)
         if(self._temperature_type == "LINEAR_GRADIENT"):
             self.temperature.data += self.time_step_counter*self._dTdt*self.dt
-        if(self._temperature_type == "XDMF_FILE"):
+        if(self._temperature_type == "THERMAL_HISTORY_FILE"):
             self.update_temperature_field(force_cpu=True)
         self._begun_simulation = False
+        
+        #if npz, save as hdf5 for next time to move away from npz
+        if(npz_filetype):
+            self.save_simulation()
         return 0
     
     def _collate_fields(self):
@@ -975,24 +1104,14 @@ class Simulation:
     
     def save_simulation(self):
         """
-        Saves all fields in a .npz in either the user-specified save path or a default path. 
+        Saves all fields in a .hdf5 in either the user-specified save path or a default path. 
         
         Step number is saved in the file name.
         TODO: save data for simulation instance in header file
         """
         if(self._uses_gpu and self._begun_simulation):
             self.retrieve_fields_from_GPU()
-        fields = self.fields
-        if(self._parallel):
-            fields = self._collate_fields()
-        if(len(fields) == 0):
-            #non rank 0 processes, go home
-            return
-        save_dict = dict()
-        for i in range(len(fields)):
-            tmp = fields[i]
-            save_dict[tmp.name] = tmp.get_cells()
-
+        
         # Save array with path
         if not self._save_path:
             #if save path is not defined, do not save, just return
@@ -1001,9 +1120,20 @@ class Simulation:
         else:
             save_loc = Path(self._save_path)
         save_loc.mkdir(parents=True, exist_ok=True)
-
-        np.savez(str(save_loc) + "/step_" + str(self.time_step_counter), **save_dict)
-        return 0
+        
+        f = h5py.File(str(save_loc) + "/step_" + str(self.time_step_counter)+".hdf5", "w")
+        fields_shape = list(self.fields[0].get_cells().shape)
+        fields_shape.insert(0, len(self.fields))
+        dset = f.create_dataset("fields", tuple(fields_shape), dtype='f')
+        _slice = list(self._make_global_slice(self.fields[0].get_cells().shape, self._dim_offset))
+        _slice.insert(0)
+        _names = []
+        for i in range(len(self.fields)):
+            _slice[0] = i
+            dset[_slice] = self.fields[i].get_cells()
+            _names.append(self.fields[i].name)
+        f.attrs["names"] = _names
+        f.close()
     
     def save_images(self, fields=None, interpolation="bicubic", units="cells", size=None, norm=False):
         self.plot_simulation(fields, interpolation=interpolation, units=units, save_images=True, show_images=False, size=size, norm=norm)
@@ -1177,6 +1307,8 @@ class Simulation:
     
     def set_temperature_type(self, temperature_type):
         self._temperature_type = temperature_type
+        if(self._temperature_type == "XDMF_FILE"):
+            self._temperature_type = "THERMAL_HISTORY_FILE"
 
     def set_temperature_initial_T(self, initial_T):
         self._initial_T = initial_T

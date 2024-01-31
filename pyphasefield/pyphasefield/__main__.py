@@ -31,16 +31,18 @@ if(coral.lower() == "y" or coral.lower() == "yes"):
     coral = True
     jupyter = "y"
     mpi = "y"
+    hdf5 = "y"
     cuda = "y"
     ver = "11.4.2"
     calphad = "y"
 else:
     coral = False
     cuda = input(warning+"Would you like to install numba and cudatoolkit for GPU simulations? (Requires installation through conda!) (y/[n]) "+end_color)
-    jupyter = input(warning+"Would you like to set up a jupyter notebook kernel? (y/[n]) "+end_color)
-    mpi = input(warning+"Would you like to install mpi4py for parallel simulations? (requires MPI to be pre-installed on the supercomputer!) (y/[n]) "+end_color)
     if(cuda.lower() == "y" or cuda.lower() == "yes"):
         ver = input(warning+"    Specify version of cudatoolkit here (e.g. 11.4.2), in case the latest is not supported. Leave blank for latest. "+end_color)
+    jupyter = input(warning+"Would you like to set up a jupyter notebook kernel? (y/[n]) "+end_color)
+    mpi = input(warning+"Would you like to install mpi4py for parallel simulations? (requires MPI to be pre-installed on the supercomputer!) (y/[n]) "+end_color)
+    hdf5 = input(warning+"Would you like to build h5py against a parallel installation for running parallel sims? (requires hdf5-parallel to already be installed on the supercomputer!) (y/[n]) "+end_color)
     calphad = input(warning+"Would you like to install pycalphad for calphad thermodynamics integration? (y/[n]) "+end_color)
     
 if(jupyter.lower() == "y" or jupyter.lower() == "yes"):
@@ -51,6 +53,10 @@ if(mpi.lower() == "y" or mpi.lower() == "yes"):
     mpi = True
 else:
     mpi = False
+if(hdf5.lower() == "y" or hdf5.lower() == "yes"):
+    hdf5 = True
+else:
+    hdf5 = False
 if(cuda.lower() == "y" or cuda.lower() == "yes"):
     cuda = True
 else:
@@ -150,5 +156,29 @@ else:
     print("Skipping installing pycalphad")
         
 
-
+if(hdf5):
+    print("Attempting to install h5py against a pre-built parallel installation", end='\r')
+    out = os.system("""module load gcc/8 >> pyphasefield_installation.log 2>&1; 
+                       module load hdf5-parallel >> pyphasefield_installation.log 2>&1;
+                       export CC=mpicc >> pyphasefield_installation.log 2>&1;
+                       export CXX=mpicxx >> pyphasefield_installation.log 2>&1;
+                       conda install -c conda-forge cython >> pyphasefield_installation.log 2>&1;
+                       conda install -c conda-forge pkgconfig >> pyphasefield_installation.log 2>&1;
+                       export HDF5_DIR=$HDF5 >> pyphasefield_installation.log 2>&1;
+                       pip install --force --no-binary=h5py h5py >> pyphasefield_installation.log 2>&1;
+                       """)
+    if(out != 0):
+        print(fail+"Failed to install h5py automatically, install this package manually if you would like parallel IO!"+end_color)
+    else:
+        print(success+"Successfully installed h5py!"+end_color)
+else:
+    print("Attempting to install h5py against a serial installation, parallel IO will not work!", end='\r')
+    out = os.system("""module load gcc/8 >> pyphasefield_installation.log 2>&1; 
+                       pip install h5py;
+                       """)
+    if(out != 0):
+        print(fail+"Failed to install h5py automatically, install this package manually in order to save data!"+end_color)
+    else:
+        print(success+"Successfully installed h5py!"+end_color)
+    
     
