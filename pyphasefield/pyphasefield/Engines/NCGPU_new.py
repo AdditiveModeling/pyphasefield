@@ -261,7 +261,7 @@ def NComponent_kernel_2D(fields, T, transfer, fields_out, rng_states, params, c_
                 #c_i_out[i][j] = max(0, c_i_out[i][j])
     
 @cuda.jit
-def NComponent_savepoints_kernel_2D(fields, T, spa_gpu, save_points, timestep):
+def NComponent_sp_kernel_2D(fields, T, spa_gpu, save_points, timestep):
     
     startx, starty = cuda.grid(2)
     stridex, stridey = cuda.gridsize(2)
@@ -444,7 +444,7 @@ def NComponent_helper_kernel_3D(fields, T, transfer, rng_states, ufunc_array, pa
                 ufunc_array[i][j][k][len(fields)-5] += thermo_finite_diff_incr
                 
 @cuda.jit
-def NComponent_savepoints_kernel_3D(fields, T, spa_gpu, save_points, timestep):
+def NComponent_sp_kernel_3D(fields, T, spa_gpu, save_points, timestep):
     
     startx, starty, startz = cuda.grid(3)
     stridex, stridey, stridez = cuda.gridsize(3)
@@ -1014,7 +1014,6 @@ class NCGPU_new(Simulation):
     
     def save_simulation(self):
         super().save_simulation()
-        save_points_array = self.spa_gpu.copy_to_host()
         if not self._save_path:
             #if save path is not defined, do not save, just return
             print("self._save_path not defined, aborting save!")
@@ -1022,8 +1021,9 @@ class NCGPU_new(Simulation):
         else:
             save_loc = Path(self._save_path)
         save_loc.mkdir(parents=True, exist_ok=True)
-
-        np.save(str(save_loc) + "/savepointsarray_" + str(self.time_step_counter), save_points_array)
+        if not(self.user_data["save_points"] is None):
+            save_points_array = self.spa_gpu.copy_to_host()
+            np.save(str(save_loc) + "/savepointsarray_" + str(self.time_step_counter), save_points_array)
     
     def just_before_simulating(self):
         super().just_before_simulating()
@@ -1036,15 +1036,13 @@ class NCGPU_new(Simulation):
         if not "noise_q" in self.user_data:
             self.user_data["noise_q"] = 1.
         if not "save_points" in self.user_data:
-            if(len(self.dimensions) == 2):
-                self.user_data["save_points"] = np.array([[0],[0]])
-            elif(len(self.dimensions) == 3):
-                self.user_data["save_points"] = np.array([[0],[0],[0]])
+            self.user_data["save_points"] = None
         #initialize finite diff approximation for thermodynamic gradient terms to 1e-7, approx. half the digits of precision of doubles
         if not "thermo_finite_diff_incr" in self.user_data:
-            self.user_data["thermo_finite_diff_incr"] = 0.0000001;
-        save_points_array = np.zeros([len(self.user_data["save_points"][0]), len(self.fields)+1, self._autosave_rate])
-        self.spa_gpu = cuda.to_device(save_points_array)
+            self.user_data["thermo_finite_diff_incr"] = 0.0000001
+        if not(self.user_data["save_points"] is None):
+            save_points_array = np.zeros([len(self.user_data["save_points"][0]), len(self.fields)+1, self._autosave_rate])
+            self.spa_gpu = cuda.to_device(save_points_array)
         params = []
         c_params = []
         params.append(self.dx)
@@ -1091,8 +1089,9 @@ class NCGPU_new(Simulation):
                                                                       self._temperature_gpu_device, self._fields_transfer_gpu_device, 
                                                                       self._fields_out_gpu_device, self.user_data["rng_states"], 
                                                                       self.user_data["params_GPU"], self.user_data["c_params_GPU"])
-            cuda.synchronize()
-            NComponent_savepoints_kernel[self._gpu_blocks_per_grid_1D, self._gpu_threads_per_block_1D](self._fields_gpu_device,
+            if not(self.user_data["save_points"] is None):
+                cuda.synchronize()
+                NComponent_sp_kernel[self._gpu_blocks_per_grid_1D, self._gpu_threads_per_block_1D](self._fields_gpu_device,
                                                                         self._temperature_gpu_device,
                                                                         self.spa_gpu, self.user_data["save_points"], 
                                                                         (self.time_step_counter-1)%self._autosave_rate)
@@ -1111,8 +1110,9 @@ class NCGPU_new(Simulation):
                                                                       self._temperature_gpu_device, self._fields_transfer_gpu_device, 
                                                                       self._fields_out_gpu_device, self.user_data["rng_states"], 
                                                                       self.user_data["params_GPU"], self.user_data["c_params_GPU"])
-            cuda.synchronize()
-            NComponent_savepoints_kernel_2D[self._gpu_blocks_per_grid_2D, self._gpu_threads_per_block_2D](self._fields_gpu_device,
+            if not(self.user_data["save_points"] is None):
+                cuda.synchronize()
+                NComponent_sp_kernel_2D[self._gpu_blocks_per_grid_2D, self._gpu_threads_per_block_2D](self._fields_gpu_device,
                                                                         self._temperature_gpu_device,
                                                                         self.spa_gpu, self.user_data["save_points"], 
                                                                         (self.time_step_counter-1)%self._autosave_rate)
@@ -1131,8 +1131,9 @@ class NCGPU_new(Simulation):
                                                                       self._temperature_gpu_device, self._fields_transfer_gpu_device, 
                                                                       self._fields_out_gpu_device, self.user_data["rng_states"], 
                                                                       self.user_data["params_GPU"], self.user_data["c_params_GPU"])
-            cuda.synchronize()
-            NComponent_savepoints_kernel_3D[self._gpu_blocks_per_grid_3D, self._gpu_threads_per_block_3D](self._fields_gpu_device,
+            if not(self.user_data["save_points"] is None):
+                cuda.synchronize()
+                NComponent_sp_kernel_3D[self._gpu_blocks_per_grid_3D, self._gpu_threads_per_block_3D](self._fields_gpu_device,
                                                                         self._temperature_gpu_device,
                                                                         self.spa_gpu, self.user_data["save_points"], 
                                                                         (self.time_step_counter-1)%self._autosave_rate)

@@ -162,8 +162,8 @@ if(hdf5):
                        module load hdf5-parallel >> pyphasefield_installation.log 2>&1;
                        export CC=mpicc >> pyphasefield_installation.log 2>&1;
                        export CXX=mpicxx >> pyphasefield_installation.log 2>&1;
-                       conda install -c conda-forge cython >> pyphasefield_installation.log 2>&1;
-                       conda install -c conda-forge pkgconfig >> pyphasefield_installation.log 2>&1;
+                       conda install -c conda-forge -y cython >> pyphasefield_installation.log 2>&1;
+                       conda install -c conda-forge -y pkgconfig >> pyphasefield_installation.log 2>&1;
                        export HDF5_DIR=$HDF5 >> pyphasefield_installation.log 2>&1;
                        pip install --force --no-binary=h5py h5py >> pyphasefield_installation.log 2>&1;
                        """)
@@ -177,8 +177,8 @@ else:
                        pip install h5py;
                        """)
     if(out != 0):
-        print(fail+"Failed to install h5py automatically, install this package manually in order to save data!"+end_color)
+        print(LINE_CLEAR+fail+"Failed to install h5py automatically, install this package manually in order to save data!"+end_color)
     else:
-        print(success+"Successfully installed h5py!"+end_color)
+        print(LINE_CLEAR+success+"Successfully installed h5py!"+end_color)
     
     

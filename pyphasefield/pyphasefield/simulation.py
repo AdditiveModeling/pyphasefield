@@ -945,6 +945,11 @@ class Simulation:
             If a particular .npz file is not specified in file_path, load the file corresponding to this value
             E.g. step==100, would load /path/to/file/step_100.npz
         """
+        #if fields list already exists, try to copy colorbar info over
+        colormaps = []
+        for field in self.fields:
+            colormaps.append(field.colormap)
+        
         # Clear fields list
         self.fields = []
         
@@ -1007,7 +1012,7 @@ class Simulation:
             f = h5py.File(file_path, "r")
             _names = f.attrs["names"]
             if(self._parallel):
-                self.dimensions = list(f["mydataset"].shape)
+                self.dimensions = list(f["fields"].shape[1:])
                 self._global_dimensions = self.dimensions.copy()
                 #reinitialize parallelism to create subarray dimensions (*SHOULD* modify self.dimensions to reflect this)
                 self.initialize_parallelism()
@@ -1015,11 +1020,13 @@ class Simulation:
                 _slice.insert(0,0)
                 for i, name in enumerate(_names):
                     _slice[0] = i
-                    self.add_field(f["mydataset"][_slice], name, full_grid=False)
+                    self.add_field(f["fields"][*_slice], name, full_grid=False)
             else:
                 for i, name in enumerate(_names):
-                    self.add_field(f["mydataset"][0], name, full_grid=True)
-                
+                    if(f["fields"].shape[0] == len(colormaps)):
+                        self.add_field(f["fields"][i], name, colormap=colormaps[i], full_grid=True)
+                    else:
+                        self.add_field(f["fields"][i], name, full_grid=True)
                 self.dimensions = list(self.fields[0].get_cells().shape)
             f.close()
             
@@ -1126,11 +1133,11 @@ class Simulation:
         fields_shape.insert(0, len(self.fields))
         dset = f.create_dataset("fields", tuple(fields_shape), dtype='f')
         _slice = list(self._make_global_slice(self.fields[0].get_cells().shape, self._dim_offset))
-        _slice.insert(0)
+        _slice.insert(0, 0)
         _names = []
         for i in range(len(self.fields)):
             _slice[0] = i
-            dset[_slice] = self.fields[i].get_cells()
+            dset[*_slice] = self.fields[i].get_cells()
             _names.append(self.fields[i].name)
         f.attrs["names"] = _names
         f.close()
