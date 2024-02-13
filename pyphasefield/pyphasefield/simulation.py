@@ -12,6 +12,7 @@ from . import ppf_utils
 from . import parallel_utils
 import time
 import h5py
+from scipy.interpolate import RegularGridInterpolator
 
 #DO NOT load mpi4py automatically, can crash jupyter notebooks if it isn't enabled.
 #only load if parallelism is requested
@@ -373,7 +374,7 @@ class Simulation:
             dt = self.dt
             step = self.time_step_counter
             current_time = dt*step
-            if(pathlib.Path(self._temperature_path).suffix == ".xdmf"):
+            if(Path(self._temperature_path).suffix == ".xdmf"):
                 with mio.xdmf.TimeSeriesReader(self._temperature_path) as reader:
                     points, cells = reader.read_points_cells()
                     self._t_file_bounds[0], point_data0, cell_data0 = reader.read_data(0)
@@ -386,7 +387,7 @@ class Simulation:
                         self._t_file_index += 1
                         self._t_file_bounds[1], point_data1, cell_data0 = reader.read_data(self.t_file_index)
                         self._t_file_arrays[1] = np.squeeze(point_data1['T'])
-            elif(pathlib.Path(self._temperature_path).suffix == ".hdf5"):
+            elif(Path(self._temperature_path).suffix == ".hdf5"):
                 with h5py.File(self._temperature_path) as f:
                     times = f["times"][:]
                     #assume the first time slice is less than the current time, if not, interpolate before first slice
@@ -407,6 +408,7 @@ class Simulation:
     def _build_interpolated_t_array(self, f, index):
         if not(self._initialized_t_file_helper_arrays):
             self._build_t_file_helper_arrays() #creates self._t_interpolation_points just once
+            print("test")
             self._initialized_t_file_helper_arrays = True
         dims_F = f["gridsize_F"][:]
         array = f["data"][:][index]
@@ -426,8 +428,9 @@ class Simulation:
     def _build_t_file_helper_arrays(self):
         aranges = []
         for i in range(len(self.dimensions)):
-            aranges.append((np.arange(self.dimensions[i], dtype=float)+self._dim_offset[i])*cell_spacing)
-        grid = np.meshgrid(aranges, indexing='ij')
+            aranges.append((np.arange(self.dimensions[i], dtype=float)+self._dim_offset[i])*self.dx)
+        grid = np.meshgrid(*aranges, indexing='ij')
+        print(len(grid))
         if(len(grid) == 2):
             self._t_interpolation_points = np.array([grid[0].ravel(), grid[1].ravel()]).T
         elif(len(grid) == 3):
@@ -829,7 +832,7 @@ class Simulation:
                 shape = np.flip(f["data"][0].shape)
                 size = f["gridsize_F"][:]
                 thermal_size = shape*size
-                sim_size = np.flip(self._global_dimensions*self.dx)
+                sim_size = np.flip(self._global_dimensions)*self.dx
                 for i in range(len(sim_size)):
                     if(np.abs(sim_size[i]-thermal_size[i])/sim_size[i] > 0.2): #if dimensions are mismatched by more than 20%
                         print(f"Sim dimensions (x, y(, z)) are: {sim_size} in {self._dx_units}")
@@ -899,7 +902,7 @@ class Simulation:
             dt = self.get_time_step_length()
             step = self.get_time_step_counter()
             current_time = dt*step
-            if(pathlib.Path(self._temperature_path).suffix == ".xdmf"):
+            if(Path(self._temperature_path).suffix == ".xdmf"):
                 while(current_time > self._t_file_bounds[1]):
                     with mio.xdmf.TimeSeriesReader(self._temperature_path) as reader:
                         reader.cells=[]
@@ -908,7 +911,7 @@ class Simulation:
                         self._t_file_index += 1
                         self._t_file_bounds[1], point_data1, cell_data0 = reader.read_data(self._t_file_index)
                         self._t_file_arrays[1] = np.squeeze(point_data1['T'])
-            elif(pathlib.Path(self._temperature_path).suffix == ".hdf5"):
+            elif(Path(self._temperature_path).suffix == ".hdf5"):
                 with h5py.File(self._temperature_path) as f:
                     times = f["times"][:]
                     #assume the first time slice is less than the current time, if not, interpolate before first slice
