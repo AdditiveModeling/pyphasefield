@@ -976,7 +976,7 @@ class Simulation:
             if step > -1:
                 file_path = file_path.joinpath("step_"+str(step)+".hdf5")
                 if not(Path.cwd().joinpath(file_path).exists()):
-                    file_path = file_path.joinpath("step_"+str(step)+".npz")
+                    file_path = file_path.parents[0].joinpath("step_"+str(step)+".npz")
                     npz_filetype = True
                 if not(Path.cwd().joinpath(file_path).exists()):
                     raise FileNotFoundError("No checkpoint exists for timestep = "+str(step)+"!")
@@ -1012,9 +1012,11 @@ class Simulation:
                 # Set dimensions of simulation
                 self.dimensions = list(self.fields[0].get_cells().shape)
         else:
-            f = h5py.File(file_path, "r")
-            _names = f.attrs["names"]
+            
+            
             if(self._parallel):
+                f = h5py.File(file_path, "r", driver='mpio', comm=self._MPI_COMM_WORLD)
+                _names = f.attrs["names"]
                 self.dimensions = list(f["fields"].shape[1:])
                 self._global_dimensions = self.dimensions.copy()
                 #reinitialize parallelism to create subarray dimensions (*SHOULD* modify self.dimensions to reflect this)
@@ -1025,6 +1027,8 @@ class Simulation:
                     _slice[0] = i
                     self.add_field(f["fields"][*_slice], name, full_grid=False)
             else:
+                f = h5py.File(file_path, "r")
+                _names = f.attrs["names"]
                 for i, name in enumerate(_names):
                     if(f["fields"].shape[0] == len(colormaps)):
                         self.add_field(f["fields"][i], name, colormap=colormaps[i], full_grid=True)
@@ -1131,7 +1135,11 @@ class Simulation:
             save_loc = Path(self._save_path)
         save_loc.mkdir(parents=True, exist_ok=True)
         
-        f = h5py.File(str(save_loc) + "/step_" + str(self.time_step_counter)+".hdf5", "w")
+        _save_file_path = str(save_loc) + "/step_" + str(self.time_step_counter)+".hdf5"
+        if(self._parallel):
+            f = h5py.File(_save_file_path, "w", driver='mpio', comm=self._MPI_COMM_WORLD)
+        else:
+            f = h5py.File(_save_file_path, "w")
         fields_shape = list(self.fields[0].get_cells().shape)
         fields_shape.insert(0, len(self.fields))
         dset = f.create_dataset("fields", tuple(fields_shape), dtype='f')
