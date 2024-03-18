@@ -14,7 +14,7 @@ pycalphad_prerequisites = ["cython", "numexpr", "bottleneck", "setuptools_scm", 
 def install_package(name):
     #dont check if package is already installed, it could get confused and not install when it needs to
     print("Attempting to install "+name+" using pip", end='\r')
-    out = os.system("python -m pip install "+name+" >> pyphasefield_installation.log 2>&1")
+    out = os.system("python -m pip install --no-cache-dir "+name+" >> pyphasefield_installation.log 2>&1")
     if(out != 0):
         print(warning+"Failed to install "+name+" using pip, attempting to install with conda"+end_color, end='\r')
         out = os.system("conda install -c conda-forge -y "+name+" >> pyphasefield_installation.log 2>&1")
@@ -157,20 +157,21 @@ else:
         
 
 if(hdf5):
-    print("Attempting to install h5py against a pre-built parallel installation", end='\r')
+    print("Attempting to install h5py against a pre-built parallel installation (may take a long time!)", end='\r')
     out = os.system("""module load gcc/8 >> pyphasefield_installation.log 2>&1; 
                        module load hdf5-parallel >> pyphasefield_installation.log 2>&1;
                        export CC=mpicc >> pyphasefield_installation.log 2>&1;
                        export CXX=mpicxx >> pyphasefield_installation.log 2>&1;
                        conda install -c conda-forge -y cython >> pyphasefield_installation.log 2>&1;
                        conda install -c conda-forge -y pkgconfig >> pyphasefield_installation.log 2>&1;
+                       export HDF5_MPI=ON >> pyphasefield_installation.log 2>&1;
                        export HDF5_DIR=$HDF5 >> pyphasefield_installation.log 2>&1;
-                       pip install --force --no-dependencies --no-binary=h5py h5py >> pyphasefield_installation.log 2>&1;
+                       pip install --force --no-dependencies --no-cache-dir --no-binary=h5py h5py >> pyphasefield_installation.log 2>&1;
                        """)
     if(out != 0):
-        print(fail+"Failed to install h5py automatically, install this package manually if you would like parallel IO!"+end_color)
+        print(LINE_CLEAR+fail+"Failed to install h5py automatically, install this package manually if you would like parallel IO!"+end_color)
     else:
-        print(success+"Successfully installed h5py!"+end_color)
+        print(LINE_CLEAR+success+"Successfully installed h5py!"+end_color)
 else:
     print("Attempting to install h5py against a serial installation, parallel IO will not work!", end='\r')
     out = os.system("""module load gcc/8 >> pyphasefield_installation.log 2>&1; 
