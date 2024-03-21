@@ -234,7 +234,6 @@ def TSVtoHDF5(tsv_folder_path, files=None, times=None, file_t_units="us", target
     #relative_t flag ensures the first time step is t=0, regardless of its actual absolute time
     sanitized_path = tsv_folder_path.rstrip("/\\")
     files_in_folder = glob(f"{sanitized_path}/*")
-    print(files_in_folder)
     header = None
     for file in files_in_folder:
         if(pathlib.Path(file).suffix == ".hdf5"):
@@ -270,14 +269,8 @@ def TSVtoHDF5(tsv_folder_path, files=None, times=None, file_t_units="us", target
     
     f = open(files[0], "r")
     l = f.readline()
-    i = 0
     while not(len(l.strip()) == 0):
         vals = l.strip("").split("\t")
-        i += 1
-        if(i%1000 == 0):
-            print(i)
-            print(l)
-            print(l is None)
         if not(len(vals) == 4):
             l = f.readline()
             continue
@@ -285,11 +278,11 @@ def TSVtoHDF5(tsv_folder_path, files=None, times=None, file_t_units="us", target
         yval = float(vals[1])
         zval = float(vals[2])
         l = f.readline()
-        if(xval < cutoff_x[0] or xval > cutoff_x[1]):
+        if((xval < cutoff_x[0]) or (xval > cutoff_x[1])):
             continue
-        if(yval < cutoff_y[0] or yval > cutoff_y[1]):
+        if((yval < cutoff_y[0]) or (yval > cutoff_y[1])):
             continue
-        if(zval < cutoff_z[0] or zval > cutoff_z[1]):
+        if((zval < cutoff_z[0]) or (zval > cutoff_z[1])):
             continue
         if not(xval in xs):
             xs.append(xval)
@@ -308,9 +301,6 @@ def TSVtoHDF5(tsv_folder_path, files=None, times=None, file_t_units="us", target
         times -= np.min(times)
     times *= t_scaling
         
-    print(xs, ys, zs, times)
-    print(len(xs), len(ys), len(zs), len(times))
-        
     gridsize_F = np.zeros([3])
     gridsize_F[0] = (zs[1]-zs[0])*x_scaling
     gridsize_F[1] = (ys[1]-ys[0])*x_scaling
@@ -320,20 +310,20 @@ def TSVtoHDF5(tsv_folder_path, files=None, times=None, file_t_units="us", target
         fn = files[0].rsplit("time", 1)[0]+"time"+tstr
         f = open(fn, "r")
         l = f.readline()
-        while not(l is None):
+        while not(len(l.strip()) == 0):
             vals = l.strip("").split("\t")
+            l = f.readline()
             if not(len(vals) == 4):
-                break
+                continue
             xval = float(vals[0])
             yval = float(vals[1])
             zval = float(vals[2])
             Tval = float(vals[3])
-            l = f.readline()
-            if(xval < cutoff_x[0] or xval > cutoff_x[1]):
+            if((xval < cutoff_x[0]) or (xval > cutoff_x[1])):
                 continue
-            if(yval < cutoff_y[0] or yval > cutoff_y[1]):
+            if((yval < cutoff_y[0]) or (yval > cutoff_y[1])):
                 continue
-            if(zval < cutoff_z[0] or zval > cutoff_z[1]):
+            if((zval < cutoff_z[0]) or (zval > cutoff_z[1])):
                 continue
             array[i, zs.index(zval), ys.index(yval), xs.index(xval)] = Tval
         f.close()

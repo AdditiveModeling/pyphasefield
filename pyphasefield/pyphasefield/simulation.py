@@ -863,6 +863,9 @@ class Simulation:
         colormap : Matplotlib colormap, str, etc.. Default = "GnBu"
             The colormap used for plotting the field. Defaults to a green blue sequential colormap
         """
+        #if boundary_conditions_type is None, default to periodic. Choice is probably irrelevant and user just wants to view data
+        if(self._boundary_conditions_type is None):
+            self.set_boundary_conditions("PERIODIC")
         field = Field(data=array, name=array_name, simulation=self, full_grid=full_grid, colormap=colormap)
         self.fields.append(field)
         #we use the Field class for bcs for parallel splitting behavior and nearly nothing else
@@ -1036,6 +1039,7 @@ class Simulation:
                     else:
                         self.add_field(f["fields"][i], name, full_grid=True)
                 self.dimensions = list(self.fields[0].get_cells().shape)
+                
             f.close()
             
         # Time step set from parsing file name or manually --> defaults to 0
