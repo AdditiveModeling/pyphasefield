@@ -232,6 +232,7 @@ class Simulation:
         self._t_file_arrays = [None, None]
         self._t_file_gpu_devices = [None, None]
         self._t_file_units = ["K", "m"]
+        self._t_file_offset = [0, 0, 0] #number of cells to offset the origin of the sim, w.r.t. the thermal file
         self._initialized_t_file_helper_arrays = False
         
         #tdb related variables
@@ -428,7 +429,7 @@ class Simulation:
     def _build_t_file_helper_arrays(self):
         aranges = []
         for i in range(len(self.dimensions)):
-            aranges.append((np.arange(self.dimensions[i], dtype=float)+self._dim_offset[i])*self.dx)
+            aranges.append((np.arange(self.dimensions[i], dtype=float)+self._dim_offset[i]+self._t_file_offset[i])*self.dx)
         grid = np.meshgrid(*aranges, indexing='ij')
         print(len(grid))
         if(len(grid) == 2):
@@ -1353,6 +1354,9 @@ class Simulation:
         self._temperature_path = temperature_path
     def set_temperature_units(self, temperature_units):
         self._temperature_units = temperature_units
+        
+    def set_t_file_offset(self, offset_list):
+        self._t_file_offset = offset_list
 
     def set_tdb_container(self, tdb_container):
         self._tdb_container = tdb_container

@@ -5,6 +5,9 @@ import numpy as np
 import sympy as sp
 import symengine as se
 from tinydb import where
+import h5py
+from glob import glob
+import pathlib
 
 colors = [(0, 0, 1), (0, 1, 1), (0, 1, 0), (1, 1, 0), (1, 0, 0)]
 COLORMAP_OTHER = LinearSegmentedColormap.from_list('rgb', colors)
@@ -18,6 +21,19 @@ seed_mask_p = None
 seed_mask_q = None
 r_p = None
 r_q = None
+
+#units dict for easy lookup
+units_dict = {
+    "m": 1.,
+    "cm": 0.01,
+    "mm": 0.001,
+    "um": 0.000001,
+    "nm": 0.000000001,
+    "s": 1.,
+    "ms": 0.001,
+    "us": 0.000001,
+    "ns": 0.000000001
+}
 
 def successfully_imported_pycalphad():
     """
@@ -205,6 +221,131 @@ def make_seed(sim, p=0, q=[1, 2, 3, 4], c=[5], composition=None, x=None, y=None,
             q2.data[q_slices][seed_mask_q[q_mask_slices]] = orientation[1]
             q3.data[q_slices][seed_mask_q[q_mask_slices]] = orientation[2]
             q4.data[q_slices][seed_mask_q[q_mask_slices]] = orientation[3]
+            
+def TSVtoHDF5(tsv_folder_path, files=None, times=None, file_t_units="us", target_t_units="s", file_x_units="cm", target_x_units="cm",
+              cutoff_x = [-np.inf, np.inf], cutoff_y = [-np.inf, np.inf], cutoff_z = [-np.inf, 0.00001], relative_t = False):
+    #converts a series of tsv files contained in [tsv_folder_path] into a single time-series HDF5 file
+    #assumes entries are in [x, y, z, T] order
+    #ignores lines that do not have four entries split by tabs
+    #if files and/or times are None, assume all files in the folder are of the format [name]time###, where ### is the time used
+    #file_t_units and target_t_units can be "ns", "us", "ms", or "s"
+    #file_x_units and target_x_units can be "nm", "um", "mm", "cm", or "m"
+    #cutoffs only extract a desired region from the original files, in case region is irrelevant (e.g. gaseous)
+    #relative_t flag ensures the first time step is t=0, regardless of its actual absolute time
+    sanitized_path = tsv_folder_path.rstrip("/\\")
+    files_in_folder = glob(f"{sanitized_path}/*")
+    print(files_in_folder)
+    header = None
+    for file in files_in_folder:
+        if(pathlib.Path(file).suffix == ".hdf5"):
+            continue
+        else:
+            split = file.rsplit("time", 1)
+            if(len(split) == 2):
+                header = split[0]
+                break
+    if(header is None):
+        print("No files matching that name! Aborting")
+        return None
+    files = list(set(glob(header+"*")) - set(glob(header+"*.hdf5")))
+    
+    t_scaling = units_dict[file_t_units]/units_dict[target_t_units]
+    x_scaling = units_dict[file_x_units]/units_dict[target_x_units]
+    
+    xs = []
+    ys = []
+    zs = []
+    ts = []
+    for file in files:
+        tstr = file.rsplit("time", 1)[1]
+        t = float(tstr)
+        if not(t in ts):
+            ts.append(t)
+    ts.sort()
+    tstrs = ts.copy()
+    for file in files:
+        tstr = file.rsplit("time", 1)[1]
+        t = float(tstr)
+        tstrs[ts.index(t)] = tstr
+    
+    f = open(files[0], "r")
+    l = f.readline()
+    i = 0
+    while not(len(l.strip()) == 0):
+        vals = l.strip("").split("\t")
+        i += 1
+        if(i%1000 == 0):
+            print(i)
+            print(l)
+            print(l is None)
+        if not(len(vals) == 4):
+            l = f.readline()
+            continue
+        xval = float(vals[0])
+        yval = float(vals[1])
+        zval = float(vals[2])
+        l = f.readline()
+        if(xval < cutoff_x[0] or xval > cutoff_x[1]):
+            continue
+        if(yval < cutoff_y[0] or yval > cutoff_y[1]):
+            continue
+        if(zval < cutoff_z[0] or zval > cutoff_z[1]):
+            continue
+        if not(xval in xs):
+            xs.append(xval)
+        if not(yval in ys):
+            ys.append(yval)
+        if not(zval in zs):
+            zs.append(zval)
+    xs.sort()
+    ys.sort()
+    zs.sort()
+    f.close()
+    
+    array = np.zeros([len(ts), len(zs), len(ys), len(xs)])
+    times = np.array(ts)
+    if(relative_t):
+        times -= np.min(times)
+    times *= t_scaling
+        
+    print(xs, ys, zs, times)
+    print(len(xs), len(ys), len(zs), len(times))
+        
+    gridsize_F = np.zeros([3])
+    gridsize_F[0] = (zs[1]-zs[0])*x_scaling
+    gridsize_F[1] = (ys[1]-ys[0])*x_scaling
+    gridsize_F[2] = (xs[1]-xs[0])*x_scaling
+    
+    for i, tstr in enumerate(tstrs):
+        fn = files[0].rsplit("time", 1)[0]+"time"+tstr
+        f = open(fn, "r")
+        l = f.readline()
+        while not(l is None):
+            vals = l.strip("").split("\t")
+            if not(len(vals) == 4):
+                break
+            xval = float(vals[0])
+            yval = float(vals[1])
+            zval = float(vals[2])
+            Tval = float(vals[3])
+            l = f.readline()
+            if(xval < cutoff_x[0] or xval > cutoff_x[1]):
+                continue
+            if(yval < cutoff_y[0] or yval > cutoff_y[1]):
+                continue
+            if(zval < cutoff_z[0] or zval > cutoff_z[1]):
+                continue
+            array[i, zs.index(zval), ys.index(yval), xs.index(xval)] = Tval
+        f.close()
+    
+    f = h5py.File(files[0].rsplit("time", 1)[0]+".hdf5", 'w')
+    dset = f.create_dataset("data", array.shape, dtype='f')
+    dset[...] = array
+    dset2 = f.create_dataset("times", times.shape, dtype='f')
+    dset2[...] = times
+    dset3 = f.create_dataset("gridsize_F", gridsize_F.shape, dtype='f')
+    dset3[...] = gridsize_F
+    f.close()
                     
 
 def CSVtoXDMF(csv_path, T_cutoffs=False, starting_T=None, ending_T=None, reflect_X = False):
