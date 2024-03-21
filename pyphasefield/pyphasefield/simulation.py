@@ -1141,7 +1141,7 @@ class Simulation:
             f = h5py.File(_save_file_path, "w", driver='mpio', comm=self._MPI_COMM_WORLD)
         else:
             f = h5py.File(_save_file_path, "w")
-        fields_shape = list(self.fields[0].get_cells().shape)
+        fields_shape = self._global_dimensions.copy()
         fields_shape.insert(0, len(self.fields))
         dset = f.create_dataset("fields", tuple(fields_shape), dtype='f')
         _slice = list(self._make_global_slice(self.fields[0].get_cells().shape, self._dim_offset))
