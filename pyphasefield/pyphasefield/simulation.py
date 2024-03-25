@@ -1029,7 +1029,7 @@ class Simulation:
                 _slice.insert(0,0)
                 for i, name in enumerate(_names):
                     _slice[0] = i
-                    self.add_field(f["fields"][*_slice], name, full_grid=False)
+                    self.add_field(f["fields"][tuple(_slice)], name, full_grid=False)
             else:
                 f = h5py.File(file_path, "r")
                 _names = f.attrs["names"]
@@ -1153,7 +1153,7 @@ class Simulation:
         _names = []
         for i in range(len(self.fields)):
             _slice[0] = i
-            dset[*_slice] = self.fields[i].get_cells()
+            dset[tuple(_slice)] = self.fields[i].get_cells()
             _names.append(self.fields[i].name)
         f.attrs["names"] = _names
         f.close()
