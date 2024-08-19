@@ -40,7 +40,7 @@ plt.figure(figsize=(4600/dpi,3200/dpi),dpi=dpi)
 
 for lambda_ in lambdas:
 
-    sim = engines.KarmaRappel1996(dimensions=[Nx, Ny])
+    sim = engines.KarmaRappel1998(dimensions=[Nx, Ny])
 
     #initialize non-array parameters
     sim.set_framework("GPU_SERIAL")

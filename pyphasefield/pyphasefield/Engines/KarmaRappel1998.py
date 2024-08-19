@@ -57,8 +57,8 @@ def KarmaRappelCPU(self):
             DERY_ipj = 0.25*inv_dx * (phi[i+1][j+1] + phi[i][j+1] - phi[i][j-1] - phi[i+1][j-1])
             DERY_imj = 0.25*inv_dx * (phi[i-1][j+1] + phi[i][j+1] - phi[i][j-1] - phi[i-1][j-1])
             
-            DERX_ij = 0.5*inv_dx * (DERX_ipj + DERX_imj)
-            DERY_ij = 0.5*inv_dx * (DERY_ijp + DERY_ijm)
+            DERX_ij = 0.5 * (DERX_ipj + DERX_imj)
+            DERY_ij = 0.5 * (DERY_ijp + DERY_ijm)
             
             # MAG2 terms
             MAG2_ipj = MAG2(DERX_ipj,DERY_ipj)
@@ -139,8 +139,8 @@ def kernel_2DKarmaRappelGPU(fields, fields_out, w, lambda_val, tau, D, dx, dt, e
             DERY_ipj = 0.25*inv_dx * (phi[i+1][j+1] + phi[i][j+1] - phi[i][j-1] - phi[i+1][j-1])
             DERY_imj = 0.25*inv_dx * (phi[i-1][j+1] + phi[i][j+1] - phi[i][j-1] - phi[i-1][j-1])
             
-            DERX_ij = 0.5*inv_dx * (DERX_ipj + DERX_imj)
-            DERY_ij = 0.5*inv_dx * (DERY_ijp + DERY_ijm)
+            DERX_ij = 0.5 * (DERX_ipj + DERX_imj)
+            DERY_ij = 0.5 * (DERY_ijp + DERY_ijm)
             
             # MAG2 terms
             MAG2_ipj = MAG2_GPU(DERX_ipj,DERY_ipj)
