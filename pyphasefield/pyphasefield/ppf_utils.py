@@ -304,9 +304,9 @@ def TSVtoHDF5(tsv_folder_path, files=None, times=None, file_t_units="us", target
     times *= t_scaling
         
     gridsize_F = np.zeros([3])
-    gridsize_F[0] = (zs[1]-zs[0])*x_scaling
+    gridsize_F[0] = (xs[1]-xs[0])*x_scaling
     gridsize_F[1] = (ys[1]-ys[0])*x_scaling
-    gridsize_F[2] = (xs[1]-xs[0])*x_scaling
+    gridsize_F[2] = (zs[1]-zs[0])*x_scaling
     
     for i, tstr in enumerate(tstrs):
         fn = files[0].rsplit("time", 1)[0]+"time"+tstr

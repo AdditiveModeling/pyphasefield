@@ -413,38 +413,59 @@ class Simulation:
                 
     def _build_interpolated_t_array(self, f, index):
         if not(self._initialized_t_file_helper_arrays):
-            self._build_t_file_helper_arrays(f) #creates self._t_interpolation_points just once
+            self._build_t_file_helper_arrays(f)
             self._initialized_t_file_helper_arrays = True
         dims_F = f["gridsize_F"][:]
-        array = f["data"][:][index]
-        if(len(dims_F) == 2):
-            x = (np.arange(array.shape[1], dtype=float)*dims_F[0])
-            y = (np.arange(array.shape[0], dtype=float)*dims_F[1])
-            interp = RegularGridInterpolator([y,x], array, bounds_error=False, fill_value=None)
-        elif(len(dims_F) == 3):
-            x = (np.arange(array.shape[2], dtype=float)*dims_F[0])
-            y = (np.arange(array.shape[1], dtype=float)*dims_F[1])
-            z = (np.arange(array.shape[0], dtype=float)*dims_F[2])
-            interp = RegularGridInterpolator([z,y,x], array, bounds_error=False, fill_value=None)
+        array = f["data"][:][index].astype(np.float64)  # Ensure input array is float64
+
         shape = self.dimensions.copy()
         for i in range(len(shape)):
-            lb = 1 #left_boundary
-            rb = 1 #right_boundary
+            lb = 1
+            rb = 1
             if(self._parallel):
                 if(self._neighbors[i][0] == self._MPI_rank):
-                    lb = self._ghost_rows #TODO: change when creating special case for a GPU being its own neighbor
+                    lb = self._ghost_rows
                 elif(self._ngbc[i][0] == 0):
                     lb = self._ghost_rows
                 if(self._neighbors[i][1] == self._MPI_rank):
-                    rb = self._ghost_rows #TODO: change when creating special case for a GPU being its own neighbor
+                    rb = self._ghost_rows
                 elif(self._ngbc[i][1] == 0):
                     rb = self._ghost_rows
             shape[i] += (lb+rb)
-        interp_array = interp(self._t_interpolation_points, method="linear").reshape(*shape)
+
+        # Convert coordinates to normalized indices for map_coordinates (ensure float64)
+        if len(dims_F) == 2:
+            y_coords = (self._t_interpolation_points[:, 0] / (dims_F[1] * array.shape[0])).astype(np.float64)
+            x_coords = (self._t_interpolation_points[:, 1] / (dims_F[0] * array.shape[1])).astype(np.float64)
+
+            # Scale to array indices
+            y_indices = (y_coords * (array.shape[0] - 1)).astype(np.float64)
+            x_indices = (x_coords * (array.shape[1] - 1)).astype(np.float64)
+
+            # Stack coordinates for map_coordinates
+            coords = np.vstack((y_indices, x_indices))
+
+        elif len(dims_F) == 3:
+            z_coords = (self._t_interpolation_points[:, 0] / (dims_F[2] * array.shape[0])).astype(np.float64)
+            y_coords = (self._t_interpolation_points[:, 1] / (dims_F[1] * array.shape[1])).astype(np.float64)
+            x_coords = (self._t_interpolation_points[:, 2] / (dims_F[0] * array.shape[2])).astype(np.float64)
+
+            # Scale to array indices
+            z_indices = (z_coords * (array.shape[0] - 1)).astype(np.float64)
+            y_indices = (y_coords * (array.shape[1] - 1)).astype(np.float64)
+            x_indices = (x_coords * (array.shape[2] - 1)).astype(np.float64)
+
+            # Stack coordinates for map_coordinates
+            coords = np.vstack((z_indices, y_indices, x_indices))
+
+        # Use map_coordinates with order=3 for cubic interpolation, output explicitly as float64
+        from scipy.ndimage import map_coordinates
+        interp_array = map_coordinates(array, coords, order=3, mode='nearest', output=np.float64).reshape(*shape)
+
         if((self._t_file_clamp[0] is None) and (self._t_file_clamp[1] is None)):
             return interp_array
         else:
-            return np.clip(interp_array, self._t_file_clamp[0], self._t_file_clamp[1])
+            return np.clip(interp_array, self._t_file_clamp[0], self._t_file_clamp[1], dtype=np.float64)
             
         
     def _build_t_file_helper_arrays(self, f):
