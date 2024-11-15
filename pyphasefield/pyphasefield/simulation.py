@@ -390,14 +390,14 @@ class Simulation:
                         self._t_file_bounds[0] = self._t_file_bounds[1]
                         self._t_file_arrays[0] = self._t_file_arrays[1]
                         self._t_file_index += 1
-                        self._t_file_bounds[1], point_data1, cell_data0 = reader.read_data(self.t_file_index)
+                        self._t_file_bounds[1], point_data1, cell_data0 = reader.read_data(self._t_file_index)
                         self._t_file_arrays[1] = np.squeeze(point_data1['T'])
             elif(Path(self._temperature_path).suffix == ".hdf5"):
                 with h5py.File(self._temperature_path) as f:
                     times = f["times"][:]
                     #assume the first time slice is less than the current time, if not, interpolate before first slice
                     while(times[self._t_file_index] < current_time):
-                        if(self.t_file_index == len(times)-1):
+                        if(self_.t_file_index == len(times)-1):
                             break #interpolate past last time slice if necessary
                         self._t_file_index += 1
                     self._t_file_bounds[0] = times[self._t_file_index-1]
@@ -419,6 +419,7 @@ class Simulation:
         array = f["data"][:][index]
 
         shape = self.dimensions.copy()
+        print(shape)
         for i in range(len(shape)):
             lb = 1
             rb = 1
@@ -996,7 +997,7 @@ class Simulation:
                     times = f["times"][:]
                     #assume the first time slice is less than the current time, if not, interpolate before first slice
                     while(times[self._t_file_index] < current_time):
-                        if(self.t_file_index == len(times)-1):
+                        if(self._t_file_index == len(times)-1):
                             break #interpolate past last time slice if necessary
                         self._t_file_index += 1
                         self._t_file_bounds[0] = self._t_file_bounds[1]

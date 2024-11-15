@@ -187,9 +187,17 @@ def make_seed(sim, p=0, q=[1, 2, 3, 4], c=[5], composition=None, x=None, y=None,
     q_slices = []
     p_mask_slices = []
     q_mask_slices = []
+
+    ghost_offset = []
+    for i in range(len(shape)):
+        offset = 1
+        if(sim._parallel):
+            if not((sim._MPI_array_rank[i] == 0) and (not sim._boundary_conditions_type[i][0] == "PERIODIC")): #if its not the first rank with non-periodic left boundary conditions, use ghost_rows
+                offset = sim._ghost_rows
+        ghost_offset.append(offset)
     
     for i in range(len(coordinates)):
-        center = coordinates[i]-sim._dim_offset[i]
+        center = coordinates[i]-sim._dim_offset[i]+ghost_offset[i]
         
         p_slices.append(slice(max(0, center-r_p), max(0, center+r_p)))
         q_slices.append(slice(max(0, center-r_q), max(0, center+r_q)))
@@ -210,6 +218,38 @@ def make_seed(sim, p=0, q=[1, 2, 3, 4], c=[5], composition=None, x=None, y=None,
             q1.data[q_slices][seed_mask_q[q_mask_slices]] = np.cos(0.5*angle)
             q4.data[q_slices][seed_mask_q[q_mask_slices]] = np.sin(0.5*angle)
         else: #3D case
+            if(orientation is None):
+                if(angle is None):
+                    orientation = random_uniform_quaternion()
+                else:
+                    axis_magnitude = np.sqrt(axis[0]**2+axis[1]**2+axis[2]**2)
+                    for i in range(3):
+                        axis[i] /= axis_magnitude
+                    s = np.sin(0.5*angle)
+                    orientation = [np.cos(0.5*angle), s*axis[0], s*axis[1], s*axis[2]]
+            q1.data[q_slices][seed_mask_q[q_mask_slices]] = orientation[0]
+            q2.data[q_slices][seed_mask_q[q_mask_slices]] = orientation[1]
+            q3.data[q_slices][seed_mask_q[q_mask_slices]] = orientation[2]
+            q4.data[q_slices][seed_mask_q[q_mask_slices]] = orientation[3]
+    
+    # Convert slices to tuples
+    p_slices = tuple(p_slices)
+    q_slices = tuple(q_slices)
+    p_mask_slices = tuple(p_mask_slices)
+    q_mask_slices = tuple(q_mask_slices)
+    
+    # Apply the seed masks to fields
+    phi.data[p_slices][seed_mask_p[p_mask_slices]] = 1
+    
+    if composition is not None:
+        for i in range(len(c)):
+            sim.fields[c[i]].data[p_slices][seed_mask_p[p_mask_slices]] = composition[i]
+            
+    if not(no_q):
+        if(q_2d):
+            q1.data[q_slices][seed_mask_q[q_mask_slices]] = np.cos(0.5*angle)
+            q4.data[q_slices][seed_mask_q[q_mask_slices]] = np.sin(0.5*angle)
+        else:  # 3D case
             if(orientation is None):
                 if(angle is None):
                     orientation = random_uniform_quaternion()
