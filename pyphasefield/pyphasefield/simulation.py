@@ -416,7 +416,7 @@ class Simulation:
             self._build_t_file_helper_arrays(f)
             self._initialized_t_file_helper_arrays = True
         dims_F = f["gridsize_F"][:]
-        array = f["data"][:][index].astype(np.float64)  # Ensure input array is float64
+        array = f["data"][:][index]
 
         shape = self.dimensions.copy()
         for i in range(len(shape)):
@@ -433,34 +433,35 @@ class Simulation:
                     rb = self._ghost_rows
             shape[i] += (lb+rb)
 
-        # Convert coordinates to normalized indices for map_coordinates (ensure float64)
-        if len(dims_F) == 2:
-            y_coords = (self._t_interpolation_points[:, 0] / (dims_F[1] * array.shape[0])).astype(np.float64)
-            x_coords = (self._t_interpolation_points[:, 1] / (dims_F[0] * array.shape[1])).astype(np.float64)
+        # Choose interpolation scheme based on self._t_file_interpolation_scheme
+        if getattr(self, '_t_file_interpolation_scheme', 'linear') == 'linear':
+            # Original linear interpolation using RegularGridInterpolator
+            if(len(dims_F) == 2):
+                x = (np.arange(array.shape[1], dtype=float)*dims_F[0])
+                y = (np.arange(array.shape[0], dtype=float)*dims_F[1])
+                interp = RegularGridInterpolator([y,x], array, bounds_error=False, fill_value=None)
+            elif(len(dims_F) == 3):
+                x = (np.arange(array.shape[2], dtype=float)*dims_F[0])
+                y = (np.arange(array.shape[1], dtype=float)*dims_F[1])
+                z = (np.arange(array.shape[0], dtype=float)*dims_F[2])
+                interp = RegularGridInterpolator([z,y,x], array, bounds_error=False, fill_value=None)
+            interp_array = interp(self._t_interpolation_points, method="linear").reshape(*shape)
 
-            # Scale to array indices
-            y_indices = (y_coords * (array.shape[0] - 1)).astype(np.float64)
-            x_indices = (x_coords * (array.shape[1] - 1)).astype(np.float64)
+        else:  # cubic interpolation using map_coordinates
+            array = array.astype(np.float64)  # Ensure input array is float64
+            if len(dims_F) == 2:
+                # Convert physical coordinates to array indices directly
+                y_indices = (self._t_interpolation_points[:, 0] / dims_F[1]).astype(np.float64)
+                x_indices = (self._t_interpolation_points[:, 1] / dims_F[0]).astype(np.float64)
+                coords = np.vstack((y_indices, x_indices))
+            elif len(dims_F) == 3:
+                z_indices = (self._t_interpolation_points[:, 0] / dims_F[2]).astype(np.float64)
+                y_indices = (self._t_interpolation_points[:, 1] / dims_F[1]).astype(np.float64)
+                x_indices = (self._t_interpolation_points[:, 2] / dims_F[0]).astype(np.float64)
+                coords = np.vstack((z_indices, y_indices, x_indices))
 
-            # Stack coordinates for map_coordinates
-            coords = np.vstack((y_indices, x_indices))
-
-        elif len(dims_F) == 3:
-            z_coords = (self._t_interpolation_points[:, 0] / (dims_F[2] * array.shape[0])).astype(np.float64)
-            y_coords = (self._t_interpolation_points[:, 1] / (dims_F[1] * array.shape[1])).astype(np.float64)
-            x_coords = (self._t_interpolation_points[:, 2] / (dims_F[0] * array.shape[2])).astype(np.float64)
-
-            # Scale to array indices
-            z_indices = (z_coords * (array.shape[0] - 1)).astype(np.float64)
-            y_indices = (y_coords * (array.shape[1] - 1)).astype(np.float64)
-            x_indices = (x_coords * (array.shape[2] - 1)).astype(np.float64)
-
-            # Stack coordinates for map_coordinates
-            coords = np.vstack((z_indices, y_indices, x_indices))
-
-        # Use map_coordinates with order=3 for cubic interpolation, output explicitly as float64
-        from scipy.ndimage import map_coordinates
-        interp_array = map_coordinates(array, coords, order=3, mode='nearest', output=np.float64).reshape(*shape)
+            from scipy.ndimage import map_coordinates
+            interp_array = map_coordinates(array, coords, order=3, mode='nearest', output=np.float64).reshape(*shape)
 
         if((self._t_file_clamp[0] is None) and (self._t_file_clamp[1] is None)):
             return interp_array
@@ -1451,6 +1452,20 @@ class Simulation:
         self._t_file_clamp[0] = t_min
     def set_t_file_max(self, t_max):
         self._t_file_clamp[1] = t_max
+        
+    def set_t_file_interpolation_scheme(self, scheme):
+        """Sets the interpolation scheme for thermal history files.
+
+        Parameters
+        ----------
+        scheme : str
+            Either 'linear' or 'cubic'. Linear uses RegularGridInterpolator for faster
+            but less smooth interpolation. Cubic uses map_coordinates for smoother but
+            more computationally intensive interpolation.
+        """
+        if scheme not in ['linear', 'cubic']:
+            raise ValueError("Interpolation scheme must be either 'linear' or 'cubic'")
+        self._t_file_interpolation_scheme = scheme
 
     def set_tdb_container(self, tdb_container):
         self._tdb_container = tdb_container
