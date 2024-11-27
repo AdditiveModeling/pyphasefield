@@ -234,10 +234,10 @@ class Simulation:
         self._t_file_gpu_devices = [None, None]
         self._t_file_units = ["K", "m"]
         self._t_file_offset = [0, 0, 0] #number of cells to offset the origin of the sim, w.r.t. the thermal file
-        
         self._t_file_clamp = [None, None] #clamp the values of temperature when using thermal files to between these values
         self._t_file_2d_normal = "z"
         self._initialized_t_file_helper_arrays = False
+        self.save_temperature_array = False #if true, will also save the temperature array to f["temperature"] during save_sim
         
         #tdb related variables
         self._tdb_container = tdb_container #TDBContainer class, for storing TDB info across simulation instances (load times...)
@@ -1233,6 +1233,10 @@ class Simulation:
             dset[tuple(_slice)] = self.fields[i].get_cells()
             _names.append(self.fields[i].name)
         f.attrs["names"] = _names
+        if(self.save_temperature_array):
+            dset2 = f.create_dataset("temperature", tuple(self._global_dimensions.copy()), dtype='f')
+            _slice = list(self._make_global_slice(self.fields[0].get_cells().shape, self._dim_offset))
+            dset2[tuple(_slice)] = self.temperature.get_cells()
         f.close()
     
     def save_images(self, fields=None, interpolation="bicubic", units="cells", size=None, norm=False):
