@@ -4,7 +4,6 @@ import symengine as se
 from scipy.sparse.linalg import gmres
 import matplotlib.pyplot as plt
 np.set_printoptions(threshold=np.inf)
-import math
 from pathlib import Path
 import time
 from pyphasefield.field import Field
@@ -12,41 +11,40 @@ from pyphasefield.simulation import Simulation
 from pyphasefield.ppf_utils import COLORMAP_OTHER, COLORMAP_PHASE, make_seed
 
 try:
-    from numba import cuda
-    import numba
-    from numba.cuda.random import create_xoroshiro128p_states, xoroshiro128p_uniform_float32
+    from cupyx import jit
+    import cupy as cp
+    from pyphasefield.ppf_gpu_utils import create_rand_states, rand_normal
 except:
-    import pyphasefield.jit_placeholder as numba
-    import pyphasefield.jit_placeholder as cuda
+    import pyphasefield.jit_placeholder as jit
 
 ufunc_g_l = None
 ufunc_g_s = None
 
-@cuda.jit(device=True)
+@jit.rawkernel(device=True)
 def divagradb(a, axp, axm, ayp, aym, b, bxp, bxm, byp, bym, idx): 
     return 0.5*idx*idx*((axp+a)*(bxp-b) - (a+axm)*(b-bxm) + (ayp+a)*(byp-b) - (a+aym)*(b-bym))
     #return (idx*idx*a*(bxp+bxm+byp+bym-4*b) + 0.25*idx*idx*((axp - axm)*(bxp - bxm) + (ayp - aym)*(byp - bym)))
 
-@cuda.jit(device=True)
+@jit.rawkernel(device=True)
 def f_ori_term(D_q, D_q_xp, D_q_xm, D_q_yp, D_q_ym, mgq_xp, mgq_xm, mgq_yp, mgq_ym, q, q_xp, q_xm, q_yp, q_ym, idx):
     return 0.5*idx*idx*((D_q+D_q_xp)*(q_xp-q)/mgq_xp - (D_q+D_q_xm)*(q-q_xm)/mgq_xm + (D_q+D_q_yp)*(q_yp-q)/mgq_yp - (D_q+D_q_ym)*(q-q_ym)/mgq_ym)
 
-@cuda.jit(device=True)
+@jit.rawkernel(device=True)
 def divagradb_3D(a, axp, axm, ayp, aym, azp, azm, b, bxp, bxm, byp, bym, bzp, bzm, idx): 
     return 0.5*idx*idx*((axp+a)*(bxp-b) - (a+axm)*(b-bxm) + (ayp+a)*(byp-b) - (a+aym)*(b-bym) + (azp+a)*(bzp-b) - (a+azm)*(b-bzm))
 
-@cuda.jit(device=True)
+@jit.rawkernel(device=True)
 def f_ori_term_3D(D_q, D_q_xp, D_q_xm, D_q_yp, D_q_ym, D_q_zp, D_q_zm, mgq_xp, mgq_xm, mgq_yp, mgq_ym, mgq_zp, mgq_zm, q, q_xp, q_xm, q_yp, q_ym, q_zp, q_zm, idx):
     term = (D_q+D_q_xp)*(q_xp-q)/mgq_xp - (D_q+D_q_xm)*(q-q_xm)/mgq_xm
     term += ((D_q+D_q_yp)*(q_yp-q)/mgq_yp - (D_q+D_q_ym)*(q-q_ym)/mgq_ym)
     term += ((D_q+D_q_zp)*(q_zp-q)/mgq_zp - (D_q+D_q_zm)*(q-q_zm)/mgq_zm)
     return 0.5*idx*idx*term
 
-@cuda.jit
+@jit.rawkernel()
 def NComponent_kernel_2D(fields, T, transfer, fields_out, rng_states, params, c_params):
     
-    startx, starty = cuda.grid(2)
-    stridex, stridey = cuda.gridsize(2)
+    startx, starty = jit.grid(2)
+    stridex, stridey = jit.gridsize(2)
     threadId = startx + starty*stridex
     
     dx = params[0]
@@ -118,10 +116,10 @@ def NComponent_kernel_2D(fields, T, transfer, fields_out, rng_states, params, c_
             dq1dy = 0.5*idx*(q1[i+1][j]-q1[i-1][j])
             dq4dx = 0.5*idx*(q4[i][j+1]-q4[i][j-1])
             dq4dy = 0.5*idx*(q4[i+1][j]-q4[i-1][j])
-            mgq_xp = idx*math.sqrt((q1[i][j+1]-q1[i][j])**2 + (q4[i][j+1]-q4[i][j])**2)
-            mgq_xm = idx*math.sqrt((q1[i][j-1]-q1[i][j])**2 + (q4[i][j-1]-q4[i][j])**2)
-            mgq_yp = idx*math.sqrt((q1[i+1][j]-q1[i][j])**2 + (q4[i+1][j]-q4[i][j])**2)
-            mgq_ym = idx*math.sqrt((q1[i-1][j]-q1[i][j])**2 + (q4[i-1][j]-q4[i][j])**2)
+            mgq_xp = idx*cp.sqrt((q1[i][j+1]-q1[i][j])**2 + (q4[i][j+1]-q4[i][j])**2)
+            mgq_xm = idx*cp.sqrt((q1[i][j-1]-q1[i][j])**2 + (q4[i][j-1]-q4[i][j])**2)
+            mgq_yp = idx*cp.sqrt((q1[i+1][j]-q1[i][j])**2 + (q4[i+1][j]-q4[i][j])**2)
+            mgq_ym = idx*cp.sqrt((q1[i-1][j]-q1[i][j])**2 + (q4[i-1][j]-q4[i][j])**2)
             mag_grad_q = 0.5*(mgq_xp+mgq_xm+mgq_yp+mgq_ym)
             if(mgq_xp < beta):
                 mgq_xp = beta
@@ -193,7 +191,7 @@ def NComponent_kernel_2D(fields, T, transfer, fields_out, rng_states, params, c_
             dphidt *= M_phi
             
             #noise in phi
-            noise_phi = math.sqrt(2.*8.314*T[i][j]*M_phi/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
+            noise_phi = cp.sqrt(2.*8.314*T[i][j]*M_phi/v_m)*rand_normal(rng_states, threadId)
             dphidt += noise_phi*noise_amp_phi
             
             #dcidt
@@ -231,8 +229,8 @@ def NComponent_kernel_2D(fields, T, transfer, fields_out, rng_states, params, c_
             lq4 = (q4[i][j+1]+q4[i][j-1]+q4[i+1][j]+q4[i-1][j]-4*q4[i][j])*idx*idx
             
             q_noise_coeff = 0.0000000001
-            noise_q1 = noise_amp_q*math.sqrt(q_noise_coeff*8.314*T[i][j]/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
-            noise_q4 = noise_amp_q*math.sqrt(q_noise_coeff*8.314*T[i][j]/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
+            noise_q1 = noise_amp_q*cp.sqrt(q_noise_coeff*8.314*T[i][j]/v_m)*rand_normal(rng_states, threadId)
+            noise_q4 = noise_amp_q*cp.sqrt(q_noise_coeff*8.314*T[i][j]/v_m)*rand_normal(rng_states, threadId)
             #noise_q1 = 0.
             #noise_q4 = 0.
             
@@ -248,23 +246,23 @@ def NComponent_kernel_2D(fields, T, transfer, fields_out, rng_states, params, c_
                 phi_out[i][j] = 0.9999
             q1_out[i][j] = q1[i][j] + dt*dq1dt
             q4_out[i][j] = q4[i][j] + dt*dq4dt
-            renorm = math.sqrt((q1_out[i][j]**2+q4_out[i][j]**2))
+            renorm = cp.sqrt((q1_out[i][j]**2+q4_out[i][j]**2))
             q1_out[i][j] = q1_out[i][j]/renorm
             q4_out[i][j] = q4_out[i][j]/renorm
             for l in range(3, len(fields)):
-                c_i = fields[l]
-                c_i_out = fields_out[l]
-                c_i_out[i][j] *= dt
-                #c_i_out[i][j] = max(-0.1, c_i_out[i][j])
-                #c_i_out[i][j] = min(0.1, c_i_out[i][j])
-                c_i_out[i][j] += c_i[i][j]
-                #c_i_out[i][j] = max(0, c_i_out[i][j])
+                c = fields[l]
+                c_out = fields_out[l]
+                c_out[i][j] *= dt
+                #c_out[i][j] = max(-0.1, c_out[i][j])
+                #c_out[i][j] = min(0.1, c_out[i][j])
+                c_out[i][j] += c[i][j]
+                #c_out[i][j] = max(0, c_out[i][j])
     
-@cuda.jit
+@jit.rawkernel()
 def NComponent_sp_kernel_2D(fields, T, spa_gpu, save_points, timestep):
     
-    startx, starty = cuda.grid(2)
-    stridex, stridey = cuda.gridsize(2)
+    startx, starty = jit.grid(2)
+    stridex, stridey = jit.gridsize(2)
     threadId = startx + starty*stridex
     
     
@@ -272,16 +270,11 @@ def NComponent_sp_kernel_2D(fields, T, spa_gpu, save_points, timestep):
         for j in range(len(fields)):
             spa_gpu[i][j][timestep] = fields[j][save_points[1][i]][save_points[0][i]]
         spa_gpu[i][len(fields)][timestep] = T[save_points[1][i]][save_points[0][i]]
-        
-                
-@numba.jit
-def get_thermodynamics(ufunc, array):
-    return ufunc(array)
 
-@cuda.jit
+@jit.rawkernel()
 def NComponent_noise_kernel_2D(fields, T, transfer, rng_states, ufunc_array, params, c_params):
-    startx, starty = cuda.grid(2)     
-    stridex, stridey = cuda.gridsize(2) 
+    startx, starty = jit.grid(2)     
+    stridex, stridey = jit.gridsize(2) 
     threadId = startx + starty*stridex
     
     v_m = params[2]
@@ -309,7 +302,7 @@ def NComponent_noise_kernel_2D(fields, T, transfer, rng_states, ufunc_array, par
         for j in range(startx+1, phi.shape[1]-1, stridex):
             for l in range(3, len(fields)):
                 dFdc = transfer[l-1+len(fields)-3]
-                noise_c = noise_amp_c*math.sqrt(2.*8.314*T[i][j]/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
+                noise_c = noise_amp_c*cp.sqrt(2.*8.314*T[i][j]/v_m)*rand_normal(rng_states, threadId)
                 dFdc[i][j] += noise_c
                 if(i == 1):
                     dFdc[phi.shape[0]-1][j] += noise_c
@@ -320,11 +313,11 @@ def NComponent_noise_kernel_2D(fields, T, transfer, rng_states, ufunc_array, par
                 if(j == phi.shape[1]-2):
                     dFdc[i][0] += noise_c
             
-@cuda.jit
+@jit.rawkernel()
 def NComponent_helper_kernel_2D(fields, T, transfer, rng_states, ufunc_array, params, c_params):
     #initializes certain arrays that are used in div-grad terms, to avoid recomputing terms 4 or 6 times
-    startx, starty = cuda.grid(2)     
-    stridex, stridey = cuda.gridsize(2) 
+    startx, starty = jit.grid(2)     
+    stridex, stridey = jit.gridsize(2) 
     threadId = startx + starty*stridex
     
     v_m = params[2]
@@ -359,10 +352,9 @@ def NComponent_helper_kernel_2D(fields, T, transfer, rng_states, ufunc_array, pa
             comps = len(fields)-2
             ufunc_array[i][j][len(fields)-3] = c_N
             ufunc_array[i][j][len(fields)-2] = T[i][j]
-            #dGdc = numba.cuda.local.array((2,1), numba.float64)
             #NEEDS FIXING vvvvvvvvvv
-            G_L[i][j] = get_thermodynamics(ufunc_g_l, ufunc_array[i][j])
-            G_S[i][j] = get_thermodynamics(ufunc_g_s, ufunc_array[i][j])
+            G_L[i][j] = ufunc_g_l(ufunc_array[i][j])
+            G_S[i][j] = ufunc_g_s(ufunc_array[i][j])
             
             g = (phi[i][j]**2)*(1-phi[i][j])**2
             h = (phi[i][j]**3)*(6.*phi[i][j]**2 - 15.*phi[i][j] + 10.)
@@ -370,8 +362,8 @@ def NComponent_helper_kernel_2D(fields, T, transfer, rng_states, ufunc_array, pa
             ufunc_array[i][j][len(fields)-3] -= thermo_finite_diff_incr
             for l in range(3, len(fields)):
                 ufunc_array[i][j][l-3] += thermo_finite_diff_incr
-                dGLdc = tfdi_inv*(get_thermodynamics(ufunc_g_l, ufunc_array[i][j])-G_L[i][j])
-                dGSdc = tfdi_inv*(get_thermodynamics(ufunc_g_s, ufunc_array[i][j])-G_S[i][j])
+                dGLdc = tfdi_inv*(ufunc_g_l(ufunc_array[i][j])-G_L[i][j])
+                dGSdc = tfdi_inv*(ufunc_g_s(ufunc_array[i][j])-G_S[i][j])
                 M_c = transfer[l-1]
                 dFdc = transfer[l-1+len(fields)-3]
                 M_c[i][j] = v_m*fields[l][i][j]*(D_L + h*(D_S - D_L))/(8.314*T[i][j])
@@ -379,11 +371,11 @@ def NComponent_helper_kernel_2D(fields, T, transfer, rng_states, ufunc_array, pa
                 ufunc_array[i][j][l-3] -= thermo_finite_diff_incr
             ufunc_array[i][j][len(fields)-3] += thermo_finite_diff_incr
             
-@cuda.jit
+@jit.rawkernel()
 def NComponent_helper_kernel_3D(fields, T, transfer, rng_states, ufunc_array, params, c_params):
     #initializes certain arrays that are used in div-grad terms, to avoid recomputing terms 4 or 6 times
-    startx, starty, startz = cuda.grid(3)
-    stridex, stridey, stridez = cuda.gridsize(3)
+    startx, starty, startz = jit.grid(3)
+    stridex, stridey, stridez = jit.gridsize(3)
     threadId = startx + starty*stridex + startz*stridex*stridey
     
     v_m = params[2]
@@ -423,10 +415,9 @@ def NComponent_helper_kernel_3D(fields, T, transfer, rng_states, ufunc_array, pa
                 comps = len(fields)-4
                 ufunc_array[i][j][k][len(fields)-5] = c_N
                 ufunc_array[i][j][k][len(fields)-4] = T[i][j][k]
-                #dGdc = numba.cuda.local.array((2,1), numba.float64)
                 #NEEDS FIXING vvvvvvvvvv
-                G_L[i][j][k] = get_thermodynamics(ufunc_g_l, ufunc_array[i][j][k])
-                G_S[i][j][k] = get_thermodynamics(ufunc_g_s, ufunc_array[i][j][k])
+                G_L[i][j][k] = ufunc_g_l(ufunc_array[i][j][k])
+                G_S[i][j][k] = ufunc_g_s(ufunc_array[i][j][k])
 
                 g = (phi[i][j][k]**2)*(1-phi[i][j][k])**2
                 h = (phi[i][j][k]**3)*(6.*phi[i][j][k]**2 - 15.*phi[i][j][k] + 10.)
@@ -434,8 +425,8 @@ def NComponent_helper_kernel_3D(fields, T, transfer, rng_states, ufunc_array, pa
                 ufunc_array[i][j][k][len(fields)-5] -= thermo_finite_diff_incr
                 for l in range(5, len(fields)):
                     ufunc_array[i][j][k][l-5] += thermo_finite_diff_incr
-                    dGLdc = tfdi_inv*(get_thermodynamics(ufunc_g_l, ufunc_array[i][j][k])-G_L[i][j][k])
-                    dGSdc = tfdi_inv*(get_thermodynamics(ufunc_g_s, ufunc_array[i][j][k])-G_S[i][j][k])
+                    dGLdc = tfdi_inv*(ufunc_g_l(ufunc_array[i][j][k])-G_L[i][j][k])
+                    dGSdc = tfdi_inv*(ufunc_g_s(ufunc_array[i][j][k])-G_S[i][j][k])
                     M_c = transfer[l-3]
                     dFdc = transfer[l-3+len(fields)-5]
                     M_c[i][j][k] = v_m*fields[l][i][j][k]*(D_L + h*(D_S - D_L))/(8.314*T[i][j][k])
@@ -443,11 +434,11 @@ def NComponent_helper_kernel_3D(fields, T, transfer, rng_states, ufunc_array, pa
                     ufunc_array[i][j][k][l-5] -= thermo_finite_diff_incr
                 ufunc_array[i][j][k][len(fields)-5] += thermo_finite_diff_incr
                 
-@cuda.jit
+@jit.rawkernel()
 def NComponent_sp_kernel_3D(fields, T, spa_gpu, save_points, timestep):
     
-    startx, starty, startz = cuda.grid(3)
-    stridex, stridey, stridez = cuda.gridsize(3)
+    startx, starty, startz = jit.grid(3)
+    stridex, stridey, stridez = jit.gridsize(3)
     threadId = startx + starty*stridex + startz*stridex*stridey
     
     
@@ -456,10 +447,10 @@ def NComponent_sp_kernel_3D(fields, T, spa_gpu, save_points, timestep):
             spa_gpu[i][j][timestep] = fields[j][save_points[2][i]][save_points[1][i]][save_points[0][i]]
         spa_gpu[i][len(fields)][timestep] = T[save_points[2][i]][save_points[1][i]][save_points[0][i]]
                 
-@cuda.jit
+@jit.rawkernel()
 def NComponent_noise_kernel_3D(fields, T, transfer, rng_states, ufunc_array, params, c_params):
-    startx, starty, startz = cuda.grid(3)
-    stridex, stridey, stridez = cuda.gridsize(3)
+    startx, starty, startz = jit.grid(3)
+    stridex, stridey, stridez = jit.gridsize(3)
     threadId = startx + starty*stridex + startz*stridex*stridey
     
     v_m = params[2]
@@ -484,14 +475,14 @@ def NComponent_noise_kernel_3D(fields, T, transfer, rng_states, ufunc_array, par
             for k in range(startx, phi.shape[2], stridex):
                 for l in range(5, len(fields)):
                     dFdc = transfer[l-3+len(fields)-5]
-                    noise_c = noise_amp_c*math.sqrt(2.*8.314*T[i][j][k]/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
+                    noise_c = noise_amp_c*cp.sqrt(2.*8.314*T[i][j][k]/v_m)*rand_normal(rng_states, threadId)
                     dFdc[i][j][k] += noise_c
             
-@cuda.jit
+@jit.rawkernel()
 def NComponent_kernel_3D(fields, T, transfer, fields_out, rng_states, params, c_params):
     
-    startx, starty, startz = cuda.grid(3)
-    stridex, stridey, stridez = cuda.gridsize(3)
+    startx, starty, startz = jit.grid(3)
+    stridex, stridey, stridez = jit.gridsize(3)
     threadId = startx + starty*stridex + startz*stridex*stridey
     
     dx = params[0]
@@ -601,12 +592,12 @@ def NComponent_kernel_3D(fields, T, transfer, fields_out, rng_states, params, c_
                 dq4dzp = idx*(q4[i+1][j][k]-q4[i][j][k])
                 dq4dzm = idx*(q4[i][j][k]-q4[i-1][j][k])
                 dq4dz = 0.5*(dq4dzp+dq4dzm)
-                mgq_xp = math.sqrt(dq1dxp**2 + dq2dxp**2 + dq3dxp**2 + dq4dxp**2)
-                mgq_xm = math.sqrt(dq1dxm**2 + dq2dxm**2 + dq3dxm**2 + dq4dxm**2)
-                mgq_yp = math.sqrt(dq1dyp**2 + dq2dyp**2 + dq3dyp**2 + dq4dyp**2)
-                mgq_ym = math.sqrt(dq1dym**2 + dq2dym**2 + dq3dym**2 + dq4dym**2)
-                mgq_zp = math.sqrt(dq1dzp**2 + dq2dzp**2 + dq3dzp**2 + dq4dzp**2)
-                mgq_zm = math.sqrt(dq1dzm**2 + dq2dzm**2 + dq3dzm**2 + dq4dzm**2)
+                mgq_xp = cp.sqrt(dq1dxp**2 + dq2dxp**2 + dq3dxp**2 + dq4dxp**2)
+                mgq_xm = cp.sqrt(dq1dxm**2 + dq2dxm**2 + dq3dxm**2 + dq4dxm**2)
+                mgq_yp = cp.sqrt(dq1dyp**2 + dq2dyp**2 + dq3dyp**2 + dq4dyp**2)
+                mgq_ym = cp.sqrt(dq1dym**2 + dq2dym**2 + dq3dym**2 + dq4dym**2)
+                mgq_zp = cp.sqrt(dq1dzp**2 + dq2dzp**2 + dq3dzp**2 + dq4dzp**2)
+                mgq_zm = cp.sqrt(dq1dzm**2 + dq2dzm**2 + dq3dzm**2 + dq4dzm**2)
                 mag_grad_q = 0.5*(mgq_xp+mgq_xm+mgq_yp+mgq_ym+mgq_zp+mgq_zm)
                 if(mgq_xp < beta):
                     mgq_xp = beta
@@ -747,7 +738,7 @@ def NComponent_kernel_3D(fields, T, transfer, fields_out, rng_states, params, c_
                 dphidt *= M_phi
 
                 #noise in phi
-                noise_phi = math.sqrt(2.*8.314*T[i][j][k]*M_phi/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
+                noise_phi = cp.sqrt(2.*8.314*T[i][j][k]*M_phi/v_m)*rand_normal(rng_states, threadId)
                 dphidt += noise_phi*noise_amp_phi
 
                 #dcidt
@@ -803,10 +794,10 @@ def NComponent_kernel_3D(fields, T, transfer, fields_out, rng_states, params, c_
                 lq4 = (q4[i][j+1][k]+q4[i][j-1][k]+q4[i+1][j][k]+q4[i-1][j][k]+q4[i][j][k+1]+q4[i][j][k-1]-6*q4[i][j][k])*idx*idx
 
                 q_noise_coeff = 0.0000000001
-                noise_q1 = noise_amp_q*math.sqrt(q_noise_coeff*8.314*T[i][j][k]/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
-                noise_q2 = noise_amp_q*math.sqrt(q_noise_coeff*8.314*T[i][j][k]/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
-                noise_q3 = noise_amp_q*math.sqrt(q_noise_coeff*8.314*T[i][j][k]/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
-                noise_q4 = noise_amp_q*math.sqrt(q_noise_coeff*8.314*T[i][j][k]/v_m)*cuda.random.xoroshiro128p_normal_float32(rng_states, threadId)
+                noise_q1 = noise_amp_q*cp.sqrt(q_noise_coeff*8.314*T[i][j][k]/v_m)*rand_normal(rng_states, threadId)
+                noise_q2 = noise_amp_q*cp.sqrt(q_noise_coeff*8.314*T[i][j][k]/v_m)*rand_normal(rng_states, threadId)
+                noise_q3 = noise_amp_q*cp.sqrt(q_noise_coeff*8.314*T[i][j][k]/v_m)*rand_normal(rng_states, threadId)
+                noise_q4 = noise_amp_q*cp.sqrt(q_noise_coeff*8.314*T[i][j][k]/v_m)*rand_normal(rng_states, threadId)
                 #noise_q1 = 0.
                 #noise_q4 = 0.
                 qt1 = f_ori_1+lq1*eqbar2-dfintdq1+noise_q1
@@ -830,7 +821,7 @@ def NComponent_kernel_3D(fields, T, transfer, fields_out, rng_states, params, c_
                 q2_out[i][j][k] = q2[i][j][k] + dt*dq2dt
                 q3_out[i][j][k] = q3[i][j][k] + dt*dq3dt
                 q4_out[i][j][k] = q4[i][j][k] + dt*dq4dt
-                renorm = math.sqrt((q1_out[i][j][k]**2+q2_out[i][j][k]**2+q3_out[i][j][k]**2+q4_out[i][j][k]**2))
+                renorm = cp.sqrt((q1_out[i][j][k]**2+q2_out[i][j][k]**2+q3_out[i][j][k]**2+q4_out[i][j][k]**2))
                 q1_out[i][j][k] = q1_out[i][j][k]/renorm
                 q2_out[i][j][k] = q2_out[i][j][k]/renorm
                 q3_out[i][j][k] = q3_out[i][j][k]/renorm
@@ -908,8 +899,7 @@ class NCGPU_new(Simulation):
         seed = 1
         if(self._parallel):
             seed = self._MPI_rank
-        self.user_data["rng_states"] = create_xoroshiro128p_states(256*256, seed=seed)
-        #init_xoroshiro128p_states(256*256, seed=3446621627)
+        self.user_data["rng_states"] = create_rand_states(256*256, seed=seed)
         dim = self.dimensions
         gdim = self._global_dimensions
         phi = np.zeros(dim)
@@ -1040,7 +1030,7 @@ class NCGPU_new(Simulation):
             self.user_data["thermo_finite_diff_incr"] = 0.0000001
         if "save_points" in self.user_data:
             save_points_array = np.zeros([len(self.user_data["save_points"][0]), len(self.fields)+1, self._autosave_rate])
-            self.spa_gpu = cuda.to_device(save_points_array)
+            self.spa_gpu = cp.array(save_points_array)
         params = []
         c_params = []
         params.append(self.dx)
@@ -1067,28 +1057,28 @@ class NCGPU_new(Simulation):
         c_params.append(self.user_data["M"])
         self.user_data["params"] = np.array(params)
         self.user_data["c_params"] = np.array(c_params)
-        self.user_data["params_GPU"] = cuda.to_device(self.user_data["params"])
-        self.user_data["c_params_GPU"] = cuda.to_device(self.user_data["c_params"])
+        self.user_data["params_GPU"] = cp.array(self.user_data["params"])
+        self.user_data["c_params_GPU"] = cp.array(self.user_data["c_params"])
         
     def simulation_loop(self):
-        cuda.synchronize()
+        cp.cuda.runtime.deviceSynchronize()
         if(len(self.dimensions) == 1):
             NComponent_helper_kernel[self._gpu_blocks_per_grid_1D, self._gpu_threads_per_block_1D](self._fields_gpu_device, 
                                                                       self._temperature_gpu_device, self._fields_transfer_gpu_device, 
                                                                       self.user_data["rng_states"], self._tdb_ufunc_gpu_device, 
                                                                       self.user_data["params_GPU"], self.user_data["c_params_GPU"])
-            cuda.synchronize()
+            cp.cuda.runtime.deviceSynchronize()
             NComponent_noise_kernel[self._gpu_blocks_per_grid_1D, self._gpu_threads_per_block_1D](self._fields_gpu_device, 
                                                                       self._temperature_gpu_device, self._fields_transfer_gpu_device, 
                                                                       self.user_data["rng_states"], self._tdb_ufunc_gpu_device, 
                                                                       self.user_data["params_GPU"], self.user_data["c_params_GPU"])
-            cuda.synchronize()
+            cp.cuda.runtime.deviceSynchronize()
             NComponent_kernel[self._gpu_blocks_per_grid_1D, self._gpu_threads_per_block_1D](self._fields_gpu_device, 
                                                                       self._temperature_gpu_device, self._fields_transfer_gpu_device, 
                                                                       self._fields_out_gpu_device, self.user_data["rng_states"], 
                                                                       self.user_data["params_GPU"], self.user_data["c_params_GPU"])
             if "save_points" in self.user_data:
-                cuda.synchronize()
+                cp.cuda.runtime.deviceSynchronize()
                 NComponent_sp_kernel[self._gpu_blocks_per_grid_1D, self._gpu_threads_per_block_1D](self._fields_gpu_device,
                                                                         self._temperature_gpu_device,
                                                                         self.spa_gpu, self.user_data["save_points"], 
@@ -1098,18 +1088,18 @@ class NCGPU_new(Simulation):
                                                                       self._temperature_gpu_device, self._fields_transfer_gpu_device, 
                                                                       self.user_data["rng_states"], self._tdb_ufunc_gpu_device, 
                                                                       self.user_data["params_GPU"], self.user_data["c_params_GPU"])
-            cuda.synchronize()
+            cp.cuda.runtime.deviceSynchronize()
             NComponent_noise_kernel_2D[self._gpu_blocks_per_grid_2D, self._gpu_threads_per_block_2D](self._fields_gpu_device, 
                                                                       self._temperature_gpu_device, self._fields_transfer_gpu_device, 
                                                                       self.user_data["rng_states"], self._tdb_ufunc_gpu_device, 
                                                                       self.user_data["params_GPU"], self.user_data["c_params_GPU"])
-            cuda.synchronize()
+            cp.cuda.runtime.deviceSynchronize()
             NComponent_kernel_2D[self._gpu_blocks_per_grid_2D, self._gpu_threads_per_block_2D](self._fields_gpu_device, 
                                                                       self._temperature_gpu_device, self._fields_transfer_gpu_device, 
                                                                       self._fields_out_gpu_device, self.user_data["rng_states"], 
                                                                       self.user_data["params_GPU"], self.user_data["c_params_GPU"])
             if "save_points" in self.user_data:
-                cuda.synchronize()
+                cp.cuda.runtime.deviceSynchronize()
                 NComponent_sp_kernel_2D[self._gpu_blocks_per_grid_2D, self._gpu_threads_per_block_2D](self._fields_gpu_device,
                                                                         self._temperature_gpu_device,
                                                                         self.spa_gpu, self.user_data["save_points"], 
@@ -1119,20 +1109,20 @@ class NCGPU_new(Simulation):
                                                                       self._temperature_gpu_device, self._fields_transfer_gpu_device, 
                                                                       self.user_data["rng_states"], self._tdb_ufunc_gpu_device, 
                                                                       self.user_data["params_GPU"], self.user_data["c_params_GPU"])
-            cuda.synchronize()
+            cp.cuda.runtime.deviceSynchronize()
             NComponent_noise_kernel_3D[self._gpu_blocks_per_grid_3D, self._gpu_threads_per_block_3D](self._fields_gpu_device, 
                                                                       self._temperature_gpu_device, self._fields_transfer_gpu_device, 
                                                                       self.user_data["rng_states"], self._tdb_ufunc_gpu_device, 
                                                                       self.user_data["params_GPU"], self.user_data["c_params_GPU"])
-            cuda.synchronize()
+            cp.cuda.runtime.deviceSynchronize()
             NComponent_kernel_3D[self._gpu_blocks_per_grid_3D, self._gpu_threads_per_block_3D](self._fields_gpu_device, 
                                                                       self._temperature_gpu_device, self._fields_transfer_gpu_device, 
                                                                       self._fields_out_gpu_device, self.user_data["rng_states"], 
                                                                       self.user_data["params_GPU"], self.user_data["c_params_GPU"])
             if "save_points" in self.user_data:
-                cuda.synchronize()
+                cp.cuda.runtime.deviceSynchronize()
                 NComponent_sp_kernel_3D[self._gpu_blocks_per_grid_3D, self._gpu_threads_per_block_3D](self._fields_gpu_device,
                                                                         self._temperature_gpu_device,
                                                                         self.spa_gpu, self.user_data["save_points"], 
                                                                         (self.time_step_counter-1)%self._autosave_rate)
-        cuda.synchronize()
+        cp.cuda.runtime.deviceSynchronize()

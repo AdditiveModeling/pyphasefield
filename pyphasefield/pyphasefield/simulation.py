@@ -1,7 +1,6 @@
 import numpy as np
 import sympy as sp
 import symengine as se
-import meshio as mio
 from .field import Field
 from pathlib import Path
 import matplotlib.cm as cm
@@ -21,16 +20,17 @@ from scipy.interpolate import RegularGridInterpolator
 #except:
 #    pass
 
-#attempt to load GPU utils and numba, for GPU functionality
+#attempt to load GPU utils and cupy, for GPU functionality
 try:
     from . import ppf_gpu_utils
-    import numba
+    import cupy as cp
 except:
     pass
 
 #attempt to load pycalphad, for tdb functionality
 try:
     import pycalphad as pyc
+    from pycalphad.core.utils import instantiate_models
 except:
     pass
 
@@ -45,15 +45,15 @@ class Simulation:
         A string which defines in what computational framework the simulation will run, as implemented in the Engine
         Values can be CPU_SERIAL, CPU_PARALLEL, GPU_SERIAL, or GPU_PARALLEL
         (SERIAL implies a single device (no MPI communication), PARALLEL implies multiple devices, where MPI is required)
-        (CPU runs like normal python code, GPU runs on the GPU using numba/CUDA integration, requiring numba and cudatoolkit)
+        (CPU runs like normal python code, GPU runs on the GPU using cupy/(CUDA/HIP) integration, requiring cupy)
     _gpu_blocks_per_grid_1D : tuple of int, length 1, default = (256)
-        Defines the number of blocks of threads that CUDA will use
+        Defines the number of blocks of threads that CUDA/HIP will use
         Similar private attributes exist for 2D/3D, of length 2 and 3, with defaults (16, 16) and (8, 8, 8), respectively
-        For advanced usage, can be modified to change how many resources CUDA uses
+        For advanced usage, can be modified to change how many resources CUDA/HIP uses
     _gpu_threads_per_block_1D : tuple of int, length 1, default = (256)
-        Defines the number of threads per block that CUDA will use
+        Defines the number of threads per block that CUDA/HIP will use
         Similar private attributes exist for 2D/3D, of length 2 and 3, with defaults (16, 16) and (8, 8, 8), respectively
-        For advanced usage, can be modified to change how many resources CUDA uses
+        For advanced usage, can be modified to change how many resources CUDA/HIP uses
     
     fields : list of Field
         The list containing the fields of the phase field model
@@ -90,7 +90,7 @@ class Simulation:
         FROZEN_GRADIENT: Static ("frozen") thermal gradient, thermal field is not evolved like the other fields
         ACTIVE_GRADIENT: Dynamic thermal gradient, thermal field must be simulated just like the other fields
         THERMAL_HISTORY_FILE: Static temperature field 
-            defined by a HDF5 file using h5py or by a XDMF file using meshio.xdmf.TimeSeriesReader
+            defined by a HDF5 file using h5py
             linearly interpolates between defined thermal slices, as it is impractical to store thermal data for every PF time step
         (Here, static means the temperature field is not simulated by phase field equations, it is an independent variable)
         If undefined, the simulation will not use/initialize a temperature field
@@ -276,10 +276,6 @@ class Simulation:
                 for i in range(len(self._boundary_conditions_type)):
                     if(self._boundary_conditions_type[i] == "DIRCHLET"):
                         self._boundary_conditions_type[i] = "DIRICHLET"
-                        
-        #previous versions used XDMF_FILE for temperature type, modify to new wording
-        if(self._temperature_type == "XDMF_FILE"):
-            self._temperature_type = "THERMAL_HISTORY_FILE"
         
         #debug mode flag, for verbose printing to track down errors
         self._debug_mode_flag = False
@@ -313,7 +309,7 @@ class Simulation:
         
         This function will automatically adjust the temperature based on Simulation.time_step_counter, as would be expected
         E.g. if you begin the simulation with Simulation.time_step_counter == 1000, that will have the same temperature field
-            as if you ran the simulation for 1000 timesteps, allowing the field to evolve with LINEAR_GRADIENT or XDMF_FILE
+            as if you ran the simulation for 1000 timesteps, allowing the field to evolve with LINEAR_GRADIENT or THERMAL_HISTORY_FILE
         """
         self._t_ngbc = self._ngbc.copy()
         ndims = len(self.dimensions)
@@ -362,37 +358,18 @@ class Simulation:
             self._temperature_boundary_field[end] = self._initial_T + grad*self.dx*self._global_dimensions[index]
         elif(self._temperature_type == "THERMAL_HISTORY_FILE"):
             if(self._temperature_path is None):
-                #default to T.hdf5 first, then to T.xdmf if that doesn't exist
                 if not(Path.cwd().joinpath("T.hdf5").exists()):
-                    if not(Path.cwd().joinpath("T.xdmf").exists()):
-                        raise FileNotFoundError("No default thermal history file found (T.hdf5 or T.xdmf). Please specify a path.")
-                    else:
-                        self._temperature_path = "T.xdmf"
-                        
+                    raise FileNotFoundError("No default thermal history file found (T.hdf5). Please specify a path.")  
                 else:
                     self._temperature_path = "T.hdf5"
             else:
                 if not(Path.cwd().joinpath(self._temperature_path).exists()):
                     raise FileNotFoundError("No thermal history file found at the path specified!")
-            #add code to handle hdf5 files directly here, in addition to xdmf (which won't be explicitly removed)
             self._t_file_index = 1
             dt = self.dt
             step = self.time_step_counter
             current_time = dt*step
-            if(Path(self._temperature_path).suffix == ".xdmf"):
-                with mio.xdmf.TimeSeriesReader(self._temperature_path) as reader:
-                    points, cells = reader.read_points_cells()
-                    self._t_file_bounds[0], point_data0, cell_data0 = reader.read_data(0)
-                    self._t_file_arrays[0] = np.squeeze(point_data0['T'])
-                    self._t_file_bounds[1], point_data1, cell_data0 = reader.read_data(self._t_file_index)
-                    self._t_file_arrays[1] = np.squeeze(point_data1['T'])
-                    while(current_time > self._t_file_bounds[1]):
-                        self._t_file_bounds[0] = self._t_file_bounds[1]
-                        self._t_file_arrays[0] = self._t_file_arrays[1]
-                        self._t_file_index += 1
-                        self._t_file_bounds[1], point_data1, cell_data0 = reader.read_data(self._t_file_index)
-                        self._t_file_arrays[1] = np.squeeze(point_data1['T'])
-            elif(Path(self._temperature_path).suffix == ".hdf5"):
+            if(Path(self._temperature_path).suffix == ".hdf5"):
                 with h5py.File(self._temperature_path) as f:
                     times = f["times"][:]
                     #assume the first time slice is less than the current time, if not, interpolate before first slice
@@ -405,7 +382,7 @@ class Simulation:
                     self._t_file_arrays[0] = self._build_interpolated_t_array(f, self._t_file_index-1)
                     self._t_file_arrays[1] = self._build_interpolated_t_array(f, self._t_file_index)
             else:
-                raise ValueError("Extension must be .hdf5 or .xdmf")
+                raise ValueError("Extension must be .hdf5!")
             array = np.zeros(self.dimensions)
             t_field = Field(data=array, simulation=self, colormap="jet", name="Temperature ("+self._temperature_units+")")
             t_field.data += self._t_file_arrays[0]*(self._t_file_bounds[1] - current_time)/(self._t_file_bounds[1]-self._t_file_bounds[0]) + self._t_file_arrays[1]*(current_time-self._t_file_bounds[0])/(self._t_file_bounds[1]-self._t_file_bounds[0])
@@ -590,16 +567,17 @@ class Simulation:
             self._tdb_components = list(self._tdb.elements)
         self._tdb_phases.sort()
         self._tdb_components.sort()
-        for k in range(len(self._tdb_phases)):
+        models = instantiate_models(self._tdb, self._tdb_components, self._tdb_phases)
+        for phase in self._tdb_phases:
             if(self._framework == "CPU_SERIAL" or self._framework == "CPU_PARALLEL"):
                 #use numpy for CPUs
-                sp_ufunc_numpy = ppf_utils.create_sympy_ufunc_from_tdb(self._tdb, self._tdb_phases[k], self._tdb_components, 'numpy')
-                self._tdb_ufuncs.append(sp_ufunc_numpy)
+                sp_ufunc = ppf_utils.create_sympy_ufunc_from_tdb(models[phase])
+                self._tdb_ufuncs.append(sp_ufunc)
             else: 
-                #use numba for GPUs
-                sp_ufunc_math = ppf_utils.create_sympy_ufunc_from_tdb(self._tdb, self._tdb_phases[k], self._tdb_components, 'math')
-                nb_ufunc = nb_ufunc = ppf_utils.create_numba_ufunc_from_sympy(sp_ufunc_math)
-                self._tdb_ufuncs.append(nb_ufunc)
+                #use cupy for GPUs
+                sp_ufunc = ppf_utils.create_sympy_ufunc_from_tdb(models[phase])
+                cp_ufunc = ppf_utils.create_cupy_ufunc_from_sympy(sp_ufunc)
+                self._tdb_ufuncs.append(cp_ufunc)
                 
     def _initialize_parallelism(self):
         #trying to import MPI *WILL* break things if MPI is not supported (even in a try-except block!)
@@ -983,27 +961,17 @@ class Simulation:
             dt = self.get_time_step_length()
             step = self.get_time_step_counter()
             current_time = dt*step
-            if(Path(self._temperature_path).suffix == ".xdmf"):
-                while(current_time > self._t_file_bounds[1]):
-                    with mio.xdmf.TimeSeriesReader(self._temperature_path) as reader:
-                        reader.cells=[]
-                        self._t_file_bounds[0] = self._t_file_bounds[1]
-                        self._t_file_arrays[0] = self._t_file_arrays[1]
-                        self._t_file_index += 1
-                        self._t_file_bounds[1], point_data1, cell_data0 = reader.read_data(self._t_file_index)
-                        self._t_file_arrays[1] = np.squeeze(point_data1['T'])
-            elif(Path(self._temperature_path).suffix == ".hdf5"):
-                with h5py.File(self._temperature_path) as f:
-                    times = f["times"][:]
-                    #assume the first time slice is less than the current time, if not, interpolate before first slice
-                    while(times[self._t_file_index] < current_time):
-                        if(self._t_file_index == len(times)-1):
-                            break #interpolate past last time slice if necessary
-                        self._t_file_index += 1
-                        self._t_file_bounds[0] = self._t_file_bounds[1]
-                        self._t_file_bounds[1] = times[self._t_file_index]
-                        self._t_file_arrays[0] = self._t_file_arrays[1]
-                        self._t_file_arrays[1] = self._build_interpolated_t_array(f, self._t_file_index)
+            with h5py.File(self._temperature_path) as f:
+                times = f["times"][:]
+                #assume the first time slice is less than the current time, if not, interpolate before first slice
+                while(times[self._t_file_index] < current_time):
+                    if(self._t_file_index == len(times)-1):
+                        break #interpolate past last time slice if necessary
+                    self._t_file_index += 1
+                    self._t_file_bounds[0] = self._t_file_bounds[1]
+                    self._t_file_bounds[1] = times[self._t_file_index]
+                    self._t_file_arrays[0] = self._t_file_arrays[1]
+                    self._t_file_arrays[1] = self._build_interpolated_t_array(f, self._t_file_index)
             array = self.temperature.data
             array[:] = 0
             array += self._t_file_arrays[0]*(self._t_file_bounds[1] - current_time)/(self._t_file_bounds[1]-self._t_file_bounds[0]) + self._t_file_arrays[1]*(current_time-self._t_file_bounds[0])/(self._t_file_bounds[1]-self._t_file_bounds[0])
@@ -1404,8 +1372,6 @@ class Simulation:
     
     def set_temperature_type(self, temperature_type):
         self._temperature_type = temperature_type
-        if(self._temperature_type == "XDMF_FILE"):
-            self._temperature_type = "THERMAL_HISTORY_FILE"
 
     def set_temperature_initial_T(self, initial_T):
         self._initial_T = initial_T
@@ -1596,27 +1562,27 @@ class Simulation:
         return
     
     def send_fields_to_GPU(self):
-        if(ppf_utils.successfully_imported_numba()): #unnecessary?
+        if(ppf_utils.successfully_imported_cupy()): #unnecessary?
             ppf_gpu_utils.send_fields_to_GPU(self)
         return
     
     def retrieve_fields_from_GPU(self):
-        if(ppf_utils.successfully_imported_numba()): #unnecessary?
+        if(ppf_utils.successfully_imported_cupy()): #unnecessary?
             ppf_gpu_utils.retrieve_fields_from_GPU(self)
         return
     
     def retrieve_fields_from_GPU_minimal(self):
-        if(ppf_utils.successfully_imported_numba()): #unnecessary?
+        if(ppf_utils.successfully_imported_cupy()): #unnecessary?
             ppf_gpu_utils.retrieve_fields_from_GPU_minimal(self)
         return
     
     def create_GPU_devices(self):
-        if(ppf_utils.successfully_imported_numba()): #unnecessary?
+        if(ppf_utils.successfully_imported_cupy()): #unnecessary?
             ppf_gpu_utils.create_GPU_devices(self)
         return
     
     def finish_simulation(self):
-        if(ppf_utils.successfully_imported_numba()): #unnecessary?
+        if(ppf_utils.successfully_imported_cupy()): #unnecessary?
             ppf_gpu_utils.clean_GPU(self)
         return
 
@@ -1657,60 +1623,3 @@ class Simulation:
 
     def generate_python_script(self):
         return
-    
-    #import statements, specific to built-in Engines *TO BE REMOVED*
-
-    def init_sim_Diffusion(self, dim=[200], solver="explicit", gmres=False, adi=False):
-        Engines.init_Diffusion(self, dim, solver=solver, gmres=gmres, adi=adi)
-        return
-    
-    def init_sim_DiffusionGPU(self, dim=[200, 200], cuda_blocks=(16,16), cuda_threads_per_block=(256,1)):
-        if not ppf_utils.successfully_imported_numba():
-            return
-        Engines.init_DiffusionGPU(self, dim=dim, cuda_blocks=cuda_blocks, cuda_threads_per_block=cuda_threads_per_block)
-        return
-    
-    def init_sim_CahnAllen(self, dim=[200], solver="explicit", gmres=False, adi=False):
-        Engines.init_CahnAllen(self, dim, solver=solver, gmres=gmres, adi=adi)
-        return
-    
-    def init_sim_CahnHilliard(self, dim=[200], solver="explicit", gmres=False, adi=False):
-        Engines.init_CahnHilliard(self, dim, solver=solver, gmres=gmres, adi=adi)
-        return
-
-    def init_sim_Warren1995(self, dim=[200, 200], diamond_size=15):
-        Engines.init_Warren1995(self, dim=dim, diamond_size=diamond_size)
-        return
-
-    def init_sim_NComponent(self, dim=[200, 200], sim_type="seed", number_of_seeds=1, tdb_path="Ni-Cu_Ideal.tdb",
-                            temperature_type="isothermal",
-                            initial_temperature=1574, temperature_gradient=0, cooling_rate=0, temperature_file_path="T.xdmf",
-                            initial_concentration_array=[0.40831], cell_spacing=0.0000046, d_ratio=1/0.94, solver="explicit", 
-                            nbc=["periodic", "periodic"]):
-        #initializes a Multicomponent simulation, using the NComponent model
-        if not ppf_utils.successfully_imported_pycalphad():
-            return
-        Engines.init_NComponent(self, dim=dim, sim_type=sim_type, number_of_seeds=number_of_seeds, 
-                                tdb_path=tdb_path, temperature_type=temperature_type, 
-                                initial_temperature=initial_temperature, temperature_gradient=temperature_gradient, 
-                                cooling_rate=cooling_rate, temperature_file_path=temperature_file_path, 
-                                cell_spacing=cell_spacing, d_ratio=d_ratio, initial_concentration_array=initial_concentration_array, 
-                                solver=solver, nbc=nbc)
-        return
-    
-    def init_sim_NCGPU(self, dim=[200, 200], sim_type="seed", number_of_seeds=1, tdb_path="Ni-Cu_Ideal.tdb",
-                            temperature_type="isothermal",
-                            initial_temperature=1574, temperature_gradient=0, cooling_rate=0, temperature_file_path="T.xdmf",
-                            initial_concentration_array=[0.40831], cell_spacing=0.0000046, d_ratio=1/0.94, solver="explicit", 
-                            nbc=["periodic", "periodic"], cuda_blocks = (16,16), cuda_threads_per_block = (256,1)):
-        if not ppf_utils.successfully_imported_pycalphad():
-            return
-        if not ppf_utils.successfully_imported_numba():
-            return
-        
-        Engines.init_NCGPU(self, dim=dim, sim_type=sim_type, number_of_seeds=number_of_seeds, 
-                                tdb_path=tdb_path, temperature_type=temperature_type, 
-                                initial_temperature=initial_temperature, temperature_gradient=temperature_gradient, 
-                                cooling_rate=cooling_rate, temperature_file_path=temperature_file_path, 
-                                cell_spacing=cell_spacing, d_ratio=d_ratio, initial_concentration_array=initial_concentration_array, 
-                                solver=solver, nbc=nbc, cuda_blocks=cuda_blocks, cuda_threads_per_block=cuda_threads_per_block)

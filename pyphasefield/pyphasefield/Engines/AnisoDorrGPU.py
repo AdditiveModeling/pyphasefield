@@ -1,6 +1,5 @@
 import numpy as np
 import sympy as sp
-from scipy.sparse.linalg import gmres
 import matplotlib.pyplot as plt
 np.set_printoptions(threshold=np.inf)
 from pyphasefield.field import Field
@@ -8,47 +7,45 @@ from pyphasefield.simulation import Simulation
 from pyphasefield.ppf_utils import COLORMAP_OTHER, COLORMAP_PHASE
         
 try:
-    from numba import cuda
-    import numba
-    from numba.cuda.random import create_xoroshiro128p_states, xoroshiro128p_uniform_float32
+    from cupyx import jit
+    import cupy as cp
 except:
-    import pyphasefield.jit_placeholder as cuda
-    import pyphasefield.jit_placeholder as numba
+    import pyphasefield.jit_placeholder as jit
 
-@cuda.jit(device=True)
+@jit.rawkernel(device=True)
 def divagradb(a, axp, axm, ayp, aym, b, bxp, bxm, byp, bym, idx):
     return 0.5*idx*idx*((axp+a)*(bxp-b) - (a+axm)*(b-bxm) + (ayp+a)*(byp-b) - (a+aym)*(b-bym))
     #return (idx*idx*a*(bxp+bxm+byp+bym-4*b) + 0.25*idx*idx*((axp - axm)*(bxp - bxm) + (ayp - aym)*(byp - bym)))
 
-@cuda.jit(device=True)
+@jit.rawkernel(device=True)
 def f_ori_term(D_q, D_q_xp, D_q_xm, D_q_yp, D_q_ym, mgq_xp, mgq_xm, mgq_yp, mgq_ym, q, q_xp, q_xm, q_yp, q_ym, idx):
     return 0.5*idx*idx*((D_q+D_q_xp)*(q_xp-q)/mgq_xp - (D_q+D_q_xm)*(q-q_xm)/mgq_xm + (D_q+D_q_yp)*(q_yp-q)/mgq_yp - (D_q+D_q_ym)*(q-q_ym)/mgq_ym)
 
-@cuda.jit(device=True)
+@jit.rawkernel(device=True)
 def _h(phi):
     return phi*phi*phi*(10-15*phi+6*phi*phi)
 
-@cuda.jit(device=True)
+@jit.rawkernel(device=True)
 def _hprime(phi):
     return (30*phi*phi*(1-phi)*(1-phi))
 
-@cuda.jit(device=True)
+@jit.rawkernel(device=True)
 def _g(phi):
     return (phi*phi*(1-phi)*(1-phi))
 
-@cuda.jit(device=True)
+@jit.rawkernel(device=True)
 def _gprime(phi):
     return (4*phi*phi*phi - 6*phi*phi +2*phi)
 
-@cuda.jit(device=True)
+@jit.rawkernel(device=True)
 def grad2(a, axp, axm, ayp, aym, idx):
     return (axp+axm+ayp+aym-4*a)*(idx*idx)
 
-@cuda.jit
+@jit.rawkernel()
 def AnisoDorr_kernel(fields, T, transfer, fields_out, rng_states):
     
-    startx, starty = cuda.grid(2)
-    stridex, stridey = cuda.gridsize(2)
+    startx, starty = jit.grid(2)
+    stridex, stridey = jit.gridsize(2)
     threadId = startx + starty*stridex
     
     #dx = params[0]
@@ -204,7 +201,7 @@ def AnisoDorr_kernel(fields, T, transfer, fields_out, rng_states):
                 pf_comp_y = 0.5*idx*(pf_comp_ymm[i+1][j] + pf_comp_ymm[i+1][j+1] - pf_comp_ymm[i][j] - pf_comp_ymm[i][j+1])
                 M_phi = (1-c[i][j])*M_A + c[i][j]*M_B
                 deltaphi = M_phi*(ebar*ebar*((1-3*y_e)*lphi + pf_comp_x + pf_comp_y)-(1-c[i][j])*H_A-c[i][j]*H_B-2*H*T*pp*rgqs_0)
-                rand = cuda.random.xoroshiro128p_uniform_float32(rng_states, threadId)
+                rand = rand_uniform(rng_states, threadId)
                 alpha = 0.3
                 deltaphi += M_phi*alpha*rand*(16*g)*((1-c[i][j])*H_A+c[i][j]*H_B)
 
@@ -245,14 +242,14 @@ def AnisoDorr_kernel(fields, T, transfer, fields_out, rng_states):
             q1_out[i][j] = q1_out[i][j]/renorm
             q4_out[i][j] = q4_out[i][j]/renorm
 
-@numba.jit
+@jit.rawkernel(device=True)
 def get_thermodynamics(ufunc, array):
     if(len(array) == 3):
         G = ufunc(array[0], array[1], array[2])
         dGdc = 10000000.*(ufunc(array[0]+0.0000001, array[1]-0.0000001, array[2])-G)
     return G, dGdc
             
-@cuda.jit
+@jit.rawkernel()
 def AnisoDorr_helper_kernel(fields, T, transfer, rng_states):
     #initializes certain arrays that are used in div-grad terms, to avoid recomputing terms many times
     #transfer[0] is pf_comp_x, defined at the vertex mm
@@ -261,8 +258,8 @@ def AnisoDorr_helper_kernel(fields, T, transfer, rng_states):
     #transfer[3] is t4_temp, defined at the vertex mm
     #transfer[4] is "temp", the term used in the dcdt term for grad phi
     #transfer[5] is "D_C", the term used in the dcdt term for grad c
-    startx, starty = cuda.grid(2)     
-    stridex, stridey = cuda.gridsize(2) 
+    startx, starty = jit.grid(2)     
+    stridex, stridey = jit.gridsize(2) 
     threadId = startx + starty*stridex
     
     #v_m = params[2]
@@ -386,15 +383,15 @@ def make_seed(phi, q1, q4, x, y, angle, seed_radius):
     
 def engine_AnisoDorrGPU(sim):
     
-    cuda.synchronize()
+    cp.cuda.runtime.deviceSynchronize()
     AnisoDorr_helper_kernel[sim.cuda_blocks, sim.cuda_threads_per_block](sim.fields_gpu_device, sim.temperature_gpu_device,
                                                                           sim.transfer_gpu_device, sim.rng_states, 
                                                                           sim.params, sim.c_params)
-    cuda.synchronize()
+    cp.cuda.runtime.deviceSynchronize()
     AnisoDorr_kernel[sim.cuda_blocks, sim.cuda_threads_per_block](sim.fields_gpu_device, sim.temperature_gpu_device, 
                                                                    sim.transfer_gpu_device, sim.fields_out_gpu_device,
                                                                    sim.rng_states, sim.params, sim.c_params)
-    cuda.synchronize()
+    cp.cuda.runtime.deviceSynchronize()
     sim.fields_gpu_device, sim.fields_out_gpu_device = sim.fields_out_gpu_device, sim.fields_gpu_device
     
     
@@ -448,18 +445,18 @@ def init_AnisoDorrGPU(sim, dim=[200,200], sim_type="seed", number_of_seeds=1, td
     #c_params.append(sim.M)
     sim.params = np.array(params)
     sim.c_params = np.array(c_params)
-    sim.rng_states = create_xoroshiro128p_states(256*256, seed=3)
+    sim.rng_states = create_rand_states(256*256, seed=3)
     out_dim = dim.copy()
     #out_dim.insert(0, len(sim._components)+2)
     out_dim.insert(0, 4)
-    sim.fields_out_gpu_device = cuda.device_array(out_dim)
+    sim.fields_out_gpu_device = cupy.empty(out_dim)
     transfer_dim = dim.copy()
     #transfer_dim.insert(0, 2*len(sim._components))
     transfer_dim.insert(0, 6)
-    sim.transfer_gpu_device = cuda.device_array(transfer_dim)
+    sim.transfer_gpu_device = cupy.empty(transfer_dim)
     ufunc_array_dim = dim.copy()
     ufunc_array_dim.append(len(sim._components)+1)
-    sim.ufunc_array = cuda.device_array(ufunc_array_dim)
+    sim.ufunc_array = cupy.empty(ufunc_array_dim)
     
 class AnisoDorrGPU(Simulation):
     def __init__(self, **kwargs):
@@ -481,7 +478,7 @@ class AnisoDorrGPU(Simulation):
         #runs *after* tdb and thermal data is loaded/initialized
         #runs *before* boundary conditions are initialized
         self._num_transfer_arrays = 6
-        self.user_data["rng_states"] = create_xoroshiro128p_states(256*256, seed=3446621627)
+        self.user_data["rng_states"] = create_rand_states(256*256, seed=3446621627)
         dim = self.dimensions
         try:
             sim_type = self.user_data["sim_type"]
@@ -585,12 +582,12 @@ class AnisoDorrGPU(Simulation):
         
     def simulation_loop(self):
         #code to run each simulation step goes here
-        cuda.synchronize()
+        cp.cuda.runtime.deviceSynchronize()
         if(len(self.dimensions) == 1):
             AnisoDorr_helper_kernel[self._gpu_blocks_per_grid_1D, self._gpu_threads_per_block_1D](self._fields_gpu_device, 
                                                                       self._temperature_gpu_device, self._fields_transfer_gpu_device, 
                                                                       self.user_data["rng_states"])
-            cuda.synchronize()
+            cp.cuda.runtime.deviceSynchronize()
             AnisoDorr_kernel[self._gpu_blocks_per_grid_1D, self._gpu_threads_per_block_1D](self._fields_gpu_device, 
                                                                       self._temperature_gpu_device, self._fields_transfer_gpu_device, 
                                                                       self._fields_out_gpu_device, self.user_data["rng_states"])
@@ -598,7 +595,7 @@ class AnisoDorrGPU(Simulation):
             AnisoDorr_helper_kernel[self._gpu_blocks_per_grid_2D, self._gpu_threads_per_block_2D](self._fields_gpu_device, 
                                                                       self._temperature_gpu_device, self._fields_transfer_gpu_device, 
                                                                       self.user_data["rng_states"])
-            cuda.synchronize()
+            cp.cuda.runtime.deviceSynchronize()
             AnisoDorr_kernel[self._gpu_blocks_per_grid_2D, self._gpu_threads_per_block_2D](self._fields_gpu_device, 
                                                                       self._temperature_gpu_device, self._fields_transfer_gpu_device, 
                                                                       self._fields_out_gpu_device, self.user_data["rng_states"])
@@ -606,9 +603,9 @@ class AnisoDorrGPU(Simulation):
             AnisoDorr_helper_kernel[self._gpu_blocks_per_grid_3D, self._gpu_threads_per_block_3D](self._fields_gpu_device, 
                                                                       self._temperature_gpu_device, self._fields_transfer_gpu_device, 
                                                                       self.user_data["rng_states"])
-            cuda.synchronize()
+            cp.cuda.runtime.deviceSynchronize()
             AnisoDorr_kernel[self._gpu_blocks_per_grid_3D, self._gpu_threads_per_block_3D](self._fields_gpu_device, 
                                                                       self._temperature_gpu_device, self._fields_transfer_gpu_device, 
                                                                       self._fields_out_gpu_device, self.user_data["rng_states"])
-        cuda.synchronize()
+        cp.cuda.runtime.deviceSynchronize()
         self._fields_gpu_device, self._fields_out_gpu_device = self._fields_out_gpu_device, self._fields_gpu_device

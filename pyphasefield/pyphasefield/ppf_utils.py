@@ -1,6 +1,5 @@
 from matplotlib.colors import LinearSegmentedColormap
 import matplotlib.pyplot as plt
-import meshio
 import numpy as np
 import sympy as sp
 import symengine as se
@@ -8,6 +7,13 @@ from tinydb import where
 import h5py
 from glob import glob
 import pathlib
+import linecache
+import re
+try:
+    import cupy as cp
+    from cupyx import jit
+except:
+    print("Cannot import cupy, therefore cannot create TDB ufuncs built for GPUs")
 
 colors = [(0, 0, 1), (0, 1, 1), (0, 1, 0), (1, 1, 0), (1, 0, 0)]
 COLORMAP_OTHER = LinearSegmentedColormap.from_list('rgb', colors)
@@ -44,25 +50,26 @@ def successfully_imported_pycalphad():
     """
     try:
         import pycalphad as pyc
+        from pycalphad.core.utils import instantiate_models
     except ImportError:
         print("The feature you are trying to use requires pycalphad")
         print("In Anaconda, use \'conda install -c pycalphad -c conda-forge pycalphad\' to install it")
         return False
     return True
 
-def successfully_imported_numba():
+def successfully_imported_cupy():
     """
     Checks if numba/cuda is installed. 
     If not, warns the user that gpu-dependent features cannot be used
     Also tells the user how to install it (if the user has Anaconda)
     """
     try:
-        import numba
-        from numba import cuda
+        import cupy as cp
+        from cupyx import jit
         from . import ppf_gpu_utils
     except ImportError as e:
-        print("The feature you are trying to use requires numba (and cudatoolkit)")
-        print("In Anaconda, use \'conda install cudatoolkit\' and \'conda install numba\' to install them")
+        print("The feature you are trying to use requires cupy")
+        print("Use \'pip install cupy\' to install, building against whichever GPU you have")
         print(e)
         return False
     return True
@@ -378,141 +385,86 @@ def TSVtoHDF5(tsv_folder_path, files=None, times=None, file_t_units="us", target
     dset3 = f.create_dataset("gridsize_F", gridsize_F.shape, dtype='f')
     dset3[...] = gridsize_F
     f.close()
-                    
 
-def CSVtoXDMF(csv_path, T_cutoffs=False, starting_T=None, ending_T=None, reflect_X = False):
-    try:
-        f = open(csv_path)
-        s = f.readline() #header
-        s = f.readline() #origins
-        s = f.readline() #value of origins
-        s = f.readline() #spacings
-        s = f.readline() #value of spacings
-        s = f.readline() #numpoints
-        s = f.readline() #value of numpoints
-        dims = [int(item) for item in filter(None, s.strip('\n').strip(' ').split(","))]
-        print(dims)
-        s = f.readline() #time, temperature header
-        s = f.readline() #first value for time, temperature array!
-        points = np.array([[[0, 0],[0, 0]], [[0, 0],[0, 0]]])
-        cells = {}
-        reached_first_time = False
-        time_offset = 0
-        with meshio.xdmf.TimeSeriesWriter("T.xdmf") as writer:
-            writer.write_points_cells(points, cells)
-            while(s):
-                s = s.split(",", 1)
-                time = float(s[0])*0.000001
-                #reshape T to dims.reverse(), due to ordering of array (last term is num_cols)
-                l = s[1].strip('\n').split(',')
-                T = np.transpose(1000*np.resize(np.array([float(item) for item in filter(None, l)]), dims))
-                print(time, np.min(T), np.max(T))
-                if(T_cutoffs):
-                    if not reached_first_time: #find first timestep where temperature is above starting_T
-                        if(np.max(T) > starting_T):
-                            reached_first_time = True
-                            time_offset = time
-                    else:
-                        if(np.max(T) < ending_T):
-                            break
-                    if(reflect_X):
-                        T = np.concatenate((np.flip(T, 1), T), axis=1)
-                    if(reached_first_time):
-                        writer.write_data(time-time_offset, point_data={"T": T})
-                    s = f.readline()
-                else:
-                    if(reflect_X):
-                        T = np.concatenate((np.flip(T, 1), T), axis=1)
-                    writer.write_data(time, point_data={"T": T})
-                    s = f.readline()
-
-    finally:
-        f.close()
+def convert_function(function_text):
+    """
+    Converts a function with array unpacking in a single line to a function 
+    with each variable unpacked separately for better GPU performance.
+    
+    Args:
+        function_text (str): The text of the function to convert
         
-def create_sympy_ufunc_from_tdb(tdb, phase, components, mode):
+    Returns:
+        str: The converted function text
+    """
+    # Extract function name and parameter
+    function_def_match = re.match(r'def\s+(\w+)\((\w+)\):', function_text)
+    if not function_def_match:
+        raise ValueError("Could not parse function definition")
+    
+    function_name = function_def_match.group(1)
+    array_param = function_def_match.group(2)
+    
+    # Extract variable list from first line after definition
+    lines = function_text.strip().split('\n')
+    if len(lines) < 2:
+        raise ValueError("Function is too short, missing body")
+    
+    var_list_match = re.match(r'\s*\[([\w\s,]+)\]\s*=\s*' + re.escape(array_param), lines[1])
+    if not var_list_match:
+        raise ValueError("Could not find variable assignment list")
+    
+    # Get the variable names
+    var_names = [v.strip() for v in var_list_match.group(1).split(',')]
+    
+    # Create new function with unpacked variables
+    new_lines = [f"def {function_name}({array_param}):"]
+    
+    # Add variable assignments
+    for i, var in enumerate(var_names):
+        new_lines.append(f"    {var} = {array_param}[{i}]")
+    
+    # Add the rest of the function body (skipping the first line with the list assignment)
+    body_lines = lines[2:]
+    new_lines.extend(body_lines)
+    
+    return '\n'.join(new_lines)
+
+def create_cupy_ufunc_from_sympy(sympy_ufunc):
+    """
+    Creates a cupy ufunc for the GPU from the given sympy ufunc
+    """
+    if not hasattr(create_cupy_ufunc_from_sympy, "num_funcs"):
+        create_cupy_ufunc_from_sympy.num_funcs = 0
+    raw_source = sympy_ufunc.__doc__.split("Source code:")[1].strip("\n").split("Imported modules:")[0].strip("\n")
+    raw_source = raw_source.replace("log(", "cp.log(")
+    raw_source = convert_function(raw_source)
+    sc = compile(raw_source, f"<pycgpu_test_function{create_cupy_ufunc_from_sympy.num_funcs}>", "exec")
+    exec(sc, globals())
+    linecache.cache[f"<pycgpu_test_function{create_cupy_ufunc_from_sympy.num_funcs}>"] = (len(raw_source), None, raw_source.splitlines(True), f"<pycgpu_test_function{create_cupy_ufunc_from_sympy.num_funcs}>")
+    create_cupy_ufunc_from_sympy.num_funcs += 1
+    cp_ufunc = jit.rawkernel(device=True)(_lambdifygenerated)
+    return cp_ufunc
+
+def create_sympy_ufunc_from_tdb(model):
     """
     Creates a sympy ufunc from the given phase/components of the tdb
     """
-    if(successfully_imported_pycalphad):
-        import pycalphad as pyc
-    else:
-        raise Exception("Aborting, pycalphad must be installed for this class to be used")
-    phase_id = phase
-    phase = tdb.phases[phase_id]
-    param_search = tdb.search
-    g_param_query = (
-        (where('phase_name') == phase.name) & \
-        ((where('parameter_type') == 'G') | \
-        (where('parameter_type') == 'L'))
-    )
-    model = pyc.Model(tdb, components, phase_id)
-    symengine_expr = model.redlich_kister_sum(phase, param_search, g_param_query)
-    symengine_ime = model.ideal_mixing_energy(tdb)
-    
-    for i in tdb.symbols:
-        d = tdb.symbols[i]
-        g = se.Symbol(i)
-        symengine_expr = symengine_expr.subs(g, d)
-        
-    #do it again, just in case symbols are defined in terms of symbols
-    #fix this later - detect how many symbols are in expression?
-    for i in tdb.symbols:
-        d = tdb.symbols[i]
-        g = se.Symbol(i)
-        symengine_expr = symengine_expr.subs(g, d)
-        
-    #have to parse the sympy expression from the symengine expression, sympy doesn't like the variables with "()," symbols
-    
-    sympy_expr = sp.parse_expr(str(symengine_expr))
-    sympy_ime = sp.parse_expr(str(symengine_ime))
-    
-    sympysyms_list = []
-    T = None
-    symbol_name_list = []
-    for i in list(components):
-        symbol_name_list.append(phase_id+"0"+i)
-
-    for j in sympy_expr.free_symbols:
-        if j.name in symbol_name_list: 
-            sympysyms_list.append(j)
-        elif j.name == "T":
-            T = j
-        else:
-            symengine_expr = symengine_expr.subs(j, 0)
-    sympysyms_list = sorted(sympysyms_list, key=lambda t:t.name)
-    sympysyms_list.append(T)
-    
-    sympy_ufunc = sp.lambdify([sympysyms_list], sympy_expr+sympy_ime, mode)
+    expr = sp.parse_expr(str(model.GM))
+    syms = expr.free_symbols
+    syms = sorted(expr.free_symbols, key=lambda s: s.name)
+    for sym in syms: 
+        if(sym.name == "T"):
+            syms.remove(sym)
+            syms.append(sym) #explicitly ensure T is always the last symbol, in case there is a phase "Zeta" or something
+    sympy_ufunc = sp.lambdify([syms], expr, "math")
     return sympy_ufunc
-
-def create_numba_ufunc_from_sympy(sp_ufunc):
-    """
-    Converts sympy ufunc to numba
-    """
-    try:
-        import numba
-    except:
-        print("Cannot import numba, therefore cannot create TDB ufuncs built for GPUs")
-    numba_ufunc = numba.jit(sp_ufunc, nopython=True)
-    return numba_ufunc
-        
-class XDMFLoader():
-    def __init__(self, t_file_path):
-        self.t_file_path = t_file_path
-        with meshio.xdmf.TimeSeriesReader(self.t_file_path) as reader:
-            self.num_steps = reader.num_steps
-            
-    def data(self, step):
-        with meshio.xdmf.TimeSeriesReader(self.t_file_path) as reader:
-            points, cells = reader.read_points_cells()
-            bound, point_data0, cell_data0 = reader.read_data(step)
-            array = np.squeeze(point_data0['T'])
-            return bound, array
         
 class TDBContainer():
     def __init__(self, tdb_path, phases=None, components=None):
         if(successfully_imported_pycalphad):
             import pycalphad as pyc
+            from pycalphad.core.utils import instantiate_models
         else:
             raise Exception("Aborting, pycalphad must be installed for this class to be used")
         self._tdb_path = tdb_path
@@ -527,18 +479,17 @@ class TDBContainer():
         self._tdb_components.sort()
         self._tdb_cpu_ufuncs = []
         self._tdb_gpu_ufuncs = []
-        numba_enabled = False
+        cupy_enabled = False
         try:
-            import numba
-            numba_enabled = True
+            import cupy as cp
+            cupy_enabled = True
         except:
             print("Cannot import numba, therefore cannot create TDB ufuncs built for GPUs")
-        for k in range(len(self._tdb_phases)):
-            
-            sp_ufunc_numpy = create_sympy_ufunc_from_tdb(self._tdb, self._tdb_phases[k], components, 'numpy')
-            self._tdb_cpu_ufuncs.append(sp_ufunc_numpy)
-            if(numba_enabled):
-                sp_ufunc_math = create_sympy_ufunc_from_tdb(self._tdb, self._tdb_phases[k], components, 'math')
-                nb_ufunc = create_numba_ufunc_from_sympy(sp_ufunc_math)
-                self._tdb_gpu_ufuncs.append(nb_ufunc)
+        models = instantiate_models(self._tdb, self._tdb_components, self._tdb_phases)
+        for phase in self._tdb_phases:
+            sp_ufunc = create_sympy_ufunc_from_tdb(models[phase])
+            self._tdb_cpu_ufuncs.append(sp_ufunc)
+            if(cupy_enabled):
+                cp_ufunc = create_cp_ufunc_from_sympy(sp_ufunc)
+                self._tdb_gpu_ufuncs.append(cp_ufunc)
         

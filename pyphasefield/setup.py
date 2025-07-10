@@ -22,6 +22,9 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
 	install_requires=[
+        'numpy>=1.13, <2.0',
+        'pycalphad>=0.11',
+        'sympy>=1.12',
     ],
-    python_requires='>=3.6',
+    python_requires='>=3.10',
 )

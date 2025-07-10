@@ -8,7 +8,7 @@ end_color = '\033[0m'
 LINE_UP = '\033[1A'
 LINE_CLEAR = '\x1b[2K'
 
-required_packages = ["numpy", "scipy", "sympy", "matplotlib", "tinydb", "meshio", "symengine"]
+required_packages = ["numpy", "scipy", "sympy", "matplotlib", "tinydb", "symengine"]
 pycalphad_prerequisites = ["cython", "numexpr", "bottleneck", "setuptools_scm", "importlib-metadata", "importlib-resources", "pytest", "pytest_cov", "xarray"]
 
 def install_package(name):
@@ -37,9 +37,7 @@ if(coral.lower() == "y" or coral.lower() == "yes"):
     calphad = "y"
 else:
     coral = False
-    cuda = input(warning+"Would you like to install numba and cudatoolkit for GPU simulations? (Requires installation through conda!) (y/[n]) "+end_color)
-    if(cuda.lower() == "y" or cuda.lower() == "yes"):
-        ver = input(warning+"    Specify version of cudatoolkit here (e.g. 11.4.2), in case the latest is not supported. Leave blank for latest. "+end_color)
+    gpu = input(warning+"Would you like to install cupy for GPU simulations? (y/[n]) "+end_color)
     jupyter = input(warning+"Would you like to set up a jupyter notebook kernel? (y/[n]) "+end_color)
     mpi = input(warning+"Would you like to install mpi4py for parallel simulations? (requires MPI to be pre-installed on the supercomputer!) (y/[n]) "+end_color)
     hdf5 = input(warning+"Would you like to build h5py against a parallel installation for running parallel sims? (requires hdf5-parallel to already be installed on the supercomputer!) (y/[n]) "+end_color)
@@ -57,17 +55,17 @@ if(hdf5.lower() == "y" or hdf5.lower() == "yes"):
     hdf5 = True
 else:
     hdf5 = False
-if(cuda.lower() == "y" or cuda.lower() == "yes"):
-    cuda = True
+if(gpu.lower() == "y" or gpu.lower() == "yes"):
+    gpu = True
 else:
-    cuda = False
+    gpu = False
 if(calphad.lower() == "y" or calphad.lower() == "yes"):
     calphad = True
 else:
     calphad = False
     
-if(cuda):
-    print("Attempting to install numba and cudatoolkit, "+warning+"will fail if not run in a conda environment!"+end_color)
+if(gpu):
+    print("Attempting to install cupy and cudatoolkit, "+warning+"will fail if not run in a conda environment!"+end_color)
     out = os.system("conda install -c conda-forge -y numba >> pyphasefield_installation.log 2>&1")
     if(out != 0):
         print(fail+"Failed to install numba automatically, install this package manually if you would like GPU simulations!"+end_color)
