@@ -52,3 +52,6 @@
 
 # ignore logs
 *.log
+
+# ignore h5py files
+*.hdf5
