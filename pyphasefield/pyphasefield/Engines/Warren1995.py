@@ -5,10 +5,14 @@ from pyphasefield.simulation import Simulation
 from pyphasefield.ppf_utils import COLORMAP_OTHER, COLORMAP_PHASE_INV
         
 try:
-    from numba import cuda
-    from numba.cuda.random import create_xoroshiro128p_states, xoroshiro128p_uniform_float32
+    from cupyx import jit
+    import cupy as cp
+    from pyphasefield.ppf_gpu_utils import create_rand_states, rand_uniform
 except:
-    import pyphasefield.jit_placeholder as cuda
+    import pyphasefield.jit_placeholder as jit
+    import pyphasefield.jit_placeholder as cp
+    create_rand_states = None
+    rand_uniform = None
 
 def __p(phi):
     return phi*phi*phi*(10-15*phi+6*phi*phi)
@@ -144,11 +148,11 @@ def init_Warren1995(sim, dim, diamond_size=15):
     sim.ebar = np.sqrt(6*np.sqrt(2)*sim.s_A*sim.d/sim.T_mA)
     sim.set_engine(Warren1995)
     
-@cuda.jit
-def Warren1995_kernel(fields, T, transfer, fields_out, rng_states, params, c_params):
+@jit.rawkernel()
+def Warren1995_kernel(fields, T, transfer, fields_out, rand_states, params, c_params):
     
-    startx, starty = cuda.grid(2)    
-    stridex, stridey = cuda.gridsize(2) 
+    startx, starty = jit.grid(2)    
+    stridex, stridey = jit.gridsize(2) 
     thread_id = startx + starty*stridex
     
     R = 8.314
@@ -206,7 +210,7 @@ def Warren1995_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
             dphidt = e2*eta*eta*lphi - (1.-c[i][j])*H_A - c[i][j]*H_B 
             dphidt += e2*eta*etaprime*(math.sin(2.*theta)*(d2phidy2-d2phidx2) + 2.*math.cos(2.*theta)*d2phidxy)
             dphidt -= 0.5*e2*(etaprime*etaprime + eta*etadoubleprime)*(2.*math.sin(2.*theta)*d2phidxy - lphi - math.cos(2.*theta)*(d2phidy2-d2phidx2))
-            random = xoroshiro128p_uniform_float32(rng_states, thread_id)
+            random = rand_uniform(rand_states, thread_id)
             dphidt += a*16*g*((1-c[i][j])*H_A + c[i][j]*H_B)*(2.*random-1.)
             dphidt *= M_phi
             
@@ -226,10 +230,10 @@ def Warren1995_kernel(fields, T, transfer, fields_out, rng_states, params, c_par
             phi_out[i][j] = phi[i][j] + dphidt*dt
             c_out[i][j] = c[i][j] + dcdt*dt
             
-@cuda.jit
-def Warren1995_helper_kernel(fields, T, transfer, rng_states, params, c_params):
-    startx, starty = cuda.grid(2)     
-    stridex, stridey = cuda.gridsize(2) 
+@jit.rawkernel()
+def Warren1995_helper_kernel(fields, T, transfer, rand_states, params, c_params):
+    startx, starty = jit.grid(2)     
+    stridex, stridey = jit.gridsize(2) 
     
     phi = fields[0]
     c = fields[1]
@@ -347,22 +351,22 @@ class Warren1995(Simulation):
             c_params.append([self.user_data["M_A"], self.user_data["M_B"]])
             self.user_data["params"] = cuda.to_device(np.array(params))
             self.user_data["c_params"] = cuda.to_device(np.array(c_params))
-            self.user_data["rng_states"] = create_xoroshiro128p_states(256*256, seed=1)
+            self.user_data["rand_states"] = create_rand_states(256*256, seed=1)
         
     def simulation_loop(self):
         #code to run each simulation step goes here
         if(self._uses_gpu):
-            cuda.synchronize()
+            cp.cuda.runtime.deviceSynchronize()
             Warren1995_helper_kernel[self._gpu_blocks_per_grid_2D, self._gpu_threads_per_block_2D](self._fields_gpu_device, 
                                                                       self._temperature_gpu_device, self._fields_transfer_gpu_device, 
-                                                                      self.user_data["rng_states"], 
+                                                                      self.user_data["rand_states"], 
                                                                       self.user_data["params"], self.user_data["c_params"])
-            cuda.synchronize()
+            cp.cuda.runtime.deviceSynchronize()
             Warren1995_kernel[self._gpu_blocks_per_grid_2D, self._gpu_threads_per_block_2D](self._fields_gpu_device, 
                                                                       self._temperature_gpu_device, self._fields_transfer_gpu_device, 
-                                                                      self._fields_out_gpu_device, self.user_data["rng_states"], 
+                                                                      self._fields_out_gpu_device, self.user_data["rand_states"], 
                                                                       self.user_data["params"], self.user_data["c_params"])
-            cuda.synchronize()
+            cp.cuda.runtime.deviceSynchronize()
             self._fields_gpu_device, self._fields_out_gpu_device = self._fields_out_gpu_device, self._fields_gpu_device
         else:
             engine_Warren1995(self)

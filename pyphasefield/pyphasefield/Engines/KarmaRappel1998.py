@@ -5,11 +5,11 @@ from pyphasefield.simulation import Simulation
 from pyphasefield.ppf_utils import COLORMAP_OTHER, COLORMAP_PHASE
         
 try:
-    from numba import cuda
-    import numba
+    from cupyx import jit
+    import cupy as cp
 except:
-    import pyphasefield.jit_placeholder as cuda
-    import pyphasefield.jit_placeholder as numba
+    import pyphasefield.jit_placeholder as jit
+    import pyphasefield.jit_placeholder as cp
 
 
 
@@ -97,11 +97,11 @@ def KarmaRappelCPU(self):
     
     
     
-@cuda.jit(Device=True)
+@jit.rawkernel()(Device=True)
 def MAG2_GPU(derx, dery):
     return (derx*derx+dery*dery)*(derx*derx+dery*dery)
 
-@cuda.jit(Device=True)
+@jit.rawkernel()(Device=True)
 def A_fun_GPU(derx, dery, mag2, a_s, e_prime):
     threshold=1e-8
     if mag2 < threshold:
@@ -111,10 +111,10 @@ def A_fun_GPU(derx, dery, mag2, a_s, e_prime):
         derA = -4*a_s*e_prime * derx * dery * (derx*derx - dery*dery)/mag2
         return A,derA
 
-@cuda.jit
+@jit.rawkernel()
 def kernel_2DKarmaRappelGPU(fields, fields_out, w, lambda_val, tau, D, dx, dt, e4):
-    startx, starty = cuda.grid(2)
-    stridex, stridey = cuda.gridsize(2)
+    startx, starty = jit.grid(2)
+    stridex, stridey = jit.gridsize(2)
     
     phi = fields[0]
     u = fields[1]
@@ -175,12 +175,12 @@ def kernel_2DKarmaRappelGPU(fields, fields_out, w, lambda_val, tau, D, dx, dt, e
     
 
 def engine_2DKarmaRappelGPU(sim):
-    cuda.synchronize()
+    cp.cuda.runtime.deviceSynchronize()
     kernel_2DKarmaRappelGPU[sim._gpu_blocks_per_grid_2D, sim._gpu_threads_per_block_2D](sim._fields_gpu_device, sim._fields_out_gpu_device, 
                                                                   sim.user_data['w'], sim.user_data['lambda_val'], sim.user_data['tau'], 
                                                                   sim.user_data['D'], sim.dx, sim.dt, sim.user_data['e4'])
     
-    cuda.synchronize()
+    cp.cuda.runtime.deviceSynchronize()
     
 
 

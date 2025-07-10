@@ -257,25 +257,15 @@ class Simulation:
         
         #boundary condition related variables
         self.boundary_fields = []
-        self._boundary_conditions_type = boundary_conditions
+        self._boundary_conditions_type = None
         self._neighbors = []
         self._ngbc = []
         self._neighbors_gpu_device = None
         self._bc_subarrays = []
         
-        #previous versions erroneously had dirichlet spelled as "dirchlet", correct this just in case
-        if(self._boundary_conditions_type == "DIRCHLET"):
-            self._boundary_conditions_type = "DIRICHLET"
-        if(isinstance(self._boundary_conditions_type, list)):
-            if(isinstance(self._boundary_conditions_type[0], list)):
-                for i in range(len(self._boundary_conditions_type)):
-                    for j in range(len(self._boundary_conditions_type[0])):
-                        if(self._boundary_conditions_type[i][j] == "DIRCHLET"):
-                            self._boundary_conditions_type[i][j] = "DIRICHLET"
-            else:
-                for i in range(len(self._boundary_conditions_type)):
-                    if(self._boundary_conditions_type[i] == "DIRCHLET"):
-                        self._boundary_conditions_type[i] = "DIRICHLET"
+        # Set boundary conditions using the setter method for validation
+        if boundary_conditions is not None:
+            self.set_boundary_conditions(boundary_conditions)
         
         #debug mode flag, for verbose printing to track down errors
         self._debug_mode_flag = False
@@ -1476,6 +1466,33 @@ class Simulation:
         """
         bc = boundary_conditions_type
         dims = len(self.dimensions)
+        
+        # Fix common misspelling of DIRICHLET
+        if bc == "DIRCHLET":
+            bc = "DIRICHLET"
+        elif isinstance(bc, list):
+            # Fix in lists
+            if isinstance(bc[0], list):
+                for i in range(len(bc)):
+                    for j in range(len(bc[i])):
+                        if bc[i][j] == "DIRCHLET":
+                            bc[i][j] = "DIRICHLET"
+            else:
+                for i in range(len(bc)):
+                    if bc[i] == "DIRCHLET":
+                        bc[i] = "DIRICHLET"
+        
+        # Validate boundary conditions
+        if type(bc) is list:
+            if type(bc[0]) is list:
+                # 2D list format - should have one entry per dimension
+                if len(bc) != dims:
+                    raise ValueError(f"Number of boundary conditions ({len(bc)}) does not match the number of dimensions ({dims})")
+            else:
+                # 1D list format - should have 1, dims, or 2*dims entries
+                if len(bc) not in [dims, 2*dims]:
+                    raise ValueError(f"Number of boundary conditions ({len(bc)}) does not match the number of dimensions ({dims}). Expected {dims} or {2*dims} entries.")
+        
         if not(type(boundary_conditions_type) is list): #single bc type
             self._boundary_conditions_type = []
             for i in range(dims):

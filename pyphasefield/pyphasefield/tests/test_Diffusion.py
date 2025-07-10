@@ -1,116 +1,163 @@
 import pyphasefield as ppf
+from pyphasefield.Engines.Diffusion import Diffusion
 
 def test_diffusion_default1dexplicit():
-    sim = ppf.Simulation("test")
-    sim.init_sim_Diffusion([10])
+    sim = Diffusion(dimensions=[10], dx=1.0, dt=0.01, user_data={"D": 0.1, "solver": "explicit"}, boundary_conditions=["PERIODIC"])
+    sim.initialize_engine()
     sim.simulate(2)
+    assert sim.time_step_counter == 2
+    assert len(sim.fields) > 0
     
 def test_diffusion_default2dexplicit():
-    sim = ppf.Simulation("test")
-    sim.init_sim_Diffusion([10, 10])
+    sim = Diffusion(dimensions=[10, 10], dx=1.0, dt=0.01, user_data={"D": 0.1, "solver": "explicit"}, boundary_conditions=["PERIODIC", "PERIODIC"])
+    sim.initialize_engine()
     sim.simulate(2)
+    assert sim.time_step_counter == 2
+    assert len(sim.fields) > 0
     
 def test_diffusion_default3dexplicit():
-    sim = ppf.Simulation("test")
-    sim.init_sim_Diffusion([10, 10, 10])
+    sim = Diffusion(dimensions=[10, 10, 10], dx=1.0, dt=0.01, user_data={"D": 0.1, "solver": "explicit"}, boundary_conditions=["PERIODIC", "PERIODIC", "PERIODIC"])
+    sim.initialize_engine()
     sim.simulate(2)
+    assert sim.time_step_counter == 2
+    assert len(sim.fields) > 0
     
 def test_diffusion_Implicit1D():
-    sim = ppf.Simulation("test")
-    sim.init_sim_Diffusion([10], solver="implicit")
+    sim = Diffusion(dimensions=[10], dx=1.0, dt=0.01, user_data={"D": 0.1, "solver": "implicit"}, boundary_conditions=["PERIODIC"])
+    sim.initialize_engine()
     sim.simulate(2)
+    assert sim.time_step_counter == 2
+    assert len(sim.fields) > 0
     
 def test_diffusion_Implicit1D_GMRES():
-    sim = ppf.Simulation("test")
-    sim.init_sim_Diffusion([10], solver="implicit", gmres=True)
+    sim = Diffusion(dimensions=[10], dx=1.0, dt=0.01, user_data={"D": 0.1, "solver": "implicit", "gmres": True}, boundary_conditions=["PERIODIC"])
+    sim.initialize_engine()
     sim.simulate(2)
+    assert sim.time_step_counter == 2
+    assert len(sim.fields) > 0
     
 def test_diffusion_Implicit2D():
-    sim = ppf.Simulation("test")
-    sim.init_sim_Diffusion([10, 10], solver="implicit")
+    sim = Diffusion(dimensions=[10, 10], dx=1.0, dt=0.01, user_data={"D": 0.1, "solver": "implicit"}, boundary_conditions=["PERIODIC", "PERIODIC"])
+    sim.initialize_engine()
     sim.simulate(2)
+    assert sim.time_step_counter == 2
+    assert len(sim.fields) > 0
     
 def test_diffusion_Implicit2D_GMRES():
-    sim = ppf.Simulation("test")
-    sim.init_sim_Diffusion([10, 10], solver="implicit", gmres=True)
+    sim = Diffusion(dimensions=[10, 10], dx=1.0, dt=0.01, user_data={"D": 0.1, "solver": "implicit", "gmres": True}, boundary_conditions=["PERIODIC", "PERIODIC"])
+    sim.initialize_engine()
     sim.simulate(2)
+    assert sim.time_step_counter == 2
+    assert len(sim.fields) > 0
     
 def test_diffusion_Implicit2D_ADI():
-    sim = ppf.Simulation("test")
-    sim.init_sim_Diffusion([10, 10], solver="implicit", adi=True)
+    sim = Diffusion(dimensions=[10, 10], dx=1.0, dt=0.01, user_data={"D": 0.1, "solver": "implicit", "adi": True}, boundary_conditions=["PERIODIC", "PERIODIC"])
+    sim.initialize_engine()
     sim.simulate(2)
+    assert sim.time_step_counter == 2
+    assert len(sim.fields) > 0
     
 def test_diffusion_Implicit2D_ADI_GMRES():
-    sim = ppf.Simulation("test")
-    sim.init_sim_Diffusion([10, 10], solver="implicit", gmres=True, adi=True)
+    sim = Diffusion(dimensions=[10, 10], dx=1.0, dt=0.01, user_data={"D": 0.1, "solver": "implicit", "gmres": True, "adi": True}, boundary_conditions=["PERIODIC", "PERIODIC"])
+    sim.initialize_engine()
     sim.simulate(2)
+    assert sim.time_step_counter == 2
+    assert len(sim.fields) > 0
     
 def test_diffusion_Implicit3D():
-    sim = ppf.Simulation("test")
-    sim.init_sim_Diffusion([5, 5, 5], solver="implicit")
+    sim = Diffusion(dimensions=[5, 5, 5], dx=1.0, dt=0.01, user_data={"D": 0.1, "solver": "implicit"}, boundary_conditions=["PERIODIC", "PERIODIC", "PERIODIC"])
+    sim.initialize_engine()
     sim.simulate(2)
+    assert sim.time_step_counter == 2
+    assert len(sim.fields) > 0
     
 def test_diffusion_Implicit3D_GMRES():
-    sim = ppf.Simulation("test")
-    sim.init_sim_Diffusion([5, 5, 5], solver="implicit", gmres=True)
+    sim = Diffusion(dimensions=[5, 5, 5], dx=1.0, dt=0.01, user_data={"D": 0.1, "solver": "implicit", "gmres": True}, boundary_conditions=["PERIODIC", "PERIODIC", "PERIODIC"])
+    sim.initialize_engine()
     sim.simulate(2)
+    assert sim.time_step_counter == 2
+    assert len(sim.fields) > 0
     
 def test_diffusion_Implicit3D_ADI():
-    sim = ppf.Simulation("test")
-    sim.init_sim_Diffusion([5, 5, 5], solver="implicit", adi=True)
+    sim = Diffusion(dimensions=[5, 5, 5], dx=1.0, dt=0.01, user_data={"D": 0.1, "solver": "implicit", "adi": True}, boundary_conditions=["PERIODIC", "PERIODIC", "PERIODIC"])
+    sim.initialize_engine()
     sim.simulate(2)
+    assert sim.time_step_counter == 2
+    assert len(sim.fields) > 0
     
 def test_diffusion_Implicit3D_ADI_GMRES():
-    sim = ppf.Simulation("test")
-    sim.init_sim_Diffusion([5, 5, 5], solver="implicit", gmres=True, adi=True)
+    sim = Diffusion(dimensions=[5, 5, 5], dx=1.0, dt=0.01, user_data={"D": 0.1, "solver": "implicit", "gmres": True, "adi": True}, boundary_conditions=["PERIODIC", "PERIODIC", "PERIODIC"])
+    sim.initialize_engine()
     sim.simulate(2)
+    assert sim.time_step_counter == 2
+    assert len(sim.fields) > 0
     
 def test_diffusion_CrankNicolson1D():
-    sim = ppf.Simulation("test")
-    sim.init_sim_Diffusion([10], solver="crank-nicolson")
+    sim = Diffusion(dimensions=[10], dx=1.0, dt=0.01, user_data={"D": 0.1, "solver": "crank-nicolson"}, boundary_conditions=["PERIODIC"])
+    sim.initialize_engine()
     sim.simulate(2)
+    assert sim.time_step_counter == 2
+    assert len(sim.fields) > 0
     
 def test_diffusion_CrankNicolson1D_GMRES():
-    sim = ppf.Simulation("test")
-    sim.init_sim_Diffusion([10], solver="crank-nicolson", gmres=True)
+    sim = Diffusion(dimensions=[10], dx=1.0, dt=0.01, user_data={"D": 0.1, "solver": "crank-nicolson", "gmres": True}, boundary_conditions=["PERIODIC"])
+    sim.initialize_engine()
     sim.simulate(2)
+    assert sim.time_step_counter == 2
+    assert len(sim.fields) > 0
     
 def test_diffusion_CrankNicolson2D():
-    sim = ppf.Simulation("test")
-    sim.init_sim_Diffusion([10, 10], solver="crank-nicolson")
+    sim = Diffusion(dimensions=[10, 10], dx=1.0, dt=0.01, user_data={"D": 0.1, "solver": "crank-nicolson"}, boundary_conditions=["PERIODIC", "PERIODIC"])
+    sim.initialize_engine()
     sim.simulate(2)
+    assert sim.time_step_counter == 2
+    assert len(sim.fields) > 0
     
 def test_diffusion_CrankNicolson2D_GMRES():
-    sim = ppf.Simulation("test")
-    sim.init_sim_Diffusion([10, 10], solver="crank-nicolson", gmres=True)
+    sim = Diffusion(dimensions=[10, 10], dx=1.0, dt=0.01, user_data={"D": 0.1, "solver": "crank-nicolson", "gmres": True}, boundary_conditions=["PERIODIC", "PERIODIC"])
+    sim.initialize_engine()
     sim.simulate(2)
+    assert sim.time_step_counter == 2
+    assert len(sim.fields) > 0
     
 def test_diffusion_CrankNicolson2D_ADI():
-    sim = ppf.Simulation("test")
-    sim.init_sim_Diffusion([10, 10], solver="crank-nicolson", adi=True)
+    sim = Diffusion(dimensions=[10, 10], dx=1.0, dt=0.01, user_data={"D": 0.1, "solver": "crank-nicolson", "adi": True}, boundary_conditions=["PERIODIC", "PERIODIC"])
+    sim.initialize_engine()
     sim.simulate(2)
+    assert sim.time_step_counter == 2
+    assert len(sim.fields) > 0
     
 def test_diffusion_CrankNicolson2D_ADI_GMRES():
-    sim = ppf.Simulation("test")
-    sim.init_sim_Diffusion([10, 10], solver="crank-nicolson", gmres=True, adi=True)
+    sim = Diffusion(dimensions=[10, 10], dx=1.0, dt=0.01, user_data={"D": 0.1, "solver": "crank-nicolson", "gmres": True, "adi": True}, boundary_conditions=["PERIODIC", "PERIODIC"])
+    sim.initialize_engine()
     sim.simulate(2)
+    assert sim.time_step_counter == 2
+    assert len(sim.fields) > 0
     
 def test_diffusion_CrankNicolson3D():
-    sim = ppf.Simulation("test")
-    sim.init_sim_Diffusion([5, 5, 5], solver="crank-nicolson")
+    sim = Diffusion(dimensions=[5, 5, 5], dx=1.0, dt=0.01, user_data={"D": 0.1, "solver": "crank-nicolson"}, boundary_conditions=["PERIODIC", "PERIODIC", "PERIODIC"])
+    sim.initialize_engine()
     sim.simulate(2)
+    assert sim.time_step_counter == 2
+    assert len(sim.fields) > 0
     
 def test_diffusion_CrankNicolson3D_GMRES():
-    sim = ppf.Simulation("test")
-    sim.init_sim_Diffusion([5, 5, 5], solver="crank-nicolson", gmres=True)
+    sim = Diffusion(dimensions=[5, 5, 5], dx=1.0, dt=0.01, user_data={"D": 0.1, "solver": "crank-nicolson", "gmres": True}, boundary_conditions=["PERIODIC", "PERIODIC", "PERIODIC"])
+    sim.initialize_engine()
     sim.simulate(2)
+    assert sim.time_step_counter == 2
+    assert len(sim.fields) > 0
     
 def test_diffusion_CrankNicolson3D_ADI():
-    sim = ppf.Simulation("test")
-    sim.init_sim_Diffusion([5, 5, 5], solver="crank-nicolson", adi=True)
+    sim = Diffusion(dimensions=[5, 5, 5], dx=1.0, dt=0.01, user_data={"D": 0.1, "solver": "crank-nicolson", "adi": True}, boundary_conditions=["PERIODIC", "PERIODIC", "PERIODIC"])
+    sim.initialize_engine()
     sim.simulate(2)
+    assert sim.time_step_counter == 2
+    assert len(sim.fields) > 0
     
 def test_diffusion_CrankNicolson3D_ADI_GMRES():
-    sim = ppf.Simulation("test")
-    sim.init_sim_Diffusion([5, 5, 5], solver="crank-nicolson", gmres=True, adi=True)
+    sim = Diffusion(dimensions=[5, 5, 5], dx=1.0, dt=0.01, user_data={"D": 0.1, "solver": "crank-nicolson", "gmres": True, "adi": True}, boundary_conditions=["PERIODIC", "PERIODIC", "PERIODIC"])
+    sim.initialize_engine()
     sim.simulate(2)
+    assert sim.time_step_counter == 2
+    assert len(sim.fields) > 0

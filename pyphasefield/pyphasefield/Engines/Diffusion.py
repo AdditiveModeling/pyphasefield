@@ -5,20 +5,20 @@ from pyphasefield.simulation import Simulation
 from pyphasefield.ppf_utils import COLORMAP_OTHER, COLORMAP_PHASE
         
 try:
-    from numba import cuda
+    from cupyx import jit
+    import cupy as cp
 except:
-    import pyphasefield.jit_placeholder as cuda
+    import pyphasefield.jit_placeholder as jit
+    import pyphasefield.jit_placeholder as cp
 
 
 
-def diffusion_matrix_1d(xsize, centervalue, neighborvalue):
+def diffusion_matrix_1d(xsize, centervalue, neighborvalue, boundary_conditions=None):
     """
     Creates a matrix for the solution of 1d implicit or crank nickolson discretizations
     
     Because the exact format changes between implicit and C-N, and this method is reused 
     in 2D and 3D cases, centervalue and neighbor value must be explicitly specified
-    
-    Matrix shows periodic boundary conditions!
     
     Parameters
     ----------
@@ -28,6 +28,9 @@ def diffusion_matrix_1d(xsize, centervalue, neighborvalue):
         Value inserted into the central diagonal of the implicit matrix. 
     neighborvalue : float
         Value inserted into the two just-off-center diagonals of the implicit matrix.
+    boundary_conditions : list of str, optional
+        Boundary conditions for this dimension [left, right]. Options: "PERIODIC", "NEUMANN", "DIRICHLET"
+        If None, defaults to periodic boundary conditions
         
     Returns
     -------
@@ -49,17 +52,48 @@ def diffusion_matrix_1d(xsize, centervalue, neighborvalue):
     The neighboring diagonals to the center (neighborvalue) equals the coefficient of c_{x-1}^{t+1} or c_{x+1}^{t+1}: 
     -a, or -D*\\Delta t/(\\Delta x^2)
     
+    For different boundary conditions:
+    - PERIODIC: Wraps around (default behavior)
+    - NEUMANN: Zero flux at boundaries (modifies diagonal values)
+    - DIRICHLET: Fixed values at boundaries (handled separately in solver)
+    
     """
     matrix1d = np.zeros([xsize, xsize])
+    
+    # Fill main diagonal
     np.fill_diagonal(matrix1d, centervalue)
-    matrix1d = np.roll(matrix1d, 1, 0)
-    np.fill_diagonal(matrix1d, neighborvalue)
-    matrix1d = np.roll(matrix1d, -2, 0)
-    np.fill_diagonal(matrix1d, neighborvalue)
-    matrix1d = np.roll(matrix1d, 1, 0)
+    
+    # Fill off-diagonals
+    if xsize > 1:
+        # Upper diagonal (i, i+1)
+        np.fill_diagonal(matrix1d[:-1, 1:], neighborvalue)
+        # Lower diagonal (i, i-1)
+        np.fill_diagonal(matrix1d[1:, :-1], neighborvalue)
+    
+    # Handle boundary conditions
+    if boundary_conditions is None:
+        boundary_conditions = ["PERIODIC", "PERIODIC"]
+    
+    # Left boundary
+    if boundary_conditions[0] == "PERIODIC":
+        matrix1d[0, -1] = neighborvalue  # Connect first to last
+    elif boundary_conditions[0] == "NEUMANN":
+        # For Neumann BC, the ghost cell equals the boundary cell
+        # This effectively removes one neighbor contribution
+        matrix1d[0, 0] = centervalue + neighborvalue
+    # DIRICHLET: No special handling needed in matrix
+    
+    # Right boundary  
+    if boundary_conditions[1] == "PERIODIC":
+        matrix1d[-1, 0] = neighborvalue  # Connect last to first
+    elif boundary_conditions[1] == "NEUMANN":
+        # For Neumann BC, the ghost cell equals the boundary cell
+        matrix1d[-1, -1] = centervalue + neighborvalue
+    # DIRICHLET: No special handling needed in matrix
+        
     return matrix1d
 
-def diffusion_matrix_2d(ysize, xsize, centervalue, neighborvalue):
+def diffusion_matrix_2d(ysize, xsize, centervalue, neighborvalue, boundary_conditions=None):
     """
     Creates a matrix for the solution of 2d implicit or crank nickolson discretizations
     
@@ -67,8 +101,6 @@ def diffusion_matrix_2d(ysize, xsize, centervalue, neighborvalue):
     in 3D cases, centervalue and neighbor value must be explicitly specified
     
     Parameter order is specified as ysize then xsize, because the dimensional order of 2d arrays is [y, x]
-    
-    Matrix shows periodic boundary conditions!
     
     Parameters
     ----------
@@ -82,6 +114,10 @@ def diffusion_matrix_2d(ysize, xsize, centervalue, neighborvalue):
         Value inserted into the central diagonal of the implicit matrix. 
     neighborvalue : float
         Value inserted into the four just-off-center diagonals of the 2D implicit matrix.
+    boundary_conditions : list of lists of str, optional
+        Boundary conditions for each dimension [[x_left, x_right], [y_left, y_right]]
+        Options: "PERIODIC", "NEUMANN", "DIRICHLET"
+        If None, defaults to periodic boundary conditions
         
     Returns
     -------
@@ -110,18 +146,56 @@ def diffusion_matrix_2d(ysize, xsize, centervalue, neighborvalue):
     they are still considered to be "neighbors" conceptually
     
     """
+    if boundary_conditions is None:
+        boundary_conditions = [["PERIODIC", "PERIODIC"], ["PERIODIC", "PERIODIC"]]
+    
     matrix2d = np.zeros([xsize*ysize, xsize*ysize])
-    matrix1d = diffusion_matrix_1d(xsize, centervalue, neighborvalue)
-    for i in range(ysize):
-        matrix2d[xsize*i:xsize*(i+1), xsize*i:xsize*(i+1)] = matrix1d
-    matrix2d = np.roll(matrix2d, xsize, 0)
-    np.fill_diagonal(matrix2d, neighborvalue)
-    matrix2d = np.roll(matrix2d, -2*xsize, 0)
-    np.fill_diagonal(matrix2d, neighborvalue)
-    matrix2d = np.roll(matrix2d, xsize, 0)
+    
+    # Build the matrix row by row
+    for j in range(ysize):
+        for i in range(xsize):
+            row = j * xsize + i
+            
+            # Diagonal element
+            matrix2d[row, row] = centervalue
+            
+            # X-direction neighbors
+            # Left neighbor (i-1)
+            if i > 0:
+                matrix2d[row, row - 1] = neighborvalue
+            elif boundary_conditions[0][0] == "PERIODIC":
+                matrix2d[row, row + xsize - 1] = neighborvalue  # Connect to rightmost
+            elif boundary_conditions[0][0] == "NEUMANN":
+                matrix2d[row, row] += neighborvalue  # Modify diagonal
+            
+            # Right neighbor (i+1)
+            if i < xsize - 1:
+                matrix2d[row, row + 1] = neighborvalue
+            elif boundary_conditions[0][1] == "PERIODIC":
+                matrix2d[row, row - xsize + 1] = neighborvalue  # Connect to leftmost
+            elif boundary_conditions[0][1] == "NEUMANN":
+                matrix2d[row, row] += neighborvalue  # Modify diagonal
+            
+            # Y-direction neighbors
+            # Bottom neighbor (j-1)
+            if j > 0:
+                matrix2d[row, row - xsize] = neighborvalue
+            elif boundary_conditions[1][0] == "PERIODIC":
+                matrix2d[row, row + xsize * (ysize - 1)] = neighborvalue  # Connect to top
+            elif boundary_conditions[1][0] == "NEUMANN":
+                matrix2d[row, row] += neighborvalue  # Modify diagonal
+            
+            # Top neighbor (j+1)
+            if j < ysize - 1:
+                matrix2d[row, row + xsize] = neighborvalue
+            elif boundary_conditions[1][1] == "PERIODIC":
+                matrix2d[row, row - xsize * (ysize - 1)] = neighborvalue  # Connect to bottom
+            elif boundary_conditions[1][1] == "NEUMANN":
+                matrix2d[row, row] += neighborvalue  # Modify diagonal
+    
     return matrix2d
 
-def diffusion_matrix_3d(zsize, ysize, xsize, centervalue, neighborvalue):
+def diffusion_matrix_3d(zsize, ysize, xsize, centervalue, neighborvalue, boundary_conditions=None):
     """
     Creates a matrix for the solution of 3d implicit or crank nickolson discretizations
     
@@ -129,8 +203,6 @@ def diffusion_matrix_3d(zsize, ysize, xsize, centervalue, neighborvalue):
     value must be explicitly specified
     
     Parameter order is specified as zsize then ysize then xsize, because the dimensional order of 3d arrays is [z, y, x]
-    
-    Matrix shows periodic boundary conditions!
     
     Parameters
     ----------
@@ -147,6 +219,10 @@ def diffusion_matrix_3d(zsize, ysize, xsize, centervalue, neighborvalue):
         Value inserted into the central diagonal of the implicit matrix. 
     neighborvalue : float
         Value inserted into the six just-off-center diagonals of the 3D implicit matrix.
+    boundary_conditions : list of lists of str, optional
+        Boundary conditions for each dimension [[x_left, x_right], [y_left, y_right], [z_left, z_right]]
+        Options: "PERIODIC", "NEUMANN", "DIRICHLET"
+        If None, defaults to periodic boundary conditions
         
     Returns
     -------
@@ -179,15 +255,71 @@ def diffusion_matrix_3d(zsize, ysize, xsize, centervalue, neighborvalue):
     they are still considered to be "neighbors" conceptually
     
     """
+    if boundary_conditions is None:
+        boundary_conditions = [["PERIODIC", "PERIODIC"], ["PERIODIC", "PERIODIC"], ["PERIODIC", "PERIODIC"]]
+    
     matrix3d = np.zeros([xsize*ysize*zsize, xsize*ysize*zsize])
-    matrix2d = diffusion_matrix_2d(ysize, xsize, centervalue, neighborvalue)
-    for i in range(zsize):
-        matrix3d[xsize*ysize*i:xsize*ysize*(i+1), xsize*ysize*i:xsize*ysize*(i+1)] = matrix2d
-    matrix3d = np.roll(matrix3d, xsize*ysize, 0)
-    np.fill_diagonal(matrix3d, neighborvalue)
-    matrix3d = np.roll(matrix3d, -2*xsize*ysize, 0)
-    np.fill_diagonal(matrix3d, neighborvalue)
-    matrix3d = np.roll(matrix3d, xsize*ysize, 0)
+    
+    # Build the matrix row by row
+    for k in range(zsize):
+        for j in range(ysize):
+            for i in range(xsize):
+                row = k * xsize * ysize + j * xsize + i
+                
+                # Diagonal element
+                matrix3d[row, row] = centervalue
+                
+                # X-direction neighbors
+                # Left neighbor (i-1)
+                if i > 0:
+                    matrix3d[row, row - 1] = neighborvalue
+                elif boundary_conditions[0][0] == "PERIODIC":
+                    matrix3d[row, row + xsize - 1] = neighborvalue  # Connect to rightmost
+                elif boundary_conditions[0][0] == "NEUMANN":
+                    matrix3d[row, row] += neighborvalue  # Modify diagonal
+                
+                # Right neighbor (i+1)
+                if i < xsize - 1:
+                    matrix3d[row, row + 1] = neighborvalue
+                elif boundary_conditions[0][1] == "PERIODIC":
+                    matrix3d[row, row - xsize + 1] = neighborvalue  # Connect to leftmost
+                elif boundary_conditions[0][1] == "NEUMANN":
+                    matrix3d[row, row] += neighborvalue  # Modify diagonal
+                
+                # Y-direction neighbors
+                # Bottom neighbor (j-1)
+                if j > 0:
+                    matrix3d[row, row - xsize] = neighborvalue
+                elif boundary_conditions[1][0] == "PERIODIC":
+                    matrix3d[row, row + xsize * (ysize - 1)] = neighborvalue  # Connect to top
+                elif boundary_conditions[1][0] == "NEUMANN":
+                    matrix3d[row, row] += neighborvalue  # Modify diagonal
+                
+                # Top neighbor (j+1)
+                if j < ysize - 1:
+                    matrix3d[row, row + xsize] = neighborvalue
+                elif boundary_conditions[1][1] == "PERIODIC":
+                    matrix3d[row, row - xsize * (ysize - 1)] = neighborvalue  # Connect to bottom
+                elif boundary_conditions[1][1] == "NEUMANN":
+                    matrix3d[row, row] += neighborvalue  # Modify diagonal
+                
+                # Z-direction neighbors
+                # Front neighbor (k-1)
+                if k > 0:
+                    matrix3d[row, row - xsize * ysize] = neighborvalue
+                elif boundary_conditions[2][0] == "PERIODIC":
+                    matrix3d[row, row + xsize * ysize * (zsize - 1)] = neighborvalue  # Connect to back
+                elif boundary_conditions[2][0] == "NEUMANN":
+                    matrix3d[row, row] += neighborvalue  # Modify diagonal
+                
+                # Back neighbor (k+1)
+                if k < zsize - 1:
+                    matrix3d[row, row + xsize * ysize] = neighborvalue
+                elif boundary_conditions[2][1] == "PERIODIC":
+                    matrix3d[row, row - xsize * ysize * (zsize - 1)] = neighborvalue  # Connect to front
+                elif boundary_conditions[2][1] == "NEUMANN":
+                    matrix3d[row, row] += neighborvalue  # Modify diagonal
+    
     return matrix3d
     
 
@@ -215,9 +347,19 @@ def engine_ImplicitDiffusion1D(sim):
     D = sim.user_data["D"]
     alpha = D*dt/dx**2
     dim = sim.get_dimensions()
-    matrix1d = diffusion_matrix_1d(dim[0], 1+2*alpha, -alpha)
-    c_final = np.linalg.solve(matrix1d, c.data)
-    sim.fields[0].data = c_final
+    bcs = sim._boundary_conditions_type
+    
+    # Extract interior points
+    c_interior = c.data[c._slice]
+    
+    # Build matrix with boundary conditions
+    matrix1d = diffusion_matrix_1d(dim[0], 1+2*alpha, -alpha, boundary_conditions=bcs[0])
+    
+    # Solve for interior points
+    c_final = np.linalg.solve(matrix1d, c_interior)
+    
+    # Put solution back into interior points
+    c.data[c._slice] = c_final
     
 def engine_ImplicitDiffusion1D_GMRES(sim):
     """
@@ -232,9 +374,19 @@ def engine_ImplicitDiffusion1D_GMRES(sim):
     D = sim.user_data["D"]
     alpha = D*dt/dx**2
     dim = sim.get_dimensions()
-    matrix1d = diffusion_matrix_1d(dim[0], 1+2*alpha, -alpha)
-    c_final, exitCode = gmres(matrix1d, c.data, atol='legacy')
-    sim.fields[0].data = c_final
+    bcs = sim._boundary_conditions_type
+    
+    # Extract interior points
+    c_interior = c.data[c._slice]
+    
+    # Build matrix with boundary conditions
+    matrix1d = diffusion_matrix_1d(dim[0], 1+2*alpha, -alpha, boundary_conditions=bcs[0])
+    
+    # Solve for interior points
+    c_final, exitCode = gmres(matrix1d, c_interior, atol=1e-9)
+    
+    # Put solution back into interior points
+    c.data[c._slice] = c_final
     
 def engine_ImplicitDiffusion2D(sim):
     """
@@ -248,9 +400,19 @@ def engine_ImplicitDiffusion2D(sim):
     D = sim.user_data["D"]
     alpha = D*dt/dx**2
     dim = sim.get_dimensions()
-    matrix2d = diffusion_matrix_2d(dim[0], dim[1], 1+4*alpha, -alpha)
-    c_final = np.linalg.solve(matrix2d, c.data.flatten())
-    sim.fields[0].data = c_final.reshape(dim)
+    bcs = sim._boundary_conditions_type
+    
+    # Extract interior points
+    c_interior = c.data[c._slice].flatten()
+    
+    # Build matrix with boundary conditions
+    matrix2d = diffusion_matrix_2d(dim[0], dim[1], 1+4*alpha, -alpha, boundary_conditions=bcs)
+    
+    # Solve for interior points
+    c_final = np.linalg.solve(matrix2d, c_interior)
+    
+    # Put solution back into interior points
+    c.data[c._slice] = c_final.reshape(dim)
     
 def engine_ImplicitDiffusion2D_GMRES(sim):
     """
@@ -265,9 +427,19 @@ def engine_ImplicitDiffusion2D_GMRES(sim):
     D = sim.user_data["D"]
     alpha = D*dt/dx**2
     dim = sim.get_dimensions()
-    matrix2d = diffusion_matrix_2d(dim[0], dim[1], 1+4*alpha, -alpha)
-    c_final, exitCode = gmres(matrix2d, c.data.flatten(), atol='legacy')
-    sim.fields[0].data = c_final.reshape(dim)
+    bcs = sim._boundary_conditions_type
+    
+    # Extract interior points
+    c_interior = c.data[c._slice].flatten()
+    
+    # Build matrix with boundary conditions
+    matrix2d = diffusion_matrix_2d(dim[0], dim[1], 1+4*alpha, -alpha, boundary_conditions=bcs)
+    
+    # Solve for interior points
+    c_final, exitCode = gmres(matrix2d, c_interior, atol=1e-9)
+    
+    # Put solution back into interior points
+    c.data[c._slice] = c_final.reshape(dim)
     
 def engine_ImplicitDiffusion3D(sim):
     """
@@ -281,9 +453,19 @@ def engine_ImplicitDiffusion3D(sim):
     D = sim.user_data["D"]
     alpha = D*dt/dx**2
     dim = sim.get_dimensions()
-    matrix3d = diffusion_matrix_3d(dim[0], dim[1], dim[2], 1+6*alpha, -alpha)
-    c_final = np.linalg.solve(matrix3d, c.data.flatten())
-    sim.fields[0].data = c_final.reshape(dim)
+    bcs = sim._boundary_conditions_type
+    
+    # Extract interior points
+    c_interior = c.data[c._slice].flatten()
+    
+    # Build matrix with boundary conditions
+    matrix3d = diffusion_matrix_3d(dim[0], dim[1], dim[2], 1+6*alpha, -alpha, boundary_conditions=bcs)
+    
+    # Solve for interior points
+    c_final = np.linalg.solve(matrix3d, c_interior)
+    
+    # Put solution back into interior points
+    c.data[c._slice] = c_final.reshape(dim)
     
 def engine_ImplicitDiffusion3D_GMRES(sim):
     """
@@ -298,9 +480,19 @@ def engine_ImplicitDiffusion3D_GMRES(sim):
     D = sim.user_data["D"]
     alpha = D*dt/dx**2
     dim = sim.get_dimensions()
-    matrix3d = diffusion_matrix_3d(dim[0], dim[1], dim[2], 1+6*alpha, -alpha)
-    c_final, exitCode = gmres(matrix3d, c.data.flatten(), atol='legacy')
-    sim.fields[0].data = c_final.reshape(dim)
+    bcs = sim._boundary_conditions_type
+    
+    # Extract interior points
+    c_interior = c.data[c._slice].flatten()
+    
+    # Build matrix with boundary conditions
+    matrix3d = diffusion_matrix_3d(dim[0], dim[1], dim[2], 1+6*alpha, -alpha, boundary_conditions=bcs)
+    
+    # Solve for interior points
+    c_final, exitCode = gmres(matrix3d, c_interior, atol=1e-9)
+    
+    # Put solution back into interior points
+    c.data[c._slice] = c_final.reshape(dim)
     
 def engine_CrankNicolsonDiffusion1D(sim):
     """
@@ -314,10 +506,22 @@ def engine_CrankNicolsonDiffusion1D(sim):
     D = sim.user_data["D"]
     alpha = 0.5*D*dt/dx**2
     dim = sim.get_dimensions()
-    matrix1d = diffusion_matrix_1d(dim[0], 1+2*alpha, -alpha)
-    explicit_c_half = (1-2*alpha)*c.data + alpha*(np.roll(c.data, 1, 0) + np.roll(c.data, -1, 0))
+    bcs = sim._boundary_conditions_type
+    
+    # Extract interior points for calculation
+    c_interior = c.data[c._slice]
+    
+    # Compute explicit part using laplacian on interior points
+    explicit_c_half = c_interior + 0.5 * dt * D * c.laplacian()[c._slice]
+    
+    # Build matrix with boundary conditions
+    matrix1d = diffusion_matrix_1d(dim[0], 1+2*alpha, -alpha, boundary_conditions=bcs[0])
+    
+    # Solve for interior points
     c_final = np.linalg.solve(matrix1d, explicit_c_half)
-    sim.fields[0].data = c_final
+    
+    # Put solution back into interior points
+    c.data[c._slice] = c_final
     
 def engine_CrankNicolsonDiffusion1D_GMRES(sim):
     """
@@ -332,10 +536,22 @@ def engine_CrankNicolsonDiffusion1D_GMRES(sim):
     D = sim.user_data["D"]
     alpha = 0.5*D*dt/dx**2
     dim = sim.get_dimensions()
-    matrix1d = diffusion_matrix_1d(dim[0], 1+2*alpha, -alpha)
-    explicit_c_half = (1-2*alpha)*c.data + alpha*(np.roll(c.data, 1, 0) + np.roll(c.data, -1, 0))
-    c_final, exitCode = gmres(matrix1d, explicit_c_half, atol='legacy')
-    sim.fields[0].data = c_final
+    bcs = sim._boundary_conditions_type
+    
+    # Extract interior points for calculation
+    c_interior = c.data[c._slice]
+    
+    # Compute explicit part using laplacian on interior points
+    explicit_c_half = c_interior + 0.5 * dt * D * c.laplacian()[c._slice]
+    
+    # Build matrix with boundary conditions
+    matrix1d = diffusion_matrix_1d(dim[0], 1+2*alpha, -alpha, boundary_conditions=bcs[0])
+    
+    # Solve for interior points
+    c_final, exitCode = gmres(matrix1d, explicit_c_half, atol=1e-9)
+    
+    # Put solution back into interior points
+    c.data[c._slice] = c_final
     
 def engine_CrankNicolsonDiffusion2D(sim):
     """
@@ -349,10 +565,22 @@ def engine_CrankNicolsonDiffusion2D(sim):
     D = sim.user_data["D"]
     alpha = 0.5*D*dt/dx**2
     dim = sim.get_dimensions()
-    matrix2d = diffusion_matrix_2d(dim[0], dim[1], 1+4*alpha, -alpha)
-    explicit_c_half = (1-4*alpha)*c.data + alpha*(np.roll(c.data, 1, 0) + np.roll(c.data, -1, 0) + np.roll(c.data, 1, 1) + np.roll(c.data, -1, 1))
+    bcs = sim._boundary_conditions_type
+    
+    # Extract interior points for calculation
+    c_interior = c.data[c._slice]
+    
+    # Compute explicit part using laplacian on interior points
+    explicit_c_half = c_interior + 0.5 * dt * D * c.laplacian()[c._slice]
+    
+    # Build matrix with boundary conditions
+    matrix2d = diffusion_matrix_2d(dim[0], dim[1], 1+4*alpha, -alpha, boundary_conditions=bcs)
+    
+    # Solve for interior points
     c_final = np.linalg.solve(matrix2d, explicit_c_half.flatten())
-    sim.fields[0].data = c_final.reshape(dim)
+    
+    # Put solution back into interior points
+    c.data[c._slice] = c_final.reshape(dim)
     
 def engine_CrankNicolsonDiffusion2D_GMRES(sim):
     """
@@ -367,10 +595,22 @@ def engine_CrankNicolsonDiffusion2D_GMRES(sim):
     D = sim.user_data["D"]
     alpha = 0.5*D*dt/dx**2
     dim = sim.get_dimensions()
-    matrix2d = diffusion_matrix_2d(dim[0], dim[1], 1+4*alpha, -alpha)
-    explicit_c_half = (1-4*alpha)*c.data + alpha*(np.roll(c.data, 1, 0) + np.roll(c.data, -1, 0) + np.roll(c.data, 1, 1) + np.roll(c.data, -1, 1))
-    c_final, exitCode = gmres(matrix2d, explicit_c_half.flatten(), atol='legacy')
-    sim.fields[0].data = c_final.reshape(dim)
+    bcs = sim._boundary_conditions_type
+    
+    # Extract interior points for calculation
+    c_interior = c.data[c._slice]
+    
+    # Compute explicit part using laplacian on interior points
+    explicit_c_half = c_interior + 0.5 * dt * D * c.laplacian()[c._slice]
+    
+    # Build matrix with boundary conditions
+    matrix2d = diffusion_matrix_2d(dim[0], dim[1], 1+4*alpha, -alpha, boundary_conditions=bcs)
+    
+    # Solve for interior points
+    c_final, exitCode = gmres(matrix2d, explicit_c_half.flatten(), atol=1e-9)
+    
+    # Put solution back into interior points
+    c.data[c._slice] = c_final.reshape(dim)
     
 def engine_CrankNicolsonDiffusion3D(sim):
     """
@@ -384,10 +624,22 @@ def engine_CrankNicolsonDiffusion3D(sim):
     D = sim.user_data["D"]
     alpha = 0.5*D*dt/dx**2
     dim = sim.get_dimensions()
-    matrix3d = diffusion_matrix_3d(dim[0], dim[1], dim[2], 1+6*alpha, -alpha)
-    explicit_c_half = (1-6*alpha)*c.data + alpha*(np.roll(c.data, 1, 0) + np.roll(c.data, -1, 0) + np.roll(c.data, 1, 1) + np.roll(c.data, -1, 1) +  + np.roll(c.data, 1, 2) + np.roll(c.data, -1, 2))
+    bcs = sim._boundary_conditions_type
+    
+    # Extract interior points for calculation
+    c_interior = c.data[c._slice]
+    
+    # Compute explicit part using laplacian on interior points
+    explicit_c_half = c_interior + 0.5 * dt * D * c.laplacian()[c._slice]
+    
+    # Build matrix with boundary conditions
+    matrix3d = diffusion_matrix_3d(dim[0], dim[1], dim[2], 1+6*alpha, -alpha, boundary_conditions=bcs)
+    
+    # Solve for interior points
     c_final = np.linalg.solve(matrix3d, explicit_c_half.flatten())
-    sim.fields[0].data = c_final.reshape(dim)
+    
+    # Put solution back into interior points
+    c.data[c._slice] = c_final.reshape(dim)
     
 def engine_CrankNicolsonDiffusion3D_GMRES(sim):
     """
@@ -402,10 +654,22 @@ def engine_CrankNicolsonDiffusion3D_GMRES(sim):
     D = sim.user_data["D"]
     alpha = 0.5*D*dt/dx**2
     dim = sim.get_dimensions()
-    matrix3d = diffusion_matrix_3d(dim[0], dim[1], dim[2], 1+6*alpha, -alpha)
-    explicit_c_half = (1-6*alpha)*c.data + alpha*(np.roll(c.data, 1, 0) + np.roll(c.data, -1, 0) + np.roll(c.data, 1, 1) + np.roll(c.data, -1, 1) +  + np.roll(c.data, 1, 2) + np.roll(c.data, -1, 2))
-    c_final, exitCode = gmres(matrix3d, explicit_c_half.flatten(), atol='legacy')
-    sim.fields[0].data = c_final.reshape(dim)
+    bcs = sim._boundary_conditions_type
+    
+    # Extract interior points for calculation
+    c_interior = c.data[c._slice]
+    
+    # Compute explicit part using laplacian on interior points
+    explicit_c_half = c_interior + 0.5 * dt * D * c.laplacian()[c._slice]
+    
+    # Build matrix with boundary conditions
+    matrix3d = diffusion_matrix_3d(dim[0], dim[1], dim[2], 1+6*alpha, -alpha, boundary_conditions=bcs)
+    
+    # Solve for interior points
+    c_final, exitCode = gmres(matrix3d, explicit_c_half.flatten(), atol=1e-9)
+    
+    # Put solution back into interior points
+    c.data[c._slice] = c_final.reshape(dim)
     
 def engine_ImplicitDiffusion2D_ADI(sim):
     """
@@ -415,19 +679,31 @@ def engine_ImplicitDiffusion2D_ADI(sim):
     """
     dt = sim.dt
     dx = sim.get_cell_spacing()
-    c = sim.fields[0].data
+    c = sim.fields[0]
     D = sim.user_data["D"]
     alpha = D*dt/dx**2
     dim = sim.get_dimensions()
-    matrix1d_x = diffusion_matrix_1d(dim[1], 1+2*alpha, -alpha)
-    matrix1d_y = diffusion_matrix_1d(dim[0], 1+2*alpha, -alpha)
+    bcs = sim._boundary_conditions_type
+    
+    # Build matrices with boundary conditions
+    matrix1d_x = diffusion_matrix_1d(dim[1], 1+2*alpha, -alpha, boundary_conditions=bcs[0])
+    matrix1d_y = diffusion_matrix_1d(dim[0], 1+2*alpha, -alpha, boundary_conditions=bcs[1])
     inv_x = np.linalg.inv(matrix1d_x)
     inv_y = np.linalg.inv(matrix1d_y)
-    for i in range(dim[0]): #iterate through ADI method in the x direction first
-        c[i] = np.dot(inv_x, c[i])
-    for i in range(dim[1]): #then iterate through ADI method in the y direction
-        c[:,i] = np.dot(inv_y, c[:,i])
-    sim.fields[0].data = c
+    
+    # Work on interior points only
+    c_interior = c.data[c._slice].copy()
+    
+    # Solve in x-direction for each row
+    for i in range(dim[0]):
+        c_interior[i] = np.dot(inv_x, c_interior[i])
+    
+    # Solve in y-direction for each column
+    for i in range(dim[1]):
+        c_interior[:,i] = np.dot(inv_y, c_interior[:,i])
+    
+    # Put solution back
+    c.data[c._slice] = c_interior
     
 def engine_ImplicitDiffusion2D_ADI_GMRES(sim):
     """
@@ -438,73 +714,113 @@ def engine_ImplicitDiffusion2D_ADI_GMRES(sim):
     """
     dt = sim.dt
     dx = sim.get_cell_spacing()
-    c = sim.fields[0].data
+    c = sim.fields[0]
     D = sim.user_data["D"]
     alpha = D*dt/dx**2
     dim = sim.get_dimensions()
-    matrix1d_x = diffusion_matrix_1d(dim[1], 1+2*alpha, -alpha)
-    matrix1d_y = diffusion_matrix_1d(dim[0], 1+2*alpha, -alpha)
-    for i in range(dim[0]): #iterate through ADI method in the x direction first
-        c[i], exitCode = gmres(matrix1d_x, c[i], atol='legacy')
-    for i in range(dim[1]): #then iterate through ADI method in the y direction
-        c[:,i], exitCode = gmres(matrix1d_y, c[:,i], atol='legacy')
-    sim.fields[0].data = c
+    bcs = sim._boundary_conditions_type
+    
+    # Build matrices with boundary conditions
+    matrix1d_x = diffusion_matrix_1d(dim[1], 1+2*alpha, -alpha, boundary_conditions=bcs[0])
+    matrix1d_y = diffusion_matrix_1d(dim[0], 1+2*alpha, -alpha, boundary_conditions=bcs[1])
+    
+    # Work on interior points only
+    c_interior = c.data[c._slice].copy()
+    
+    # Solve in x-direction for each row
+    for i in range(dim[0]):
+        c_interior[i], exitCode = gmres(matrix1d_x, c_interior[i], atol=1e-9)
+    
+    # Solve in y-direction for each column
+    for i in range(dim[1]):
+        c_interior[:,i], exitCode = gmres(matrix1d_y, c_interior[:,i], atol=1e-9)
+    
+    # Put solution back
+    c.data[c._slice] = c_interior
     
 def engine_ImplicitDiffusion3D_ADI(sim):
     """
-    Computes the discretization of the diffusion equation using the Alternating Direction Implicit method for 2D
+    Computes the discretization of the diffusion equation using the Alternating Direction Implicit method for 3D
     
     Uses the function np.linalg.inv(A) to compute A^-1 directly, since it is reused several times
     """
     dt = sim.dt
     dx = sim.get_cell_spacing()
-    c = sim.fields[0].data
+    c = sim.fields[0]
     D = sim.user_data["D"]
     alpha = D*dt/dx**2
     dim = sim.get_dimensions()
-    matrix1d_x = diffusion_matrix_1d(dim[2], 1+2*alpha, -alpha)
-    matrix1d_y = diffusion_matrix_1d(dim[1], 1+2*alpha, -alpha)
-    matrix1d_z = diffusion_matrix_1d(dim[0], 1+2*alpha, -alpha)
+    bcs = sim._boundary_conditions_type
+    
+    # Build matrices with boundary conditions
+    matrix1d_x = diffusion_matrix_1d(dim[2], 1+2*alpha, -alpha, boundary_conditions=bcs[0])
+    matrix1d_y = diffusion_matrix_1d(dim[1], 1+2*alpha, -alpha, boundary_conditions=bcs[1])
+    matrix1d_z = diffusion_matrix_1d(dim[0], 1+2*alpha, -alpha, boundary_conditions=bcs[2])
     inv_x = np.linalg.inv(matrix1d_x)
     inv_y = np.linalg.inv(matrix1d_y)
     inv_z = np.linalg.inv(matrix1d_z)
-    for i in range(dim[0]): #iterate through ADI method in the x direction first
+    
+    # Work on interior points only
+    c_interior = c.data[c._slice].copy()
+    
+    # Solve in x-direction
+    for i in range(dim[0]):
         for j in range(dim[1]):
-            c[i, j] = np.dot(inv_x, c[i, j])
-    for i in range(dim[0]): #then iterate through ADI method in the y direction
+            c_interior[i, j] = np.dot(inv_x, c_interior[i, j])
+    
+    # Solve in y-direction
+    for i in range(dim[0]):
         for j in range(dim[2]):
-            c[i, :, j] = np.dot(inv_y, c[i, :, j])
-    for i in range(dim[1]): #finally, iterate through ADI method in the z direction
+            c_interior[i, :, j] = np.dot(inv_y, c_interior[i, :, j])
+    
+    # Solve in z-direction
+    for i in range(dim[1]):
         for j in range(dim[2]):
-            c[:, i, j] = np.dot(inv_z, c[:, i, j])
-    sim.fields[0].data = c
+            c_interior[:, i, j] = np.dot(inv_z, c_interior[:, i, j])
+    
+    # Put solution back
+    c.data[c._slice] = c_interior
     
 def engine_ImplicitDiffusion3D_ADI_GMRES(sim):
     """
-    Computes the discretization of the diffusion equation using the Alternating Direction Implicit method for 2D
+    Computes the discretization of the diffusion equation using the Alternating Direction Implicit method for 3D
     
     Uses the function scipy.sparse.linalg.gmres(A, b) to **quickly but approximately** solve 
     the equation Ax=b for the matrix A and vectors x and b
     """
     dt = sim.dt
     dx = sim.get_cell_spacing()
-    c = sim.fields[0].data
+    c = sim.fields[0]
     D = sim.user_data["D"]
     alpha = D*dt/dx**2
     dim = sim.get_dimensions()
-    matrix1d_x = diffusion_matrix_1d(dim[2], 1+2*alpha, -alpha)
-    matrix1d_y = diffusion_matrix_1d(dim[1], 1+2*alpha, -alpha)
-    matrix1d_z = diffusion_matrix_1d(dim[0], 1+2*alpha, -alpha)
-    for i in range(dim[0]): #iterate through ADI method in the x direction first
+    bcs = sim._boundary_conditions_type
+    
+    # Build matrices with boundary conditions
+    matrix1d_x = diffusion_matrix_1d(dim[2], 1+2*alpha, -alpha, boundary_conditions=bcs[0])
+    matrix1d_y = diffusion_matrix_1d(dim[1], 1+2*alpha, -alpha, boundary_conditions=bcs[1])
+    matrix1d_z = diffusion_matrix_1d(dim[0], 1+2*alpha, -alpha, boundary_conditions=bcs[2])
+    
+    # Work on interior points only
+    c_interior = c.data[c._slice].copy()
+    
+    # Solve in x-direction
+    for i in range(dim[0]):
         for j in range(dim[1]):
-            c[i, j], exitCode = gmres(matrix1d_x, c[i, j], atol='legacy')
-    for i in range(dim[0]): #then iterate through ADI method in the y direction
+            c_interior[i, j], exitCode = gmres(matrix1d_x, c_interior[i, j], atol=1e-9)
+    
+    # Solve in y-direction
+    for i in range(dim[0]):
         for j in range(dim[2]):
-            c[i, :, j], exitCode = gmres(matrix1d_y, c[i, :, j], atol='legacy')
-    for i in range(dim[1]): #finally, iterate through ADI method in the z direction
+            c_interior[i, :, j], exitCode = gmres(matrix1d_y, c_interior[i, :, j], atol=1e-9)
+    
+    # Solve in z-direction
+    for i in range(dim[1]):
         for j in range(dim[2]):
-            c[:, i, j], exitCode = gmres(matrix1d_z, c[:, i, j], atol='legacy')
-    sim.fields[0].data = c
+            c_interior[:, i, j], exitCode = gmres(matrix1d_z, c_interior[:, i, j], atol=1e-9)
+    
+    # Put solution back
+    c.data[c._slice] = c_interior
     
 def engine_CrankNicolsonDiffusion2D_ADI(sim):
     """
@@ -517,21 +833,42 @@ def engine_CrankNicolsonDiffusion2D_ADI(sim):
     """
     dt = sim.dt
     dx = sim.get_cell_spacing()
-    c = sim.fields[0].data
+    c = sim.fields[0]
     D = sim.user_data["D"]
     alpha = 0.5*D*dt/dx**2
     dim = sim.get_dimensions()
-    matrix1d_x = diffusion_matrix_1d(dim[1], 1+2*alpha, -alpha)
-    matrix1d_y = diffusion_matrix_1d(dim[0], 1+2*alpha, -alpha)
+    bcs = sim._boundary_conditions_type
+    
+    # Build matrices with boundary conditions
+    matrix1d_x = diffusion_matrix_1d(dim[1], 1+2*alpha, -alpha, boundary_conditions=bcs[0])
+    matrix1d_y = diffusion_matrix_1d(dim[0], 1+2*alpha, -alpha, boundary_conditions=bcs[1])
     inv_x = np.linalg.inv(matrix1d_x)
     inv_y = np.linalg.inv(matrix1d_y)
-    c_explicit = (1-2*alpha)*c + alpha*(np.roll(c, 1, 0) + np.roll(c, -1, 0)) #explicit in x
-    for i in range(dim[1]): #iterate through ADI method in the y direction first in P-R
-        c[:,i] = np.dot(inv_y, c_explicit[:,i])
-    c_explicit = (1-2*alpha)*c + alpha*(np.roll(c, 1, 1) + np.roll(c, -1, 1)) #explicit in y
-    for i in range(dim[0]): #then iterate through ADI method in the x direction
-        c[i] = np.dot(inv_x, c_explicit[i])
-    sim.fields[0].data = c
+    
+    # Work on interior points only
+    c_interior = c.data[c._slice].copy()
+    
+    # Step 1: explicit in x, implicit in y
+    # Compute explicit part in x-direction
+    laplacian_x = c.laplacian()[c._slice]
+    c_explicit = c_interior + alpha * laplacian_x
+    
+    # Solve implicit in y-direction
+    for i in range(dim[0]):
+        c_interior[i] = np.dot(inv_y, c_explicit[i])
+    
+    # Step 2: explicit in y, implicit in x  
+    # Compute explicit part in y-direction
+    c.data[c._slice] = c_interior  # Update field for laplacian calculation
+    laplacian_y = c.laplacian()[c._slice]
+    c_explicit = c_interior + alpha * laplacian_y
+    
+    # Solve implicit in x-direction
+    for i in range(dim[1]):
+        c_interior[:,i] = np.dot(inv_x, c_explicit[:,i])
+    
+    # Put solution back
+    c.data[c._slice] = c_interior
     
 def engine_CrankNicolsonDiffusion2D_ADI_GMRES(sim):
     """
@@ -545,19 +882,40 @@ def engine_CrankNicolsonDiffusion2D_ADI_GMRES(sim):
     """
     dt = sim.dt
     dx = sim.get_cell_spacing()
-    c = sim.fields[0].data
+    c = sim.fields[0]
     D = sim.user_data["D"]
     alpha = 0.5*D*dt/dx**2
     dim = sim.get_dimensions()
-    matrix1d_x = diffusion_matrix_1d(dim[1], 1+2*alpha, -alpha)
-    matrix1d_y = diffusion_matrix_1d(dim[0], 1+2*alpha, -alpha)
-    c_explicit = (1-2*alpha)*c + alpha*(np.roll(c, 1, 0) + np.roll(c, -1, 0)) #explicit in x
-    for i in range(dim[1]): #iterate through ADI method in the y direction first for P-R
-        c[:,i], exitCode = gmres(matrix1d_y, c_explicit[:,i], atol='legacy')
-    c_explicit = (1-2*alpha)*c + alpha*(np.roll(c, 1, 1) + np.roll(c, -1, 1)) #explicit in y
-    for i in range(dim[0]): #then iterate through ADI method in the x direction
-        c[i], exitCode = gmres(matrix1d_x, c_explicit[i], atol='legacy')
-    sim.fields[0].data = c
+    bcs = sim._boundary_conditions_type
+    
+    # Build matrices with boundary conditions
+    matrix1d_x = diffusion_matrix_1d(dim[1], 1+2*alpha, -alpha, boundary_conditions=bcs[0])
+    matrix1d_y = diffusion_matrix_1d(dim[0], 1+2*alpha, -alpha, boundary_conditions=bcs[1])
+    
+    # Work on interior points only
+    c_interior = c.data[c._slice].copy()
+    
+    # Step 1: explicit in x, implicit in y
+    # Compute explicit part in x-direction
+    laplacian_x = c.laplacian()[c._slice]
+    c_explicit = c_interior + alpha * laplacian_x
+    
+    # Solve implicit in y-direction
+    for i in range(dim[0]):
+        c_interior[i], exitCode = gmres(matrix1d_y, c_explicit[i], atol=1e-9)
+    
+    # Step 2: explicit in y, implicit in x  
+    # Compute explicit part in y-direction
+    c.data[c._slice] = c_interior  # Update field for laplacian calculation
+    laplacian_y = c.laplacian()[c._slice]
+    c_explicit = c_interior + alpha * laplacian_y
+    
+    # Solve implicit in x-direction
+    for i in range(dim[1]):
+        c_interior[:,i], exitCode = gmres(matrix1d_x, c_explicit[:,i], atol=1e-9)
+    
+    # Put solution back
+    c.data[c._slice] = c_interior
     
 def engine_CrankNicolsonDiffusion3D_ADI(sim):
     """
@@ -571,29 +929,48 @@ def engine_CrankNicolsonDiffusion3D_ADI(sim):
     """
     dt = sim.dt
     dx = sim.get_cell_spacing()
-    c = sim.fields[0].data
+    c = sim.fields[0]
     D = sim.user_data["D"]
     alpha = 0.5*D*dt/dx**2
     dim = sim.get_dimensions()
-    matrix1d_x = diffusion_matrix_1d(dim[2], 1+2*alpha, -alpha)
-    matrix1d_y = diffusion_matrix_1d(dim[1], 1+2*alpha, -alpha)
-    matrix1d_z = diffusion_matrix_1d(dim[0], 1+2*alpha, -alpha)
+    bcs = sim._boundary_conditions_type
+    
+    # Build matrices with boundary conditions
+    matrix1d_x = diffusion_matrix_1d(dim[2], 1+2*alpha, -alpha, boundary_conditions=bcs[0])
+    matrix1d_y = diffusion_matrix_1d(dim[1], 1+2*alpha, -alpha, boundary_conditions=bcs[1])
+    matrix1d_z = diffusion_matrix_1d(dim[0], 1+2*alpha, -alpha, boundary_conditions=bcs[2])
     inv_x = np.linalg.inv(matrix1d_x)
     inv_y = np.linalg.inv(matrix1d_y)
     inv_z = np.linalg.inv(matrix1d_z)
-    c = (1-2*alpha)*c + alpha*(np.roll(c, 1, 0) + np.roll(c, -1, 0)) #explicit in x
-    for i in range(dim[0]): #iterate through ADI method in the y direction first in extended P-R
+    
+    # Work on interior points only
+    c_interior = c.data[c._slice].copy()
+    
+    # Step 1: explicit in x, implicit in y
+    laplacian = c.laplacian()[c._slice]
+    c_interior = c_interior + alpha * laplacian
+    for i in range(dim[0]):
         for j in range(dim[2]):
-            c[i, :, j] = np.dot(inv_y, c[i, :, j])
-    c = (1-2*alpha)*c + alpha*(np.roll(c, 1, 1) + np.roll(c, -1, 1)) #explicit in y
-    for i in range(dim[1]): #then iterate through ADI method in the z direction
+            c_interior[i, :, j] = np.dot(inv_y, c_interior[i, :, j])
+    
+    # Step 2: explicit in y, implicit in z
+    c.data[c._slice] = c_interior
+    laplacian = c.laplacian()[c._slice]
+    c_interior = c_interior + alpha * laplacian
+    for i in range(dim[1]):
         for j in range(dim[2]):
-            c[:, i, j] = np.dot(inv_z, c[:, i, j])
-    c = (1-2*alpha)*c + alpha*(np.roll(c, 1, 2) + np.roll(c, -1, 2)) #explicit in z
-    for i in range(dim[0]): #finally, iterate through ADI method in the x direction
+            c_interior[:, i, j] = np.dot(inv_z, c_interior[:, i, j])
+    
+    # Step 3: explicit in z, implicit in x
+    c.data[c._slice] = c_interior
+    laplacian = c.laplacian()[c._slice]
+    c_interior = c_interior + alpha * laplacian
+    for i in range(dim[0]):
         for j in range(dim[1]):
-            c[i, j] = np.dot(inv_x, c[i, j])
-    sim.fields[0].data = c
+            c_interior[i, j] = np.dot(inv_x, c_interior[i, j])
+    
+    # Put solution back
+    c.data[c._slice] = c_interior
     
 def engine_CrankNicolsonDiffusion3D_ADI_GMRES(sim):
     """
@@ -608,31 +985,50 @@ def engine_CrankNicolsonDiffusion3D_ADI_GMRES(sim):
     """
     dt = sim.dt
     dx = sim.get_cell_spacing()
-    c = sim.fields[0].data
+    c = sim.fields[0]
     D = sim.user_data["D"]
     alpha = 0.5*D*dt/dx**2
     dim = sim.get_dimensions()
-    matrix1d_x = diffusion_matrix_1d(dim[2], 1+2*alpha, -alpha)
-    matrix1d_y = diffusion_matrix_1d(dim[1], 1+2*alpha, -alpha)
-    matrix1d_z = diffusion_matrix_1d(dim[0], 1+2*alpha, -alpha)
-    c = (1-2*alpha)*c + alpha*(np.roll(c, 1, 0) + np.roll(c, -1, 0)) #explicit in x
-    for i in range(dim[0]): #iterate through ADI method in the y direction first in extended P-R
-        for j in range(dim[2]):
-            c[i, :, j], exitCode = gmres(matrix1d_y, c[i, :, j], atol='legacy')
-    c = (1-2*alpha)*c + alpha*(np.roll(c, 1, 1) + np.roll(c, -1, 1)) #explicit in y
-    for i in range(dim[1]): #then iterate through ADI method in the z direction
-        for j in range(dim[2]):
-            c[:, i, j], exitCode = gmres(matrix1d_z, c[:, i, j], atol='legacy')
-    c = (1-2*alpha)*c + alpha*(np.roll(c, 1, 2) + np.roll(c, -1, 2)) #explicit in z
-    for i in range(dim[0]): #finally, iterate through ADI method in the x direction
-        for j in range(dim[1]):
-            c[i, j], exitCode = gmres(matrix1d_x, c[i, j], atol='legacy')
-    sim.fields[0].data = c   
+    bcs = sim._boundary_conditions_type
     
-@cuda.jit
+    # Build matrices with boundary conditions
+    matrix1d_x = diffusion_matrix_1d(dim[2], 1+2*alpha, -alpha, boundary_conditions=bcs[0])
+    matrix1d_y = diffusion_matrix_1d(dim[1], 1+2*alpha, -alpha, boundary_conditions=bcs[1])
+    matrix1d_z = diffusion_matrix_1d(dim[0], 1+2*alpha, -alpha, boundary_conditions=bcs[2])
+    
+    # Work on interior points only
+    c_interior = c.data[c._slice].copy()
+    
+    # Step 1: explicit in x, implicit in y
+    laplacian = c.laplacian()[c._slice]
+    c_interior = c_interior + alpha * laplacian
+    for i in range(dim[0]):
+        for j in range(dim[2]):
+            c_interior[i, :, j], exitCode = gmres(matrix1d_y, c_interior[i, :, j], atol=1e-9)
+    
+    # Step 2: explicit in y, implicit in z
+    c.data[c._slice] = c_interior
+    laplacian = c.laplacian()[c._slice]
+    c_interior = c_interior + alpha * laplacian
+    for i in range(dim[1]):
+        for j in range(dim[2]):
+            c_interior[:, i, j], exitCode = gmres(matrix1d_z, c_interior[:, i, j], atol=1e-9)
+    
+    # Step 3: explicit in z, implicit in x
+    c.data[c._slice] = c_interior
+    laplacian = c.laplacian()[c._slice]
+    c_interior = c_interior + alpha * laplacian
+    for i in range(dim[0]):
+        for j in range(dim[1]):
+            c_interior[i, j], exitCode = gmres(matrix1d_x, c_interior[i, j], atol=1e-9)
+    
+    # Put solution back
+    c.data[c._slice] = c_interior   
+    
+@jit.rawkernel()
 def diffusion_kernel_1D(fields, fields_out, D, dx, dt):
-    startx = cuda.grid(1)      
-    stridex = cuda.gridsize(1) 
+    startx = jit.grid(1)      
+    stridex = jit.gridsize(1) 
 
     alpha = D*dt/(dx*dx) #laplacian coefficient in diffusion discretization
 
@@ -643,10 +1039,10 @@ def diffusion_kernel_1D(fields, fields_out, D, dx, dt):
     for i in range(startx, c.shape[1], stridex):
         c_out[i] = c[i]+alpha*(-2*c[i]+c[i+1]+c[i-1])
 
-@cuda.jit
+@jit.rawkernel()
 def diffusion_kernel_2D(fields, fields_out, D, dx, dt):
-    startx, starty = cuda.grid(2)      
-    stridex, stridey = cuda.gridsize(2) 
+    startx, starty = jit.grid(2)      
+    stridex, stridey = jit.gridsize(2) 
 
     alpha = D*dt/(dx*dx) #laplacian coefficient in diffusion discretization
 
@@ -658,10 +1054,10 @@ def diffusion_kernel_2D(fields, fields_out, D, dx, dt):
         for j in range(startx, c.shape[1], stridex):
             c_out[i][j] = c[i][j]+alpha*(-4*c[i][j]+c[i+1][j]+c[i-1][j]+c[i][j+1]+c[i][j-1])
 
-@cuda.jit
+@jit.rawkernel()
 def diffusion_kernel_3D(fields, fields_out, D, dx, dt):
-    startx, starty, startz = cuda.grid(3)      
-    stridex, stridey, startz = cuda.gridsize(3) 
+    startx, starty, startz = jit.grid(3)      
+    stridex, stridey, stridez = jit.gridsize(3) 
 
     alpha = D*dt/(dx*dx) #laplacian coefficient in diffusion discretization
 
@@ -675,7 +1071,7 @@ def diffusion_kernel_3D(fields, fields_out, D, dx, dt):
                 c_out[i][j][k] = c[i][j][k]+alpha*(-6*c[i][j][k]+c[i+1][j][k]+c[i-1][j][k]+c[i][j+1][k]+c[i][j-1][k]+c[i][j][k+1]+c[i][j][k-1])
             
 def engine_DiffusionGPU(sim):
-    cuda.synchronize()
+    cp.cuda.runtime.deviceSynchronize()
     if(len(sim.dimensions) == 1):
         diffusion_kernel_1D[sim._gpu_blocks_per_grid_1D, sim._gpu_threads_per_block_1D](sim._fields_gpu_device, sim._fields_out_gpu_device, 
                                                                   sim.user_data["D"], sim.dx, sim.dt)
@@ -742,12 +1138,12 @@ class Diffusion(Simulation):
             if (solver == "explicit"):
                 engine_ExplicitDiffusion(self)
             elif (solver == "implicit"):
-                if(len(dim) == 1):
+                if(len(self.dimensions) == 1):
                     if(gmres):
                         engine_ImplicitDiffusion1D_GMRES(self)
                     else:
                         engine_ImplicitDiffusion1D(self)
-                elif(len(dim) == 2):
+                elif(len(self.dimensions) == 2):
                     if(gmres):
                         if(adi):
                             engine_ImplicitDiffusion2D_ADI_GMRES(self)
@@ -758,7 +1154,7 @@ class Diffusion(Simulation):
                             engine_ImplicitDiffusion2D_ADI(self)
                         else:
                             engine_ImplicitDiffusion2D(self)
-                elif(len(dim) == 3):
+                elif(len(self.dimensions) == 3):
                     if(gmres):
                         if(adi):
                             engine_ImplicitDiffusion3D_ADI_GMRES(self)
@@ -770,12 +1166,12 @@ class Diffusion(Simulation):
                         else:
                             engine_ImplicitDiffusion3D(self)
             elif (solver == "crank-nicolson"):
-                if(len(dim) == 1):
+                if(len(self.dimensions) == 1):
                     if(gmres):
                         engine_CrankNicolsonDiffusion1D_GMRES(self)
                     else:
                         engine_CrankNicolsonDiffusion1D(self)
-                elif(len(dim) == 2):
+                elif(len(self.dimensions) == 2):
                     if(gmres):
                         if(adi):
                             engine_CrankNicolsonDiffusion2D_ADI_GMRES(self)
@@ -786,7 +1182,7 @@ class Diffusion(Simulation):
                             engine_CrankNicolsonDiffusion2D_ADI(self)
                         else:
                             engine_CrankNicolsonDiffusion2D(self)
-                elif(len(dim) == 3):
+                elif(len(self.dimensions) == 3):
                     if(gmres):
                         if(adi):
                             engine_CrankNicolsonDiffusion3D_ADI_GMRES(self)
