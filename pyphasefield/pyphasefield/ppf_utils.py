@@ -490,6 +490,6 @@ class TDBContainer():
             sp_ufunc = create_sympy_ufunc_from_tdb(models[phase])
             self._tdb_cpu_ufuncs.append(sp_ufunc)
             if(cupy_enabled):
-                cp_ufunc = create_cp_ufunc_from_sympy(sp_ufunc)
+                cp_ufunc = create_cupy_ufunc_from_sympy(sp_ufunc)
                 self._tdb_gpu_ufuncs.append(cp_ufunc)
         

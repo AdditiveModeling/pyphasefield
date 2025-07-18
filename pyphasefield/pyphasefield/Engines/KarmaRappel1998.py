@@ -97,11 +97,11 @@ def KarmaRappelCPU(self):
     
     
     
-@jit.rawkernel()(Device=True)
+@jit.rawkernel(device=True)
 def MAG2_GPU(derx, dery):
     return (derx*derx+dery*dery)*(derx*derx+dery*dery)
 
-@jit.rawkernel()(Device=True)
+@jit.rawkernel(device=True)
 def A_fun_GPU(derx, dery, mag2, a_s, e_prime):
     threshold=1e-8
     if mag2 < threshold:
