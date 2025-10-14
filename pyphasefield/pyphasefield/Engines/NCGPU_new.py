@@ -827,13 +827,13 @@ def NComponent_kernel_3D(fields, T, transfer, fields_out, rng_states, params, c_
                 q3_out[i][j][k] = q3_out[i][j][k]/renorm
                 q4_out[i][j][k] = q4_out[i][j][k]/renorm
                 for l in range(5, len(fields)):
-                    c_i = fields[l]
-                    c_i_out = fields_out[l]
-                    c_i_out[i][j][k] *= dt
-                    #c_i_out[i][j][k] = max(-0.1, c_i_out[i][j][k])
-                    #c_i_out[i][j][k] = min(0.1, c_i_out[i][j][k])
-                    c_i_out[i][j][k] += c_i[i][j][k]
-                    #c_i_out[i][j][k] = max(0, c_i_out[i][j][k])
+                    c = fields[l]
+                    c_out = fields_out[l]
+                    c_out[i][j][k] *= dt
+                    #c_out[i][j][k] = max(-0.1, c_out[i][j][k])
+                    #c_out[i][j][k] = min(0.1, c_out[i][j][k])
+                    c_out[i][j][k] += c[i][j][k]
+                    #c_out[i][j][k] = max(0, c_out[i][j][k])
 
 def npvalue(var, string, tdb):
     """

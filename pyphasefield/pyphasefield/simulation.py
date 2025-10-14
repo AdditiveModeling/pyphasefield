@@ -180,9 +180,9 @@ class Simulation:
         self._gpu_blocks_per_grid_1D = (256)
         self._gpu_blocks_per_grid_2D = (16, 16)
         self._gpu_blocks_per_grid_3D = (8, 8, 4)
-        self._gpu_threads_per_block_1D = (256)
-        self._gpu_threads_per_block_2D = (16, 16)
-        self._gpu_threads_per_block_3D = (8, 4, 8)
+        self._gpu_threads_per_block_1D = (64)
+        self._gpu_threads_per_block_2D = (8, 8)
+        self._gpu_threads_per_block_3D = (4, 4, 4)
         self._gpu_dtype = "float64"
         self._MPI_COMM_WORLD = None
         self._MPI_rank = 0
